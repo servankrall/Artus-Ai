@@ -21,25 +21,6 @@ ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 USE_ANTHROPIC = bool(ANTHROPIC_API_KEY)
 ANTHROPIC_MODEL = "claude-sonnet-4-6"
 
-# Sırayla denenen ücretsiz, key'siz API'ler
-FREE_PROVIDERS = [
-    {
-        "url": "https://api.llm7.io/v1/chat/completions",
-        "model": "gpt-4o-mini",
-        "headers": {"Authorization": "Bearer unused"},
-    },
-    {
-        "url": "https://text.pollinations.ai/openai",
-        "model": "openai",
-        "headers": {"Referer": "https://pollinations.ai"},
-    },
-    {
-        "url": "https://text.pollinations.ai/openai",
-        "model": "mistral",
-        "headers": {"Referer": "https://pollinations.ai"},
-    },
-]
-
 try:
     with open(SYSTEM_PROMPT_PATH, "r", encoding="utf-8") as f:
         SYSTEM_PROMPT = f.read()
@@ -48,7 +29,7 @@ except OSError:
 
 conversation_history: dict[str, list[dict]] = defaultdict(list)
 
-app = FastAPI(title="Artus AI", version="1.2.0")
+app = FastAPI(title="Artus AI", version="1.3.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -77,23 +58,110 @@ async def stream_anthropic(history: list[dict]) -> AsyncGenerator[str, None]:
             yield text
 
 
-async def _try_provider(provider: dict, history: list[dict]) -> AsyncGenerator[str, None]:
-    payload = {
-        "model": provider["model"],
-        "messages": [{"role": "system", "content": SYSTEM_PROMPT}] + history,
-        "stream": True,
+DDG_VQID_URL = "https://duckduckgo.com/duckchat/v1/status"
+DDG_CHAT_URL = "https://duckduckgo.com/duckchat/v1/chat"
+DDG_MODEL = "gpt-4o-mini"
+
+_ddg_vqd: str = ""
+_ddg_vqd_lock = asyncio.Lock()
+
+
+async def _get_ddg_vqd(client: httpx.AsyncClient) -> str:
+    global _ddg_vqd
+    r = await client.get(DDG_VQID_URL, headers={"x-vqd-accept": "1"})
+    r.raise_for_status()
+    _ddg_vqd = r.headers.get("x-vqd-4", "")
+    return _ddg_vqd
+
+
+async def stream_free(history: list[dict]) -> AsyncGenerator[str, None]:
+    global _ddg_vqd
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Accept": "text/event-stream",
+        "Content-Type": "application/json",
+        "Origin": "https://duckduckgo.com",
+        "Referer": "https://duckduckgo.com/",
     }
-    async with httpx.AsyncClient(timeout=90, headers=provider.get("headers", {})) as client:
-        async with client.stream("POST", provider["url"], json=payload) as response:
-            if response.status_code == 429:
-                raise httpx.HTTPStatusError("429", request=response.request, response=response)
-            response.raise_for_status()
-            async for line in response.aiter_lines():
+
+    # DDG'ye gönderilecek mesajlar: sistem promptunu ilk user mesajına ekle
+    ddg_messages = []
+    for i, msg in enumerate(history):
+        if i == 0 and msg["role"] == "user":
+            ddg_messages.append({
+                "role": "user",
+                "content": f"{SYSTEM_PROMPT}\n\n---\n\n{msg['content']}"
+            })
+        else:
+            ddg_messages.append(msg)
+
+    payload = {"model": DDG_MODEL, "messages": ddg_messages}
+
+    async with httpx.AsyncClient(timeout=90, headers=headers) as client:
+        # VQD token al (yoksa veya süresi dolduysa)
+        async with _ddg_vqd_lock:
+            if not _ddg_vqd:
+                await _get_ddg_vqd(client)
+
+        for attempt in range(3):
+            req_headers = {**headers, "x-vqd-4": _ddg_vqd}
+            try:
+                async with client.stream("POST", DDG_CHAT_URL, json=payload, headers=req_headers) as resp:
+                    if resp.status_code == 429:
+                        await asyncio.sleep(3 * (attempt + 1))
+                        continue
+                    if resp.status_code in (401, 403):
+                        # VQD süresi dolmuş — yenile
+                        async with _ddg_vqd_lock:
+                            await _get_ddg_vqd(client)
+                        continue
+                    resp.raise_for_status()
+
+                    new_vqd = ""
+                    async for line in resp.aiter_lines():
+                        if not line.startswith("data:"):
+                            continue
+                        data = line[5:].strip()
+                        if data == "[DONE]":
+                            break
+                        try:
+                            chunk = json.loads(data)
+                            # Yanıtta yeni VQD token varsa sakla
+                            if "x-vqd-4" in chunk:
+                                new_vqd = chunk["x-vqd-4"]
+                            text = chunk.get("message", "")
+                        except (json.JSONDecodeError, KeyError):
+                            continue
+                        if text:
+                            yield text
+
+                    if new_vqd:
+                        _ddg_vqd = new_vqd
+                    return  # basarili
+
+            except (httpx.HTTPStatusError, httpx.RemoteProtocolError):
+                await asyncio.sleep(2)
+                async with _ddg_vqd_lock:
+                    await _get_ddg_vqd(client)
+
+        # DDG de tutmazsa Pollinations fallback
+        payload2 = {
+            "model": "openai",
+            "messages": [{"role": "system", "content": SYSTEM_PROMPT}] + history,
+            "stream": True,
+        }
+        async with client.stream(
+            "POST", "https://text.pollinations.ai/openai",
+            json=payload2,
+            headers={"Referer": "https://pollinations.ai"},
+        ) as resp:
+            resp.raise_for_status()
+            async for line in resp.aiter_lines():
                 if not line.startswith("data:"):
                     continue
                 data = line[5:].strip()
                 if data == "[DONE]":
-                    return
+                    break
                 try:
                     chunk = json.loads(data)
                     text = chunk["choices"][0]["delta"].get("content") or ""
@@ -103,38 +171,12 @@ async def _try_provider(provider: dict, history: list[dict]) -> AsyncGenerator[s
                     yield text
 
 
-async def stream_free(history: list[dict]) -> AsyncGenerator[str, None]:
-    last_error = None
-    for attempt in range(3):  # 3 retry
-        for provider in FREE_PROVIDERS:
-            try:
-                async for text in _try_provider(provider, history):
-                    yield text
-                return  # basarili
-            except httpx.HTTPStatusError as e:
-                last_error = e
-                if e.response.status_code == 429:
-                    # Rate limit: biraz bekle ve sonraki provider'ı dene
-                    await asyncio.sleep(2 + attempt * 3)
-                    continue
-                raise
-            except Exception as e:
-                last_error = e
-                await asyncio.sleep(1)
-                continue
-
-    raise Exception(
-        f"Tum providerlar basarisiz oldu (muhtemelen rate limit). "
-        f"Bir sire bekleyip tekrar dene. Son hata: {last_error}"
-    )
-
-
 @app.get("/health")
 async def health():
     return {
         "status": "ok",
-        "provider": "anthropic" if USE_ANTHROPIC else "free",
-        "model": ANTHROPIC_MODEL if USE_ANTHROPIC else "auto",
+        "provider": "anthropic" if USE_ANTHROPIC else "duckduckgo+fallback",
+        "model": ANTHROPIC_MODEL if USE_ANTHROPIC else DDG_MODEL,
     }
 
 
@@ -166,7 +208,6 @@ async def chat(request: ChatRequest):
             history.append({"role": "assistant", "content": full_response})
             yield f"data: {json.dumps({'type': 'done'})}\n\n"
         except Exception as exc:
-            # Hata olursa user mesajını history'den cikar
             if history and history[-1]["role"] == "user":
                 history.pop()
             yield f"data: {json.dumps({'type': 'error', 'content': str(exc)})}\n\n"
