@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 from collections import defaultdict
@@ -11,24 +12,28 @@ from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-# ---------------------------------------------------------------------------
-# Config
-# ---------------------------------------------------------------------------
-
 BASE_DIR = Path(__file__).resolve().parent
 SYSTEM_PROMPT_PATH = BASE_DIR / "prompts" / "omni-agent-v1.md"
 FRONTEND_DIR = BASE_DIR / "frontend"
 MAX_HISTORY = 50
 
-# Provider selection:
-#   - ANTHROPIC_API_KEY varsa Claude kullanılır (claude-sonnet-4-6)
-#   - yoksa ücretsiz, key gerektirmeyen Pollinations API kullanılır
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 USE_ANTHROPIC = bool(ANTHROPIC_API_KEY)
-
 ANTHROPIC_MODEL = "claude-sonnet-4-6"
-FREE_API_URL = "https://text.pollinations.ai/openai"
-FREE_MODEL = "openai"  # Pollinations'ın ücretsiz varsayılan modeli
+
+# Sırayla denenen ücretsiz, key'siz API'ler
+FREE_PROVIDERS = [
+    {
+        "url": "https://text.pollinations.ai/openai",
+        "model": "openai",
+        "headers": {"Referer": "https://pollinations.ai"},
+    },
+    {
+        "url": "https://text.pollinations.ai/openai",
+        "model": "mistral",
+        "headers": {"Referer": "https://pollinations.ai"},
+    },
+]
 
 try:
     with open(SYSTEM_PROMPT_PATH, "r", encoding="utf-8") as f:
@@ -36,14 +41,9 @@ try:
 except OSError:
     SYSTEM_PROMPT = "Sen OMNI AGENT v1'sin: uzman seviyesinde, verimli ve profesyonel bir dijital operatör."
 
-# In-memory conversation history: session_id -> list of messages
 conversation_history: dict[str, list[dict]] = defaultdict(list)
 
-# ---------------------------------------------------------------------------
-# App
-# ---------------------------------------------------------------------------
-
-app = FastAPI(title="Artus AI", version="1.1.0")
+app = FastAPI(title="Artus AI", version="1.2.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -59,13 +59,8 @@ class ChatRequest(BaseModel):
     message: str
 
 
-# ---------------------------------------------------------------------------
-# Providers
-# ---------------------------------------------------------------------------
-
 async def stream_anthropic(history: list[dict]) -> AsyncGenerator[str, None]:
     import anthropic
-
     client = anthropic.AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
     async with client.messages.stream(
         model=ANTHROPIC_MODEL,
@@ -77,22 +72,23 @@ async def stream_anthropic(history: list[dict]) -> AsyncGenerator[str, None]:
             yield text
 
 
-async def stream_free(history: list[dict]) -> AsyncGenerator[str, None]:
-    """Key gerektirmeyen ücretsiz Pollinations API (OpenAI uyumlu, SSE stream)."""
+async def _try_provider(provider: dict, history: list[dict]) -> AsyncGenerator[str, None]:
     payload = {
-        "model": FREE_MODEL,
+        "model": provider["model"],
         "messages": [{"role": "system", "content": SYSTEM_PROMPT}] + history,
         "stream": True,
     }
-    async with httpx.AsyncClient(timeout=120) as client:
-        async with client.stream("POST", FREE_API_URL, json=payload) as response:
+    async with httpx.AsyncClient(timeout=90, headers=provider.get("headers", {})) as client:
+        async with client.stream("POST", provider["url"], json=payload) as response:
+            if response.status_code == 429:
+                raise httpx.HTTPStatusError("429", request=response.request, response=response)
             response.raise_for_status()
             async for line in response.aiter_lines():
                 if not line.startswith("data:"):
                     continue
                 data = line[5:].strip()
                 if data == "[DONE]":
-                    break
+                    return
                 try:
                     chunk = json.loads(data)
                     text = chunk["choices"][0]["delta"].get("content") or ""
@@ -102,16 +98,38 @@ async def stream_free(history: list[dict]) -> AsyncGenerator[str, None]:
                     yield text
 
 
-# ---------------------------------------------------------------------------
-# Routes
-# ---------------------------------------------------------------------------
+async def stream_free(history: list[dict]) -> AsyncGenerator[str, None]:
+    last_error = None
+    for attempt in range(3):  # 3 retry
+        for provider in FREE_PROVIDERS:
+            try:
+                async for text in _try_provider(provider, history):
+                    yield text
+                return  # basarili
+            except httpx.HTTPStatusError as e:
+                last_error = e
+                if e.response.status_code == 429:
+                    # Rate limit: biraz bekle ve sonraki provider'ı dene
+                    await asyncio.sleep(2 + attempt * 3)
+                    continue
+                raise
+            except Exception as e:
+                last_error = e
+                await asyncio.sleep(1)
+                continue
+
+    raise Exception(
+        f"Tum providerlar basarisiz oldu (muhtemelen rate limit). "
+        f"Bir sire bekleyip tekrar dene. Son hata: {last_error}"
+    )
+
 
 @app.get("/health")
 async def health():
     return {
         "status": "ok",
-        "provider": "anthropic" if USE_ANTHROPIC else "free (pollinations)",
-        "model": ANTHROPIC_MODEL if USE_ANTHROPIC else FREE_MODEL,
+        "provider": "anthropic" if USE_ANTHROPIC else "free",
+        "model": ANTHROPIC_MODEL if USE_ANTHROPIC else "auto",
     }
 
 
@@ -140,26 +158,20 @@ async def chat(request: ChatRequest):
             async for text in provider(history):
                 full_response += text
                 yield f"data: {json.dumps({'type': 'text', 'content': text})}\n\n"
-
             history.append({"role": "assistant", "content": full_response})
             yield f"data: {json.dumps({'type': 'done'})}\n\n"
-
         except Exception as exc:
+            # Hata olursa user mesajını history'den cikar
+            if history and history[-1]["role"] == "user":
+                history.pop()
             yield f"data: {json.dumps({'type': 'error', 'content': str(exc)})}\n\n"
 
     return StreamingResponse(
         event_stream(),
         media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",
-        },
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
 
-
-# ---------------------------------------------------------------------------
-# Static frontend — mount last so API routes take priority
-# ---------------------------------------------------------------------------
 
 if FRONTEND_DIR.exists():
     app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")
@@ -167,5 +179,4 @@ if FRONTEND_DIR.exists():
 
 if __name__ == "__main__":
     import uvicorn
-
     uvicorn.run(app, host="127.0.0.1", port=8000)

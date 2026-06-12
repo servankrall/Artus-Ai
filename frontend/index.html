@@ -439,7 +439,12 @@
             } else if (evt.type === 'done') {
               break;
             } else if (evt.type === 'error') {
-              bubble.textContent = `Hata: ${evt.content}`;
+              const msg = evt.content || '';
+              if (msg.includes('429') || msg.includes('rate limit') || msg.includes('Too Many')) {
+                bubble.textContent = '⏳ Rate limit — sunucu meşgul, birkaç saniye bekle ve tekrar dene.';
+              } else {
+                bubble.textContent = `Hata: ${msg}`;
+              }
             }
           } catch (_) { /* ignore malformed */ }
         }
