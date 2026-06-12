@@ -1,6 +1,9 @@
 @echo off
 chcp 65001 >nul
-cd /d "%~dp0backend"
+setlocal
+
+:: Bu bat dosyasının bulunduğu klasör (sondaki \ dahil)
+set "ROOT=%~dp0"
 
 where python >nul 2>nul
 if errorlevel 1 (
@@ -11,13 +14,19 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo Gerekli paketler kuruluyor, lutfen bekleyin...
-python -m pip install -r requirements.txt -q
+echo Gerekli paketler kuruluyor...
+python -m pip install fastapi "uvicorn[standard]" httpx anthropic python-multipart -q
 
 echo.
-echo Sunucu baslatiliyor... Tarayicida http://localhost:8000 adresini acin.
+echo Sunucu baslatiliyor...
+echo Tarayicida http://localhost:8000 adresini acin.
 echo Kapatmak icin bu pencereyi kapatin.
 echo.
+
+timeout /t 2 /nobreak >nul
 start "" http://localhost:8000
+
+cd /d "%ROOT%backend"
 python -m uvicorn main:app --host 127.0.0.1 --port 8000
+
 pause
