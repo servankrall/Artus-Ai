@@ -78,12 +78,18 @@ GROQ_MODELS = [
 ]
 
 def _trim_history(history: list[dict], max_chars: int = 12000) -> list[dict]:
-    """Toplam karakter sayısı sınırı aşarsa eski mesajları baştan at."""
+    """Toplam karakter sınırı aşarsa eski mesajları at. Her zaman user ile başla."""
     trimmed = list(history)
     while trimmed:
         total = sum(len(m.get("content", "")) for m in trimmed)
         if total <= max_chars:
             break
+        trimmed = trimmed[2:]  # en eski user+assistant çiftini at
+    # Boş içerik veya assistant ile başlama durumunu düzelt
+    trimmed = [m for m in trimmed if m.get("content", "").strip()]
+    while trimmed and trimmed[0]["role"] != "user":
+        trimmed = trimmed[1:]
+    return trimmed if trimmed else history[-1:]
         trimmed = trimmed[2:]  # en eski user+assistant çiftini at
     return trimmed or history[-2:]  # en az son 2 mesajı koru
 
