@@ -23,6 +23,8 @@
   --green:     #10b981;
   --red:       #ef4444;
   --yellow:    #f59e0b;
+  --orange:    #f97316;
+  --purple:    #7c3aed;
   --radius:    10px;
   --font:      'Segoe UI', system-ui, -apple-system, sans-serif;
   --mono:      'Cascadia Code', 'Fira Code', 'Consolas', monospace;
@@ -49,16 +51,23 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 
 .sidebar-logo {
   width: 36px; height: 36px;
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent), var(--purple));
   border-radius: 8px;
   display: flex; align-items: center; justify-content: center;
   font-size: 18px;
   margin-bottom: 12px;
   flex-shrink: 0;
+  box-shadow: 0 0 16px rgba(37,99,235,0.3);
+  animation: logo-glow 3s ease-in-out infinite;
+}
+@keyframes logo-glow {
+  0%,100% { box-shadow: 0 0 10px rgba(37,99,235,0.3); }
+  50%     { box-shadow: 0 0 20px rgba(37,99,235,0.6); }
 }
 
 .sidebar-spacer { flex: 1; }
 
+/* Mode buttons */
 .mode-btn {
   width: 40px; height: 40px;
   border: none; background: transparent;
@@ -73,33 +82,52 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .mode-btn:hover { background: rgba(255,255,255,.07); color: var(--text); }
 .mode-btn.active { background: rgba(37,99,235,.2); color: var(--accent); }
 
+/* PRO lock overlay */
+.mode-btn .pro-lock {
+  position: absolute; bottom: 2px; right: 2px;
+  font-size: 9px; color: var(--yellow);
+  background: rgba(0,0,0,0.7);
+  border-radius: 3px;
+  padding: 0 2px;
+  line-height: 14px;
+  pointer-events: none;
+}
+
 .mode-btn .tooltip {
   position: absolute;
   left: 52px;
-  background: #1c2128;
+  background: var(--surface);
   border: 1px solid var(--border);
   color: var(--text);
   font-size: 12px;
-  padding: 4px 8px;
-  border-radius: 5px;
+  padding: 4px 10px;
+  border-radius: 6px;
   white-space: nowrap;
   pointer-events: none;
   opacity: 0;
   transform: translateX(-4px);
   transition: opacity .15s, transform .15s;
   z-index: 100;
+  line-height: 1.5;
 }
 .mode-btn:hover .tooltip { opacity: 1; transform: translateX(0); }
 
-/* Model selector in sidebar */
+/* Separator */
+.sidebar-sep {
+  width: 32px; height: 1px;
+  background: var(--border);
+  flex-shrink: 0;
+  margin: 4px 0;
+}
+
+/* Model selector */
 #model-selector-wrap {
   width: 100%;
-  display: flex;
-  flex-direction: column;
+  display: flex; flex-direction: column;
   align-items: center;
   padding: 0 6px;
   gap: 6px;
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 #model-select {
@@ -133,6 +161,17 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   position: relative;
 }
 .settings-btn:hover { background: rgba(255,255,255,.07); color: var(--text); }
+.settings-btn .tooltip {
+  position: absolute; left: 52px;
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text); font-size: 12px;
+  padding: 4px 10px; border-radius: 6px;
+  white-space: nowrap; pointer-events: none;
+  opacity: 0; transform: translateX(-4px);
+  transition: opacity .15s, transform .15s;
+  z-index: 100;
+}
+.settings-btn:hover .tooltip { opacity: 1; transform: translateX(0); }
 
 /* ── Main Area ── */
 #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
@@ -149,41 +188,26 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   height: 52px;
 }
 
-.brand-name { font-size: 15px; font-weight: 700; letter-spacing: .5px; }
-.brand-sep { color: var(--border); font-size: 18px; }
+.brand-name { font-size: 15px; font-weight: 800; letter-spacing: 1px; }
+.brand-sep { color: var(--border); font-size: 18px; margin: 0 2px; }
 #mode-label { font-size: 13px; color: var(--muted); }
 
-.badge {
-  padding: 2px 8px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .5px;
-}
-.badge-pro { background: rgba(16,185,129,.15); color: var(--green); border: 1px solid rgba(16,185,129,.3); cursor: pointer; position: relative; }
-
-.pro-dropdown {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 10px 14px;
-  min-width: 210px;
-  z-index: 200;
-  display: none;
-  flex-direction: column;
-  gap: 8px;
-  font-size: 12.5px;
-  box-shadow: 0 8px 24px rgba(0,0,0,.4);
-}
-.pro-dropdown.open { display: flex; }
-.pro-dropdown-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--muted); }
-.pro-dropdown-item .val { color: var(--text); }
-.pro-dropdown-item .dot-green { color: var(--green); }
-
 #topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+
+/* Tier badge */
+.badge {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: .5px;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.badge:hover { opacity: .8; }
+.badge-pro    { background: rgba(16,185,129,.12); color: var(--green); border: 1px solid rgba(16,185,129,.3); }
+.badge-free   { background: rgba(125,133,144,.12); color: var(--muted); border: 1px solid rgba(125,133,144,.25); }
+
+/* Clear button */
 #btn-clear-top {
   background: transparent; border: 1px solid var(--border);
   color: var(--muted); padding: 4px 12px; border-radius: 6px;
@@ -192,8 +216,63 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 }
 #btn-clear-top:hover { border-color: var(--accent); color: var(--text); }
 
+/* User avatar */
+.user-avatar-btn {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--accent);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: #fff;
+  overflow: hidden;
+  transition: border-color .15s;
+  flex-shrink: 0;
+  padding: 0;
+}
+.user-avatar-btn:hover { border-color: var(--accent); }
+.user-avatar-btn img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+
+/* User dropdown */
+.user-dropdown-wrap { position: relative; }
+.user-dropdown {
+  position: absolute; top: calc(100% + 8px); right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  min-width: 200px;
+  z-index: 300;
+  display: none;
+  flex-direction: column;
+  box-shadow: 0 8px 24px rgba(0,0,0,.5);
+  overflow: hidden;
+  animation: dropdown-in 0.12s ease;
+}
+@keyframes dropdown-in { from { opacity:0; transform: translateY(-4px); } to { opacity:1; transform:none; } }
+.user-dropdown.open { display: flex; }
+
+.ud-header {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.ud-name { font-size: 13.5px; font-weight: 600; color: var(--text); }
+.ud-email { font-size: 11.5px; color: var(--muted); }
+
+.ud-item {
+  padding: 9px 16px;
+  font-size: 13px; color: var(--muted);
+  cursor: pointer;
+  display: flex; align-items: center; gap: 8px;
+  transition: background .1s, color .1s;
+  border: none; background: transparent; width: 100%; text-align: left;
+}
+.ud-item:hover { background: rgba(255,255,255,.05); color: var(--text); }
+.ud-item.danger { color: var(--red); }
+.ud-item.danger:hover { background: rgba(239,68,68,.08); }
+
 /* ── Chat Area ── */
-#chat-area { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; scroll-behavior: smooth; }
+#chat-area { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; scroll-behavior: smooth; }
 #chat-area::-webkit-scrollbar { width: 5px; }
 #chat-area::-webkit-scrollbar-track { background: transparent; }
 #chat-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
@@ -202,32 +281,45 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 #welcome {
   flex: 1;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 14px; text-align: center; padding: 60px 20px; color: var(--muted);
+  gap: 16px; text-align: center; padding: 60px 20px; color: var(--muted);
 }
-#welcome .wlc-icon { font-size: 52px; animation: pulse-icon 2.5s ease-in-out infinite; }
-@keyframes pulse-icon { 0%,100%{ transform: scale(1); } 50%{ transform: scale(1.07); } }
-#welcome h2 { color: var(--text); font-size: 24px; font-weight: 700; }
-#welcome p { font-size: 13.5px; max-width: 400px; line-height: 1.7; }
-.wlc-chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 6px; }
+.wlc-icon {
+  font-size: 58px;
+  animation: wlc-pulse 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 20px rgba(37,99,235,0.4));
+}
+@keyframes wlc-pulse {
+  0%,100% { transform: scale(1); filter: drop-shadow(0 0 15px rgba(37,99,235,0.3)); }
+  50%     { transform: scale(1.06); filter: drop-shadow(0 0 30px rgba(37,99,235,0.6)); }
+}
+#welcome h2 { color: var(--text); font-size: 26px; font-weight: 700; }
+#welcome .wlc-greeting { font-size: 15px; color: var(--muted); margin-top: -8px; }
+#welcome p { font-size: 13.5px; max-width: 420px; line-height: 1.7; }
+.wlc-chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 8px; }
 .wlc-chip {
-  padding: 6px 14px; border-radius: 20px; font-size: 12.5px;
+  padding: 7px 16px; border-radius: 20px; font-size: 12.5px;
   background: var(--surface); border: 1px solid var(--border);
-  cursor: pointer; color: var(--text); transition: border-color .15s, background .15s;
+  cursor: pointer; color: var(--text);
+  transition: border-color .15s, background .15s, transform .1s;
+  display: flex; align-items: center; gap: 5px;
 }
-.wlc-chip:hover { border-color: var(--accent); background: rgba(37,99,235,.1); }
+.wlc-chip:hover { border-color: var(--accent); background: rgba(37,99,235,.1); transform: translateY(-1px); }
+.wlc-chip:active { transform: translateY(0); }
 
 /* ── Messages ── */
 .msg { display: flex; gap: 10px; max-width: 100%; animation: fadeIn .2s ease; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 .msg.user { flex-direction: row-reverse; }
 
 .avatar {
-  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
   font-size: 13px; font-weight: 700; margin-top: 2px;
+  overflow: hidden;
 }
-.msg.user .avatar { background: var(--accent); color: #fff; }
-.msg.bot  .avatar { background: #21262d; color: var(--text); }
+.msg.user .avatar { background: var(--accent); color: #fff; border: 2px solid rgba(37,99,235,.4); }
+.msg.user .avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.msg.bot  .avatar { background: linear-gradient(135deg,#21262d,#161b22); color: var(--text); border: 2px solid var(--border); }
 
 .bubble {
   max-width: 76%; padding: 10px 14px;
@@ -290,25 +382,23 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .btn-reject:hover { background: rgba(239,68,68,.2); }
 
 .code-wrap.accepted { border-color: var(--green); box-shadow: 0 0 0 1px rgba(16,185,129,.2); }
-.code-wrap.accepted .code-header { background: rgba(16,185,129,.08); }
+.code-wrap.accepted .code-header { background: rgba(16,185,129,.06); }
 .code-wrap.rejected { opacity: .5; }
-.code-wrap.rejected pre { text-decoration: line-through; }
 
-/* Design mode generate button */
+/* Design generate button */
 .design-gen-btn {
   display: inline-flex; align-items: center; gap: 6px;
-  background: linear-gradient(135deg, #7c3aed, #2563eb);
-  border: none; color: #fff; padding: 6px 18px; border-radius: 20px;
+  background: linear-gradient(135deg, var(--purple), var(--accent));
+  border: none; color: #fff; padding: 7px 18px; border-radius: 20px;
   font-size: 12.5px; font-weight: 600; cursor: pointer; margin-top: 8px;
-  transition: opacity .15s, transform .1s;
+  transition: opacity .15s, transform .1s; box-shadow: 0 2px 12px rgba(124,58,237,.3);
 }
-.design-gen-btn:hover { opacity: .9; }
-.design-gen-btn:active { transform: scale(.97); }
+.design-gen-btn:hover { opacity: .9; transform: translateY(-1px); }
 
-/* ── Typing ── */
-#typing { display: none; padding: 4px 20px 0; }
+/* ── Typing indicator ── */
+#typing { display: none; padding: 0 20px 0; }
 #typing.visible { display: flex; }
-.typing-inner { display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); border-top-left-radius: 3px; }
+.typing-inner { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); border-top-left-radius: 3px; }
 .dot-bounce span { display: inline-block; width: 5px; height: 5px; background: var(--muted); border-radius: 50%; animation: bounce 1.2s infinite ease-in-out; }
 .dot-bounce span:nth-child(2) { animation-delay: .2s; }
 .dot-bounce span:nth-child(3) { animation-delay: .4s; }
@@ -326,11 +416,14 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .input-row { display: flex; gap: 8px; align-items: flex-end; }
 .input-wrap {
   flex: 1; background: var(--bg);
-  border: 1px solid var(--border); border-radius: 10px;
+  border: 1.5px solid var(--border); border-radius: 12px;
   display: flex; align-items: flex-end; gap: 4px; padding: 4px 8px;
-  transition: border-color .15s;
+  transition: border-color .2s, box-shadow .2s;
 }
-.input-wrap:focus-within { border-color: var(--accent); }
+.input-wrap:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+}
 
 #user-input {
   flex: 1; background: transparent; border: none; outline: none;
@@ -348,7 +441,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   transition: color .15s, background .15s;
 }
 .input-side-btn:hover { color: var(--text); background: rgba(255,255,255,.06); }
-.input-side-btn:disabled { opacity: .35; cursor: not-allowed; }
+.input-side-btn:disabled { opacity: .3; cursor: not-allowed; }
 
 #btn-mic.recording {
   color: var(--red);
@@ -356,79 +449,267 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 }
 @keyframes mic-pulse {
   0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
-  50% { box-shadow: 0 0 0 5px rgba(239,68,68,.2); }
+  50% { box-shadow: 0 0 0 6px rgba(239,68,68,.18); }
 }
 
 #btn-send {
   background: var(--accent); border: none; color: #fff;
-  width: 40px; height: 40px; border-radius: 10px;
+  width: 42px; height: 42px; border-radius: 12px;
   cursor: pointer; font-size: 17px;
   display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; transition: background .15s, transform .1s;
+  flex-shrink: 0; transition: background .15s, transform .1s, box-shadow .15s;
+  box-shadow: 0 2px 8px rgba(37,99,235,.35);
 }
-#btn-send:hover { background: var(--accent-h); }
+#btn-send:hover { background: var(--accent-h); box-shadow: 0 4px 12px rgba(37,99,235,.5); }
 #btn-send:active { transform: scale(.93); }
-#btn-send:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+#btn-send:disabled { opacity: .4; cursor: not-allowed; transform: none; box-shadow: none; }
 
 .input-meta { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; padding: 0 2px; }
 .input-hint { font-size: 11.5px; color: var(--muted); }
 #token-counter { font-size: 11.5px; color: var(--muted); }
 
-/* Design-mode special prompt hint */
-.design-hint {
-  font-size: 12px; color: #7c3aed; display: none; margin-top: 4px; padding: 0 2px;
+/* Mode hint below input */
+.mode-hint {
+  font-size: 12px; display: none; margin-top: 4px; padding: 0 2px;
 }
-body[data-mode="design"] .design-hint { display: block; }
+body[data-mode="design"] .mode-hint { display: block; color: var(--purple); }
+body[data-mode="code"]   .mode-hint { display: block; color: var(--accent); }
 
-/* Mode-specific topbar accent */
-body[data-mode="chat"] #mode-label::before    { content: "💬  "; }
-body[data-mode="code"] #mode-label::before    { content: "⚡  "; }
-body[data-mode="design"] #mode-label::before  { content: "🎨  "; }
-
-/* ── Scrollbar global ── */
+/* ── Scrollbar ── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
-/* ── Settings Panel (slide-in) ── */
+/* ── Settings Panel ── */
 #settings-panel {
-  position: fixed; right: 0; top: 0; bottom: 0; width: 300px;
+  position: fixed; right: 0; top: 0; bottom: 0; width: 320px;
   background: var(--sidebar); border-left: 1px solid var(--border);
   z-index: 500; transform: translateX(100%);
-  transition: transform .25s ease;
+  transition: transform .25s cubic-bezier(.4,0,.2,1);
   display: flex; flex-direction: column;
-  box-shadow: -8px 0 24px rgba(0,0,0,.4);
+  box-shadow: -12px 0 40px rgba(0,0,0,.5);
 }
 #settings-panel.open { transform: translateX(0); }
 .settings-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; border-bottom: 1px solid var(--border); }
 .settings-header h3 { font-size: 15px; font-weight: 600; }
-.settings-close { background: transparent; border: none; color: var(--muted); font-size: 20px; cursor: pointer; }
-.settings-body { flex: 1; overflow-y: auto; padding: 16px 18px; display: flex; flex-direction: column; gap: 18px; }
-.settings-group label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; display: block; margin-bottom: 6px; }
-.settings-group select, .settings-group input[type=text] {
+.settings-close { background: transparent; border: none; color: var(--muted); font-size: 20px; cursor: pointer; transition: color .15s; }
+.settings-close:hover { color: var(--text); }
+.settings-body { flex: 1; overflow-y: auto; padding: 16px 18px; display: flex; flex-direction: column; gap: 20px; }
+.settings-group label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; display: block; margin-bottom: 7px; font-weight: 600; }
+.settings-group select {
   width: 100%; background: var(--surface); border: 1px solid var(--border);
-  color: var(--text); border-radius: 6px; padding: 7px 10px; font-size: 13.5px; outline: none;
+  color: var(--text); border-radius: 7px; padding: 8px 10px; font-size: 13.5px; outline: none;
+  transition: border-color .15s;
 }
-.settings-group select:focus, .settings-group input:focus { border-color: var(--accent); }
-.settings-info { font-size: 12.5px; color: var(--muted); padding: 10px 14px; background: rgba(255,255,255,.03); border-radius: 6px; border: 1px solid var(--border); line-height: 1.7; }
+.settings-group select:focus { border-color: var(--accent); }
+.settings-info {
+  font-size: 12.5px; color: var(--muted);
+  padding: 12px 14px; background: rgba(255,255,255,.03);
+  border-radius: 8px; border: 1px solid var(--border); line-height: 1.9;
+}
+.settings-info strong { color: var(--text); display: block; margin-bottom: 4px; }
+.shortcut-row { display: flex; justify-content: space-between; align-items: center; }
+.shortcut-key {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 4px; padding: 1px 7px; font-size: 11px; font-family: var(--mono);
+  color: var(--text);
+}
 
-/* ── Notification toast ── */
+.danger-zone { display: flex; flex-direction: column; gap: 8px; }
+.btn-danger {
+  width: 100%; background: transparent;
+  border: 1px solid rgba(239,68,68,.3); color: var(--red);
+  border-radius: 7px; padding: 8px 14px; font-size: 13px;
+  cursor: pointer; text-align: left;
+  transition: background .15s, border-color .15s;
+}
+.btn-danger:hover { background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.5); }
+
+.api-status-dot {
+  display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+  margin-right: 5px; vertical-align: middle;
+}
+.api-ok   { background: var(--green); box-shadow: 0 0 5px var(--green); }
+.api-warn { background: var(--yellow); }
+.api-err  { background: var(--red); }
+
+/* ── Toast ── */
 #toast {
-  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
-  background: #1c2128; border: 1px solid var(--border);
-  color: var(--text); padding: 8px 18px; border-radius: 8px; font-size: 13px;
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(16px);
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text); padding: 8px 20px; border-radius: 8px; font-size: 13px;
   opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s;
-  z-index: 1000; box-shadow: 0 4px 16px rgba(0,0,0,.4);
+  z-index: 2000; box-shadow: 0 4px 20px rgba(0,0,0,.5);
+  white-space: nowrap;
 }
 #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-/* ── Responsive (below 900px shrink sidebar a bit) ── */
-@media (max-width: 900px) {
-  .brand-name { font-size: 13px; }
+/* ── Modal Backdrop ── */
+.modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.7);
+  backdrop-filter: blur(4px);
+  z-index: 800;
+  display: none; align-items: center; justify-content: center;
+  animation: fade-in .15s ease;
+}
+.modal-backdrop.open { display: flex; }
+@keyframes fade-in { from { opacity:0; } to { opacity:1; } }
+
+/* ── PRO Modal ── */
+#pro-modal-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  width: 100%; max-width: 500px;
+  padding: 0;
+  box-shadow: 0 20px 60px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.05);
+  animation: modal-in .2s cubic-bezier(.34,1.56,.64,1);
+  overflow: hidden;
+}
+@keyframes modal-in { from { opacity:0; transform: scale(.94) translateY(10px); } to { opacity:1; transform:none; } }
+
+.pro-modal-header {
+  padding: 28px 28px 20px;
+  background: linear-gradient(135deg, rgba(37,99,235,.12), rgba(16,185,129,.06));
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+  position: relative;
+}
+.pro-modal-close {
+  position: absolute; top: 16px; right: 16px;
+  background: transparent; border: none; color: var(--muted);
+  font-size: 20px; cursor: pointer; transition: color .15s;
+  width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+  border-radius: 6px;
+}
+.pro-modal-close:hover { color: var(--text); background: rgba(255,255,255,.06); }
+.pro-modal-title { font-size: 22px; font-weight: 800; letter-spacing: 1px; }
+.pro-modal-sub { font-size: 13px; color: var(--muted); margin-top: 6px; }
+
+.pro-modal-body { padding: 24px 28px; }
+
+.plan-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 24px; }
+.plan-col {
+  background: rgba(255,255,255,.03);
+  border: 1px solid var(--border);
+  border-radius: 12px; padding: 16px;
+}
+.plan-col.pro-col {
+  border-color: rgba(37,99,235,.4);
+  background: rgba(37,99,235,.06);
+  position: relative;
+}
+.plan-label {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .8px; margin-bottom: 12px;
+  display: flex; align-items: center; gap: 6px;
+}
+.plan-label.free-lbl { color: var(--muted); }
+.plan-label.pro-lbl  { color: var(--accent); }
+.popular-badge {
+  position: absolute; top: -10px; right: 12px;
+  background: var(--accent); color: #fff;
+  font-size: 10px; font-weight: 700; padding: 2px 8px;
+  border-radius: 10px; letter-spacing: .5px;
+}
+.plan-feature {
+  font-size: 12.5px; color: var(--muted); margin-bottom: 7px;
+  display: flex; align-items: flex-start; gap: 6px; line-height: 1.4;
+}
+.plan-feature::before { flex-shrink: 0; margin-top: 1px; }
+.plan-feature.ok   { color: var(--text); }
+.plan-feature.ok::before { content: '✓'; color: var(--green); }
+.plan-feature.no::before { content: '✕'; color: var(--muted); opacity: .5; }
+
+.price-row {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.price-amount { font-size: 32px; font-weight: 800; color: var(--text); }
+.price-period { font-size: 13px; color: var(--muted); }
+
+.btn-stripe {
+  width: 100%; padding: 13px;
+  background: linear-gradient(135deg, var(--orange), #ea580c);
+  border: none; border-radius: 10px;
+  color: #fff; font-size: 15px; font-weight: 700;
+  cursor: pointer; transition: opacity .15s, transform .1s;
+  box-shadow: 0 4px 16px rgba(249,115,22,.35);
+  margin-bottom: 10px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-stripe:hover { opacity: .9; transform: translateY(-1px); }
+.btn-stripe:active { transform: translateY(0); }
+
+.btn-demo-pro {
+  width: 100%; padding: 11px;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 10px;
+  color: var(--muted); font-size: 13.5px; font-weight: 500;
+  cursor: pointer; transition: all .15s;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.btn-demo-pro:hover { background: rgba(16,185,129,.08); border-color: rgba(16,185,129,.3); color: var(--green); }
+
+/* Mode-specific topbar label icon */
+body[data-mode="chat"]   #mode-label::before { content: "💬 "; }
+body[data-mode="code"]   #mode-label::before { content: "⚡ "; }
+body[data-mode="design"] #mode-label::before { content: "🎨 "; }
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .plan-cols { grid-template-columns: 1fr; }
+  #pro-modal-card { margin: 0 12px; }
 }
 </style>
 </head>
 <body data-mode="chat">
+
+<!-- ── PRO Modal ── -->
+<div class="modal-backdrop" id="pro-modal">
+  <div id="pro-modal-card">
+    <div class="pro-modal-header">
+      <button class="pro-modal-close" onclick="closeProModal()">✕</button>
+      <div class="pro-modal-title">⚡ OMNI AGENT PRO</div>
+      <div class="pro-modal-sub">Tüm özelliklerin kilidini açın</div>
+    </div>
+    <div class="pro-modal-body">
+      <div class="plan-cols">
+        <!-- Free -->
+        <div class="plan-col">
+          <div class="plan-label free-lbl">🆓 Ücretsiz</div>
+          <div class="plan-feature ok">Chat modu</div>
+          <div class="plan-feature ok">Llama 3.1 8B</div>
+          <div class="plan-feature ok">50 mesaj/gün</div>
+          <div class="plan-feature no">Omni Code</div>
+          <div class="plan-feature no">Omni Design</div>
+          <div class="plan-feature no">Tüm modeller</div>
+          <div class="plan-feature no">Öncelikli destek</div>
+        </div>
+        <!-- Pro -->
+        <div class="plan-col pro-col">
+          <div class="popular-badge">EN POPÜLER</div>
+          <div class="plan-label pro-lbl">⚡ Pro</div>
+          <div class="plan-feature ok">Tüm modeller</div>
+          <div class="plan-feature ok">Sınırsız mesaj</div>
+          <div class="plan-feature ok">Omni Code ⚡</div>
+          <div class="plan-feature ok">Omni Design 🎨</div>
+          <div class="plan-feature ok">GPT-4 / Claude</div>
+          <div class="plan-feature ok">Öncelikli destek</div>
+          <div class="plan-feature ok">Erken erişim</div>
+        </div>
+      </div>
+      <div class="price-row">
+        <span class="price-amount">₺299</span>
+        <span class="price-period">/ay · İstediğiniz zaman iptal</span>
+      </div>
+      <button class="btn-stripe" onclick="stripeCheckout()">💳 Stripe ile Öde</button>
+      <button class="btn-demo-pro" onclick="activateDemoPro()">🧪 Demo Pro Aktifle (test)</button>
+    </div>
+  </div>
+</div>
 
 <!-- ── App Shell ── -->
 <div id="app">
@@ -437,19 +718,27 @@ body[data-mode="design"] #mode-label::before  { content: "🎨  "; }
   <nav id="sidebar">
     <div class="sidebar-logo">⚡</div>
 
-    <button class="mode-btn active" data-mode="chat" title="Chat" onclick="setMode('chat')">
+    <button class="mode-btn active" data-mode="chat" onclick="setMode('chat')">
       💬
       <span class="tooltip">Chat (Ctrl+1)</span>
     </button>
-    <button class="mode-btn" data-mode="code" title="Omni Code" onclick="setMode('code')">
+    <button class="mode-btn" data-mode="code" onclick="handleModeClick('code')">
       ⚡
-      <span class="tooltip">Omni Code (Ctrl+2)</span>
+      <span class="pro-lock" id="code-lock">🔒</span>
+      <span class="tooltip">Omni Code — PRO (Ctrl+2)</span>
     </button>
-    <button class="mode-btn" data-mode="design" title="Omni Design" onclick="setMode('design')">
+    <button class="mode-btn" data-mode="design" onclick="handleModeClick('design')">
       🎨
-      <span class="tooltip">Omni Design (Ctrl+3)</span>
+      <span class="pro-lock" id="design-lock">🔒</span>
+      <span class="tooltip">Omni Design — PRO (Ctrl+3)</span>
     </button>
 
+    <button class="mode-btn" onclick="showHistory()">
+      📋
+      <span class="tooltip">Geçmiş Sohbetler</span>
+    </button>
+
+    <div class="sidebar-sep"></div>
     <div class="sidebar-spacer"></div>
 
     <!-- Model selector -->
@@ -457,14 +746,14 @@ body[data-mode="design"] #mode-label::before  { content: "🎨  "; }
       <select id="model-select" title="Model seç">
         <option value="llama-3.3-70b-versatile">70B</option>
         <option value="llama-3.1-8b-instant">8B ⚡</option>
-        <option value="gemma2-9b-it">Gemma</option>
+        <option value="gemma2-9b-it">Gem</option>
         <option value="mixtral-8x7b-32768">Mix</option>
       </select>
     </div>
 
-    <button class="settings-btn" onclick="toggleSettings()" title="Ayarlar">
+    <button class="settings-btn" onclick="toggleSettings()">
       ⚙️
-      <span class="tooltip" style="bottom:auto;top:0;">Ayarlar</span>
+      <span class="tooltip">Ayarlar</span>
     </button>
   </nav>
 
@@ -476,23 +765,25 @@ body[data-mode="design"] #mode-label::before  { content: "🎨  "; }
       <span class="brand-name">OMNI AGENT</span>
       <span class="brand-sep">|</span>
       <span id="mode-label">Chat</span>
+
       <div id="topbar-right">
+        <!-- Tier badge -->
+        <span class="badge badge-free" id="tier-badge" onclick="openProModal()">ÜCRETSİZ</span>
+
+        <!-- Clear chat -->
         <button id="btn-clear-top" onclick="clearChat()" title="Ctrl+L">Temizle</button>
-        <div style="position:relative;">
-          <span class="badge badge-pro" id="pro-badge" onclick="toggleProDropdown()">PRO</span>
-          <div class="pro-dropdown" id="pro-dropdown">
-            <div class="pro-dropdown-item">
-              <span>Groq API</span>
-              <span class="val dot-green" id="pd-api-status">Kontrol ediliyor…</span>
+
+        <!-- User avatar + dropdown -->
+        <div class="user-dropdown-wrap">
+          <button class="user-avatar-btn" id="user-avatar-btn" onclick="toggleUserDropdown()"></button>
+          <div class="user-dropdown" id="user-dropdown">
+            <div class="ud-header">
+              <div class="ud-name" id="ud-name">—</div>
+              <div class="ud-email" id="ud-email">—</div>
             </div>
-            <div class="pro-dropdown-item">
-              <span>Model</span>
-              <span class="val" id="pd-model">—</span>
-            </div>
-            <div class="pro-dropdown-item">
-              <span>Günlük limit</span>
-              <span class="val" style="color:var(--green)">Sınırsız</span>
-            </div>
+            <button class="ud-item" onclick="openProModal(); closeUserDropdown();">⚡ Pro'ya Yükselt</button>
+            <button class="ud-item" onclick="toggleSettings(); closeUserDropdown();">⚙️ Ayarlar</button>
+            <button class="ud-item danger" onclick="signOut()">↩ Çıkış Yap</button>
           </div>
         </div>
       </div>
@@ -501,15 +792,17 @@ body[data-mode="design"] #mode-label::before  { content: "🎨  "; }
     <!-- Chat Area -->
     <div id="chat-area">
       <div id="welcome">
-        <div class="wlc-icon">🤖</div>
-        <h2>OMNI AGENT v1</h2>
-        <p>Dünyanın en yetenekli dijital operatörü. Yazılım, yapay zeka, siber güvenlik, tasarım ve daha fazlası için buradayım.</p>
+        <div class="wlc-icon">⚡</div>
+        <h2 id="wlc-greeting">Merhaba!</h2>
+        <p class="wlc-greeting">OMNI AGENT'e hoş geldin</p>
+        <p>Yazılım, tasarım, araştırma ve daha fazlası için AI asistanın</p>
         <div class="wlc-chips">
-          <span class="wlc-chip" onclick="useChip(this)">Kod yaz</span>
-          <span class="wlc-chip" onclick="useChip(this)">Hata ayıkla</span>
-          <span class="wlc-chip" onclick="useChip(this)">UI tasarla</span>
-          <span class="wlc-chip" onclick="useChip(this)">Açıkla</span>
-          <span class="wlc-chip" onclick="useChip(this)">Refactor et</span>
+          <span class="wlc-chip" onclick="useChip(this)">💻 Kod yaz</span>
+          <span class="wlc-chip" onclick="useChip(this)">🐛 Hata düzelt</span>
+          <span class="wlc-chip" onclick="useChip(this)">🎨 Tasarım öner</span>
+          <span class="wlc-chip" onclick="useChip(this)">🔍 Araştır</span>
+          <span class="wlc-chip" onclick="useChip(this)">📋 Proje planla</span>
+          <span class="wlc-chip" onclick="useChip(this)">📖 Açıkla</span>
         </div>
       </div>
     </div>
@@ -526,17 +819,17 @@ body[data-mode="design"] #mode-label::before  { content: "🎨  "; }
     <div id="input-bar">
       <div class="input-row">
         <div class="input-wrap">
-          <button class="input-side-btn" id="btn-attach" title="Dosya ekle (yakında)" disabled>+</button>
-          <textarea id="user-input" rows="1" placeholder="Mesajınızı yazın… (Enter → gönder, Shift+Enter → satır)"></textarea>
+          <button class="input-side-btn" id="btn-attach" title="Dosya ekle (yakında)" disabled>＋</button>
+          <textarea id="user-input" rows="1" placeholder="Mesajınızı yazın… (Enter → gönder, Shift+Enter → yeni satır)"></textarea>
           <button class="input-side-btn" id="btn-mic" onclick="toggleMic()" title="Sesle yaz (Ctrl+M)">🎤</button>
         </div>
-        <button id="btn-send" onclick="sendMessage()" title="Gönder">➤</button>
+        <button id="btn-send" onclick="sendMessage()" title="Gönder" disabled>➤</button>
       </div>
       <div class="input-meta">
         <span class="input-hint" id="input-hint">Enter gönderin · Shift+Enter yeni satır</span>
-        <span id="token-counter">0 token</span>
+        <span id="token-counter">0</span>
       </div>
-      <div class="design-hint">🎨 Omni Design: UI/UX odaklı yanıtlar üretiyorum</div>
+      <div class="mode-hint" id="mode-hint"></div>
     </div>
   </div>
 </div>
@@ -548,32 +841,52 @@ body[data-mode="design"] #mode-label::before  { content: "🎨  "; }
     <button class="settings-close" onclick="toggleSettings()">✕</button>
   </div>
   <div class="settings-body">
+
     <div class="settings-group">
       <label>Model</label>
       <select id="settings-model-select" onchange="syncModelFromSettings()">
-        <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
-        <option value="llama-3.1-8b-instant">Llama 3.1 8B ⚡ (Hızlı)</option>
-        <option value="gemma2-9b-it">Gemma 2 9B</option>
-        <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
+        <option value="llama-3.3-70b-versatile">Llama 3.3 70B — Güçlü</option>
+        <option value="llama-3.1-8b-instant">Llama 3.1 8B ⚡ — Hızlı</option>
+        <option value="gemma2-9b-it">Gemma 2 9B — Dengeli</option>
+        <option value="mixtral-8x7b-32768">Mixtral 8x7B — Çok dilli</option>
       </select>
     </div>
+
     <div class="settings-group">
       <label>Mod</label>
       <select onchange="setMode(this.value)" id="settings-mode-select">
         <option value="chat">💬 Chat</option>
-        <option value="code">⚡ Omni Code</option>
-        <option value="design">🎨 Omni Design</option>
+        <option value="code">⚡ Omni Code (PRO)</option>
+        <option value="design">🎨 Omni Design (PRO)</option>
       </select>
     </div>
+
     <div class="settings-info">
-      <strong>Klavye Kısayolları</strong><br>
-      Ctrl+L — Sohbeti temizle<br>
-      Ctrl+M — Mikrofonu aç/kapat<br>
-      Ctrl+1/2/3 — Mod değiştir
+      <strong>Klavye Kısayolları</strong>
+      <div class="shortcut-row">Ctrl+L <span class="shortcut-key">Temizle</span></div>
+      <div class="shortcut-row">Ctrl+M <span class="shortcut-key">Mikrofon</span></div>
+      <div class="shortcut-row">Ctrl+1 <span class="shortcut-key">Chat modu</span></div>
+      <div class="shortcut-row">Ctrl+2 <span class="shortcut-key">Code modu</span></div>
+      <div class="shortcut-row">Ctrl+3 <span class="shortcut-key">Design modu</span></div>
+      <div class="shortcut-row">Esc <span class="shortcut-key">Kapat</span></div>
     </div>
+
+    <div class="settings-info" id="api-status-info">
+      API Durumu: <span id="api-status-text">kontrol ediliyor…</span>
+    </div>
+
     <div class="settings-info" style="font-size:11.5px;">
-      Session ID: <span id="debug-session" style="font-family:monospace;font-size:11px;word-break:break-all;"></span>
+      Session: <span id="debug-session" style="font-family:monospace;font-size:10.5px;word-break:break-all;color:var(--muted);"></span>
     </div>
+
+    <div class="settings-group">
+      <label>Tehlikeli Bölge</label>
+      <div class="danger-zone">
+        <button class="btn-danger" onclick="clearChat(); toggleSettings();">🗑 Sohbet Geçmişini Temizle</button>
+        <button class="btn-danger" onclick="signOut();">↩ Hesaptan Çık</button>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -582,19 +895,35 @@ body[data-mode="design"] #mode-label::before  { content: "🎨  "; }
 
 <script>
 /* ═══════════════════════════════════════════════
+   AUTH GUARD
+═══════════════════════════════════════════════ */
+let CURRENT_USER = null;
+
+(function authGuard() {
+  try {
+    CURRENT_USER = JSON.parse(localStorage.getItem('artus_user') || 'null');
+    if (!CURRENT_USER || !CURRENT_USER.email) {
+      window.location.replace('login.html');
+    }
+  } catch(_) {
+    window.location.replace('login.html');
+  }
+})();
+
+/* ═══════════════════════════════════════════════
    STATE
 ═══════════════════════════════════════════════ */
 const SESSION_ID = (() => {
-  let s = localStorage.getItem('omni_session');
+  let s = localStorage.getItem('artus_session_id');
   if (!s) {
-    s = (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now());
-    localStorage.setItem('omni_session', s);
+    s = (crypto.randomUUID ? crypto.randomUUID() : 'sess_' + Math.random().toString(36).slice(2) + Date.now());
+    localStorage.setItem('artus_session_id', s);
   }
   return s;
 })();
 
-let currentMode   = localStorage.getItem('omni_mode')  || 'chat';
-let currentModel  = localStorage.getItem('omni_model') || 'llama-3.3-70b-versatile';
+let currentMode   = localStorage.getItem('artus_mode')  || 'chat';
+let currentModel  = localStorage.getItem('artus_model') || 'llama-3.3-70b-versatile';
 let streaming     = false;
 let micActive     = false;
 let recognition   = null;
@@ -608,7 +937,7 @@ const VALID_MODELS = [
 
 const MODEL_LABELS = {
   'llama-3.3-70b-versatile': 'Llama 3.3 70B',
-  'llama-3.1-8b-instant':    'Llama 3.1 8B ⚡',
+  'llama-3.1-8b-instant':    'Llama 3.1 8B',
   'gemma2-9b-it':            'Gemma 2 9B',
   'mixtral-8x7b-32768':      'Mixtral 8x7B',
 };
@@ -616,27 +945,30 @@ const MODEL_LABELS = {
 /* ═══════════════════════════════════════════════
    DOM REFS
 ═══════════════════════════════════════════════ */
-const chatArea       = document.getElementById('chat-area');
-const typingEl       = document.getElementById('typing');
-const inputEl        = document.getElementById('user-input');
-const sendBtn        = document.getElementById('btn-send');
-const micBtn         = document.getElementById('btn-mic');
-const modelSelect    = document.getElementById('model-select');
-const settingsModelS = document.getElementById('settings-model-select');
-const settingsModeS  = document.getElementById('settings-mode-select');
-const modeLabelEl    = document.getElementById('mode-label');
-const toastEl        = document.getElementById('toast');
-const proDropdown    = document.getElementById('pro-dropdown');
-const pdApiStatus    = document.getElementById('pd-api-status');
-const pdModel        = document.getElementById('pd-model');
-const tokenCounter   = document.getElementById('token-counter');
-const debugSession   = document.getElementById('debug-session');
+const chatArea        = document.getElementById('chat-area');
+const typingEl        = document.getElementById('typing');
+const inputEl         = document.getElementById('user-input');
+const sendBtn         = document.getElementById('btn-send');
+const micBtn          = document.getElementById('btn-mic');
+const modelSelect     = document.getElementById('model-select');
+const settingsModelS  = document.getElementById('settings-model-select');
+const settingsModeS   = document.getElementById('settings-mode-select');
+const modeLabelEl     = document.getElementById('mode-label');
+const toastEl         = document.getElementById('toast');
+const tokenCounter    = document.getElementById('token-counter');
+const debugSession    = document.getElementById('debug-session');
+const modeHint        = document.getElementById('mode-hint');
+const tierBadge       = document.getElementById('tier-badge');
 
 /* ═══════════════════════════════════════════════
    INIT
 ═══════════════════════════════════════════════ */
 function init() {
+  // Show user info
+  renderUserUI();
+
   debugSession.textContent = SESSION_ID;
+
   applyMode(currentMode, false);
   applyModel(currentModel, false);
   checkHealth();
@@ -647,20 +979,132 @@ function init() {
   });
 
   document.addEventListener('keydown', handleShortcuts);
+
+  // Close dropdowns on outside click
   document.addEventListener('click', e => {
-    if (!e.target.closest('#pro-badge') && !e.target.closest('#pro-dropdown')) {
-      proDropdown.classList.remove('open');
+    if (!e.target.closest('#user-avatar-btn') && !e.target.closest('#user-dropdown')) {
+      closeUserDropdown();
     }
     if (!e.target.closest('#settings-panel') && !e.target.closest('.settings-btn')) {
       document.getElementById('settings-panel').classList.remove('open');
     }
+    if (e.target === document.getElementById('pro-modal')) {
+      closeProModal();
+    }
   });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      closeProModal();
+      document.getElementById('settings-panel').classList.remove('open');
+      closeUserDropdown();
+    }
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   USER UI
+═══════════════════════════════════════════════ */
+function renderUserUI() {
+  if (!CURRENT_USER) return;
+
+  // Update welcome greeting
+  const firstName = CURRENT_USER.name ? CURRENT_USER.name.split(' ')[0] : 'Hoş geldin';
+  const greetingEl = document.getElementById('wlc-greeting');
+  if (greetingEl) greetingEl.textContent = `Merhaba, ${firstName}!`;
+
+  // Avatar button
+  const avatarBtn = document.getElementById('user-avatar-btn');
+  if (CURRENT_USER.picture) {
+    avatarBtn.innerHTML = `<img src="${CURRENT_USER.picture}" alt="${CURRENT_USER.name}" referrerpolicy="no-referrer" />`;
+  } else {
+    const initials = getInitials(CURRENT_USER.name);
+    avatarBtn.textContent = initials;
+  }
+
+  // Dropdown
+  document.getElementById('ud-name').textContent = CURRENT_USER.name || '';
+  document.getElementById('ud-email').textContent = CURRENT_USER.email || '';
+
+  // Tier badge
+  updateTierBadge();
+}
+
+function updateTierBadge() {
+  if (!CURRENT_USER) return;
+  const isPro = CURRENT_USER.pro === true;
+  tierBadge.textContent = isPro ? 'PRO' : 'ÜCRETSİZ';
+  tierBadge.className = 'badge ' + (isPro ? 'badge-pro' : 'badge-free');
+
+  // PRO mode: unlock icons
+  document.getElementById('code-lock').style.display = isPro ? 'none' : '';
+  document.getElementById('design-lock').style.display = isPro ? 'none' : '';
+}
+
+function getInitials(name) {
+  if (!name) return '?';
+  const parts = name.trim().split(' ');
+  if (parts.length === 1) return parts[0][0].toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function toggleUserDropdown() {
+  document.getElementById('user-dropdown').classList.toggle('open');
+}
+function closeUserDropdown() {
+  document.getElementById('user-dropdown').classList.remove('open');
+}
+
+function signOut() {
+  localStorage.removeItem('artus_user');
+  localStorage.removeItem('artus_google_token');
+  window.location.replace('login.html');
+}
+
+/* ═══════════════════════════════════════════════
+   PRO MODAL
+═══════════════════════════════════════════════ */
+function openProModal() {
+  document.getElementById('pro-modal').classList.add('open');
+  closeUserDropdown();
+}
+function closeProModal() {
+  document.getElementById('pro-modal').classList.remove('open');
+}
+function stripeCheckout() {
+  alert('💳 Stripe ödeme yakında aktif olacak!\n\nBu özellik için çalışmalarımız devam ediyor.');
+}
+function activateDemoPro() {
+  CURRENT_USER.pro = true;
+  localStorage.setItem('artus_user', JSON.stringify(CURRENT_USER));
+  updateTierBadge();
+  closeProModal();
+  showToast('⚡ Demo Pro aktifleştirildi!');
 }
 
 /* ═══════════════════════════════════════════════
    MODE
 ═══════════════════════════════════════════════ */
 const MODE_LABELS = { chat: 'Chat', code: 'Omni Code', design: 'Omni Design' };
+const MODE_HINTS = {
+  chat:   '',
+  code:   '⚡ Omni Code: Kod blokları için Kabul/Reddet butonları aktif',
+  design: '🎨 Omni Design: UI/UX odaklı yanıtlar üretiyorum',
+};
+const MODE_PLACEHOLDERS = {
+  chat:   'Mesajınızı yazın… (Enter → gönder)',
+  code:   'Kod görevi tanımlayın… (Enter → gönder)',
+  design: 'UI/UX fikrinizi anlatın… (Enter → gönder)',
+};
+
+function handleModeClick(m) {
+  const isPro = CURRENT_USER && CURRENT_USER.pro === true;
+  if (!isPro && (m === 'code' || m === 'design')) {
+    openProModal();
+    return;
+  }
+  setMode(m);
+}
 
 function setMode(m) {
   applyMode(m, true);
@@ -668,16 +1112,15 @@ function setMode(m) {
 
 function applyMode(m, save) {
   currentMode = m;
-  if (save) localStorage.setItem('omni_mode', m);
+  if (save) localStorage.setItem('artus_mode', m);
   document.body.dataset.mode = m;
   modeLabelEl.textContent = MODE_LABELS[m] || m;
   document.querySelectorAll('.mode-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.mode === m);
   });
   settingsModeS.value = m;
-  // update placeholder
-  const hints = { chat: 'Mesajınızı yazın…', code: 'Kod görevi tanımlayın…', design: 'UI/UX fikrinizi anlatın…' };
-  inputEl.placeholder = (hints[m] || 'Mesajınızı yazın…') + ' (Enter → gönder)';
+  inputEl.placeholder = MODE_PLACEHOLDERS[m] || MODE_PLACEHOLDERS.chat;
+  modeHint.textContent = MODE_HINTS[m] || '';
 }
 
 /* ═══════════════════════════════════════════════
@@ -686,10 +1129,9 @@ function applyMode(m, save) {
 function applyModel(m, save) {
   if (!VALID_MODELS.includes(m)) m = VALID_MODELS[0];
   currentModel = m;
-  if (save) localStorage.setItem('omni_model', m);
+  if (save) localStorage.setItem('artus_model', m);
   modelSelect.value = m;
   settingsModelS.value = m;
-  pdModel.textContent = MODEL_LABELS[m] || m;
 }
 
 modelSelect.addEventListener('change', () => applyModel(modelSelect.value, true));
@@ -699,18 +1141,27 @@ function syncModelFromSettings() {
 }
 
 /* ═══════════════════════════════════════════════
+   HISTORY (stub)
+═══════════════════════════════════════════════ */
+function showHistory() {
+  showToast('📋 Sohbet geçmişi yakında!');
+}
+
+/* ═══════════════════════════════════════════════
    HEALTH CHECK
 ═══════════════════════════════════════════════ */
 async function checkHealth() {
+  const el = document.getElementById('api-status-text');
   try {
     const r = await fetch('/health');
     const d = await r.json();
-    const connected = d.provider === 'groq' || d.provider === 'anthropic';
-    pdApiStatus.textContent = connected ? 'Bağlı ✓' : 'Ücretsiz (sınırlı)';
-    pdApiStatus.style.color = connected ? 'var(--green)' : 'var(--yellow)';
-  } catch (_) {
-    pdApiStatus.textContent = 'Bağlanamadı';
-    pdApiStatus.style.color = 'var(--red)';
+    if (d.provider === 'groq' || d.provider === 'anthropic') {
+      el.innerHTML = `<span class="api-status-dot api-ok"></span>Bağlı (${d.provider})`;
+    } else {
+      el.innerHTML = `<span class="api-status-dot api-warn"></span>Ücretsiz mod (sınırlı)`;
+    }
+  } catch(_) {
+    el.innerHTML = `<span class="api-status-dot api-err"></span>Sunucuya erişilemiyor`;
   }
 }
 
@@ -721,14 +1172,15 @@ function onInputChange() {
   inputEl.style.height = 'auto';
   inputEl.style.height = Math.min(inputEl.scrollHeight, 160) + 'px';
   const chars = inputEl.value.length;
-  const tokens = Math.round(chars / 4);
-  tokenCounter.textContent = tokens + ' token';
+  tokenCounter.textContent = Math.round(chars / 4) + ' token';
+  sendBtn.disabled = chars === 0 || streaming;
 }
 
 function resetInput() {
   inputEl.value = '';
   inputEl.style.height = 'auto';
-  tokenCounter.textContent = '0 token';
+  tokenCounter.textContent = '0';
+  sendBtn.disabled = true;
 }
 
 /* ═══════════════════════════════════════════════
@@ -740,7 +1192,7 @@ function removeWelcome() {
 }
 
 function useChip(el) {
-  inputEl.value = el.textContent + ': ';
+  inputEl.value = el.textContent.replace(/^[^\s]+\s/, '') + ': ';
   inputEl.focus();
   onInputChange();
 }
@@ -749,17 +1201,20 @@ function useChip(el) {
    CLEAR
 ═══════════════════════════════════════════════ */
 function clearChat() {
+  const firstName = CURRENT_USER ? CURRENT_USER.name.split(' ')[0] : 'Hoş geldin';
   chatArea.innerHTML = `
     <div id="welcome">
-      <div class="wlc-icon">🤖</div>
-      <h2>OMNI AGENT v1</h2>
-      <p>Dünyanın en yetenekli dijital operatörü. Yazılım, yapay zeka, siber güvenlik, tasarım ve daha fazlası için buradayım.</p>
+      <div class="wlc-icon">⚡</div>
+      <h2 id="wlc-greeting">Merhaba, ${firstName}!</h2>
+      <p class="wlc-greeting">OMNI AGENT'e hoş geldin</p>
+      <p>Yazılım, tasarım, araştırma ve daha fazlası için AI asistanın</p>
       <div class="wlc-chips">
-        <span class="wlc-chip" onclick="useChip(this)">Kod yaz</span>
-        <span class="wlc-chip" onclick="useChip(this)">Hata ayıkla</span>
-        <span class="wlc-chip" onclick="useChip(this)">UI tasarla</span>
-        <span class="wlc-chip" onclick="useChip(this)">Açıkla</span>
-        <span class="wlc-chip" onclick="useChip(this)">Refactor et</span>
+        <span class="wlc-chip" onclick="useChip(this)">💻 Kod yaz</span>
+        <span class="wlc-chip" onclick="useChip(this)">🐛 Hata düzelt</span>
+        <span class="wlc-chip" onclick="useChip(this)">🎨 Tasarım öner</span>
+        <span class="wlc-chip" onclick="useChip(this)">🔍 Araştır</span>
+        <span class="wlc-chip" onclick="useChip(this)">📋 Proje planla</span>
+        <span class="wlc-chip" onclick="useChip(this)">📖 Açıkla</span>
       </div>
     </div>`;
   showToast('Sohbet temizlendi');
@@ -776,8 +1231,11 @@ function appendUserMsg(text) {
   removeWelcome();
   const div = document.createElement('div');
   div.className = 'msg user';
+  const avatarContent = CURRENT_USER && CURRENT_USER.picture
+    ? `<img src="${CURRENT_USER.picture}" alt="" referrerpolicy="no-referrer" />`
+    : getInitials(CURRENT_USER ? CURRENT_USER.name : '?');
   div.innerHTML = `
-    <div class="avatar">S</div>
+    <div class="avatar">${avatarContent}</div>
     <div class="bubble">${escapeHtml(text)}</div>`;
   chatArea.appendChild(div);
   scrollBottom();
@@ -799,18 +1257,14 @@ function escapeHtml(s) {
 
 /* ── Markdown + Code Rendering ── */
 function renderBubble(bubble, rawText, mode) {
-  // Configure marked
   marked.setOptions({ breaks: true, gfm: true });
 
-  // Custom renderer to intercept code blocks
   const renderer = new marked.Renderer();
   renderer.code = (code, lang) => {
     const language = lang || 'plaintext';
     const highlighted = (() => {
       try {
-        if (hljs.getLanguage(language)) {
-          return hljs.highlight(code, { language }).value;
-        }
+        if (hljs.getLanguage(language)) return hljs.highlight(code, { language }).value;
         return hljs.highlightAuto(code).value;
       } catch(_) { return escapeHtml(code); }
     })();
@@ -835,22 +1289,20 @@ function renderBubble(bubble, rawText, mode) {
       </div>`;
   };
 
-  // Design mode: append a generate-style button after rendered content
   let html = marked.parse(rawText, { renderer });
   if (mode === 'design') {
-    html += `<button class="design-gen-btn" onclick="showToast('Tasarım üretildi! ✨')">✨ Oluştur</button>`;
+    html += `<button class="design-gen-btn" onclick="showToast('✨ Tasarım taslağı oluşturuldu!')">✨ Tasarımı Oluştur</button>`;
   }
 
   bubble.innerHTML = html;
 }
 
-/* ── Code block accept / reject ── */
 function acceptCode(id) {
   const wrap = document.getElementById(id);
   if (!wrap) return;
   wrap.classList.remove('rejected');
   wrap.classList.toggle('accepted');
-  showToast(wrap.classList.contains('accepted') ? 'Kod kabul edildi ✓' : 'Kabul geri alındı');
+  showToast(wrap.classList.contains('accepted') ? '✓ Kod kabul edildi' : 'Kabul geri alındı');
 }
 
 function rejectCode(id) {
@@ -858,7 +1310,7 @@ function rejectCode(id) {
   if (!wrap) return;
   wrap.classList.remove('accepted');
   wrap.classList.toggle('rejected');
-  showToast(wrap.classList.contains('rejected') ? 'Kod reddedildi ✗' : 'Red geri alındı');
+  showToast(wrap.classList.contains('rejected') ? '✗ Kod reddedildi' : 'Red geri alındı');
 }
 
 function copyCode(id, btn) {
@@ -938,7 +1390,7 @@ async function sendMessage() {
           } else if (evt.type === 'error') {
             const msg = evt.content || '';
             if (msg.match(/429|rate.?limit|too.?many/i)) {
-              bubble.innerHTML = '<em style="color:var(--yellow)">Sunucu meşgul, biraz bekle ve tekrar dene.</em>';
+              bubble.innerHTML = '<em style="color:var(--yellow)">⏳ Sunucu meşgul, biraz bekle ve tekrar dene.</em>';
             } else {
               bubble.textContent = `Hata: ${msg}`;
             }
@@ -963,12 +1415,7 @@ function toggleMic() {
     showToast('Tarayıcı mikrofon desteklemiyor');
     return;
   }
-
-  if (micActive) {
-    stopMic();
-  } else {
-    startMic();
-  }
+  micActive ? stopMic() : startMic();
 }
 
 function startMic() {
@@ -981,18 +1428,15 @@ function startMic() {
   recognition.onstart = () => {
     micActive = true;
     micBtn.classList.add('recording');
-    showToast('Dinleniyor… 🎤');
+    showToast('🎤 Dinleniyor…');
   };
   recognition.onresult = e => {
-    const transcript = e.results[0][0].transcript;
-    inputEl.value += (inputEl.value ? ' ' : '') + transcript;
+    const t = e.results[0][0].transcript;
+    inputEl.value += (inputEl.value ? ' ' : '') + t;
     onInputChange();
   };
-  recognition.onerror = e => {
-    showToast('Mikrofon hatası: ' + e.error);
-    stopMic();
-  };
-  recognition.onend = () => stopMic();
+  recognition.onerror = e => { showToast('Mikrofon hatası: ' + e.error); stopMic(); };
+  recognition.onend   = () => stopMic();
   recognition.start();
 }
 
@@ -1003,18 +1447,11 @@ function stopMic() {
 }
 
 /* ═══════════════════════════════════════════════
-   PRO DROPDOWN
-═══════════════════════════════════════════════ */
-function toggleProDropdown() {
-  proDropdown.classList.toggle('open');
-  if (proDropdown.classList.contains('open')) checkHealth();
-}
-
-/* ═══════════════════════════════════════════════
    SETTINGS PANEL
 ═══════════════════════════════════════════════ */
 function toggleSettings() {
   document.getElementById('settings-panel').classList.toggle('open');
+  checkHealth();
 }
 
 /* ═══════════════════════════════════════════════
@@ -1025,19 +1462,19 @@ function showToast(msg) {
   toastEl.textContent = msg;
   toastEl.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2200);
+  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2400);
 }
 
 /* ═══════════════════════════════════════════════
    KEYBOARD SHORTCUTS
 ═══════════════════════════════════════════════ */
 function handleShortcuts(e) {
-  if (e.ctrlKey) {
+  if (e.ctrlKey || e.metaKey) {
     if (e.key === 'l' || e.key === 'L') { e.preventDefault(); clearChat(); }
     if (e.key === 'm' || e.key === 'M') { e.preventDefault(); toggleMic(); }
     if (e.key === '1') { e.preventDefault(); setMode('chat'); }
-    if (e.key === '2') { e.preventDefault(); setMode('code'); }
-    if (e.key === '3') { e.preventDefault(); setMode('design'); }
+    if (e.key === '2') { e.preventDefault(); handleModeClick('code'); }
+    if (e.key === '3') { e.preventDefault(); handleModeClick('design'); }
   }
 }
 

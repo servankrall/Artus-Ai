@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OMNI AGENT — Artus AI</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:      #0d1117;
+  --surface: #161b22;
+  --border:  #30363d;
+  --accent:  #2563eb;
+  --text:    #e6edf3;
+  --muted:   #7d8590;
+  --green:   #10b981;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  overflow: hidden;
+}
+
+/* Animated starfield background */
+.stars {
+  position: fixed; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(37,99,235,0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(16,185,129,0.06) 0%, transparent 40%),
+    radial-gradient(ellipse at 50% 80%, rgba(124,58,237,0.06) 0%, transparent 40%);
+  animation: drift 20s ease-in-out infinite alternate;
+}
+@keyframes drift {
+  0%   { transform: scale(1) translateY(0); }
+  100% { transform: scale(1.05) translateY(-10px); }
+}
+
+/* Grid lines overlay */
+.grid-overlay {
+  position: fixed; inset: 0; z-index: 0;
+  background-image:
+    linear-gradient(rgba(48,54,61,0.3) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(48,54,61,0.3) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 70%);
+}
+
+/* Page layout */
+.page {
+  position: relative; z-index: 1;
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 40px 20px;
+  gap: 0;
+}
+
+/* Card */
+.card {
+  background: rgba(22,27,34,0.85);
+  border: 1px solid rgba(48,54,61,0.8);
+  border-radius: 20px;
+  padding: 52px 48px 44px;
+  width: 100%; max-width: 480px;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 28px;
+  backdrop-filter: blur(20px);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.04),
+    0 20px 60px rgba(0,0,0,0.6),
+    0 0 80px rgba(37,99,235,0.08);
+}
+
+/* Logo */
+.logo-wrap {
+  display: flex; align-items: center; justify-content: center;
+  width: 88px; height: 88px;
+  background: linear-gradient(135deg, rgba(37,99,235,0.25), rgba(124,58,237,0.2));
+  border: 1px solid rgba(37,99,235,0.4);
+  border-radius: 24px;
+  font-size: 42px;
+  position: relative;
+  animation: logo-pulse 3s ease-in-out infinite;
+}
+@keyframes logo-pulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(37,99,235,0.3), 0 0 40px rgba(37,99,235,0.1);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(37,99,235,0.5), 0 0 60px rgba(37,99,235,0.2);
+    transform: scale(1.04);
+  }
+}
+
+/* Brand text */
+.brand {
+  text-align: center;
+}
+.brand-title {
+  font-size: 30px; font-weight: 800;
+  letter-spacing: 2px;
+  background: linear-gradient(135deg, #e6edf3, #7d8590);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+  margin-bottom: 10px;
+}
+.brand-sub {
+  font-size: 13.5px;
+  color: var(--muted);
+  line-height: 1.5;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+/* Feature pills */
+.features {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  justify-content: center;
+}
+.feat-pill {
+  padding: 5px 14px; border-radius: 20px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  font-size: 12.5px; color: var(--muted);
+  display: flex; align-items: center; gap: 5px;
+}
+
+/* Divider */
+.divider {
+  width: 100%; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border), transparent);
+}
+
+/* Buttons */
+.btn-google {
+  width: 100%;
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  background: #fff;
+  color: #1f1f1f;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 20px;
+  font-size: 15px; font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+  transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+  position: relative;
+  overflow: hidden;
+}
+.btn-google::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0);
+  transition: background 0.15s;
+}
+.btn-google:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,0,0,0.5); }
+.btn-google:hover::after { background: rgba(0,0,0,0.04); }
+.btn-google:active { transform: translateY(0); }
+
+.google-logo {
+  width: 20px; height: 20px; flex-shrink: 0;
+}
+
+.btn-demo {
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: var(--muted);
+  border-radius: 12px;
+  padding: 11px 20px;
+  font-size: 13.5px; font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-demo:hover {
+  background: rgba(255,255,255,0.07);
+  border-color: rgba(255,255,255,0.18);
+  color: var(--text);
+}
+
+.btn-group {
+  width: 100%;
+  display: flex; flex-direction: column; gap: 10px;
+}
+
+/* Pro note */
+.pro-note {
+  font-size: 12px; color: var(--muted);
+  text-align: center;
+  display: flex; align-items: center; gap: 5px;
+}
+.pro-dot {
+  display: inline-block;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  animation: dot-blink 2s ease-in-out infinite;
+}
+@keyframes dot-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* Footer */
+.footer {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  text-align: center;
+  padding: 16px;
+  font-size: 12px; color: rgba(125,133,144,0.5);
+  z-index: 1;
+}
+
+/* Loading overlay for redirect */
+.redirect-overlay {
+  position: fixed; inset: 0;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.3s;
+}
+.redirect-overlay.show { opacity: 1; pointer-events: all; }
+
+/* Error message */
+.error-msg {
+  font-size: 12.5px; color: #ef4444;
+  text-align: center; display: none;
+  padding: 8px 12px; border-radius: 8px;
+  background: rgba(239,68,68,0.08);
+  border: 1px solid rgba(239,68,68,0.2);
+  width: 100%;
+}
+.error-msg.show { display: block; }
+</style>
+</head>
+<body>
+
+<script>
+// ── CONFIG ──
+window.GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID";
+
+// ── AUTH CHECK ── redirect early if already logged in
+(function() {
+  try {
+    const user = JSON.parse(localStorage.getItem('artus_user') || 'null');
+    if (user && user.email) {
+      window.location.replace('loading.html');
+    }
+  } catch(_) {}
+})();
+</script>
+
+<div class="stars"></div>
+<div class="grid-overlay"></div>
+
+<div class="page">
+  <div class="card">
+
+    <!-- Logo -->
+    <div class="logo-wrap">⚡</div>
+
+    <!-- Brand -->
+    <div class="brand">
+      <div class="brand-title">OMNI AGENT</div>
+      <div class="brand-sub">Artus AI — Dünyanın En Yetenekli Dijital Operatörü</div>
+    </div>
+
+    <!-- Feature pills -->
+    <div class="features">
+      <span class="feat-pill">💬 Chat</span>
+      <span class="feat-pill">⚡ Code</span>
+      <span class="feat-pill">🎨 Design</span>
+      <span class="feat-pill">🔒 Güvenli</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Buttons -->
+    <div class="btn-group">
+      <button class="btn-google" id="btn-google" onclick="signInWithGoogle()">
+        <svg class="google-logo" viewBox="0 0 48 48">
+          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.29-8.16 2.29-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+          <path fill="none" d="M0 0h48v48H0z"/>
+        </svg>
+        Google ile Giriş Yap
+      </button>
+
+      <button class="btn-demo" id="btn-demo" onclick="demoLogin()">
+        🚀 Demo Girişi (Google gerekmez)
+      </button>
+    </div>
+
+    <div id="error-msg" class="error-msg"></div>
+
+    <!-- Pro note -->
+    <div class="pro-note">
+      <span class="pro-dot"></span>
+      Pro üyeler tüm özelliklere erişebilir
+    </div>
+
+  </div>
+</div>
+
+<div class="footer">© 2025 Artus AI. Tüm hakları saklıdır.</div>
+
+<div class="redirect-overlay" id="redirect-overlay">
+  <div style="text-align:center;">
+    <div style="font-size:40px;animation:logo-pulse 1.5s ease-in-out infinite;">⚡</div>
+    <div style="margin-top:12px;font-size:14px;color:var(--muted);">Yönlendiriliyor…</div>
+  </div>
+</div>
+
+<script>
+/* ── Google OAuth ── */
+function signInWithGoogle() {
+  if (!window.GOOGLE_CLIENT_ID || window.GOOGLE_CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID') {
+    showError('Google Client ID ayarlanmamış. Demo girişini kullanın.');
+    return;
+  }
+
+  if (!window.google) {
+    showError('Google servisleri yüklenemedi. İnternet bağlantınızı kontrol edin.');
+    return;
+  }
+
+  const btn = document.getElementById('btn-google');
+  btn.disabled = true;
+  btn.textContent = 'Bağlanıyor…';
+
+  try {
+    const tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: window.GOOGLE_CLIENT_ID,
+      scope: 'profile email',
+      callback: async (tokenResponse) => {
+        if (tokenResponse.error) {
+          showError('Google girişi başarısız: ' + tokenResponse.error);
+          btn.disabled = false;
+          btn.innerHTML = `<svg class="google-logo" viewBox="0 0 48 48">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.29-8.16 2.29-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+            <path fill="none" d="M0 0h48v48H0z"/>
+          </svg> Google ile Giriş Yap`;
+          return;
+        }
+
+        // Fetch user info with the access token
+        try {
+          const resp = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+          });
+          const info = await resp.json();
+          const user = {
+            name: info.name || info.given_name || 'Kullanıcı',
+            email: info.email || '',
+            picture: info.picture || '',
+            pro: false,
+          };
+          localStorage.setItem('artus_user', JSON.stringify(user));
+          localStorage.setItem('artus_google_token', tokenResponse.access_token);
+          redirectToApp();
+        } catch(e) {
+          showError('Kullanıcı bilgisi alınamadı. Tekrar deneyin.');
+          btn.disabled = false;
+        }
+      }
+    });
+    tokenClient.requestAccessToken();
+  } catch(e) {
+    showError('Google girişi başlatılamadı: ' + e.message);
+    btn.disabled = false;
+  }
+}
+
+/* ── Demo Login ── */
+function demoLogin() {
+  const user = {
+    name: 'Demo Kullanıcı',
+    email: 'demo@artus.ai',
+    picture: '',
+    pro: false,
+  };
+  localStorage.setItem('artus_user', JSON.stringify(user));
+  redirectToApp();
+}
+
+/* ── Helpers ── */
+function redirectToApp() {
+  document.getElementById('redirect-overlay').classList.add('show');
+  setTimeout(() => { window.location.replace('loading.html'); }, 400);
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-msg');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 5000);
+}
+</script>
+</body>
+</html>

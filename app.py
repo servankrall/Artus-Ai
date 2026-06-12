@@ -8,7 +8,7 @@ from typing import AsyncGenerator
 import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -196,6 +196,16 @@ async def stream_free(history: list[dict]) -> AsyncGenerator[str, None]:
         "Ucretsiz API cevap vermiyor. "
         "Lutfen config.txt dosyasina Groq key ekle: console.groq.com (ucretsiz)"
     )
+
+
+@app.get("/")
+async def root():
+    return RedirectResponse("/loading.html")
+
+
+@app.get("/api/user-check")
+async def user_check():
+    return {"ok": True}
 
 
 @app.get("/health")
