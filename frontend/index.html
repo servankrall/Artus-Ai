@@ -413,6 +413,24 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   flex-shrink: 0;
 }
 
+/* File attachment chips */
+#attach-chips {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;
+}
+.attach-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: rgba(37,99,235,.12); border: 1px solid rgba(37,99,235,.3);
+  border-radius: 20px; padding: 3px 10px;
+  font-size: 12px; color: var(--accent);
+}
+.attach-chip-remove {
+  background: transparent; border: none; color: var(--muted);
+  cursor: pointer; font-size: 13px; line-height: 1;
+  padding: 0; margin: 0; display: flex; align-items: center;
+  transition: color .15s;
+}
+.attach-chip-remove:hover { color: var(--red); }
+
 .input-row { display: flex; gap: 8px; align-items: flex-end; }
 .input-wrap {
   flex: 1; background: var(--bg);
@@ -535,14 +553,14 @@ body[data-mode="code"]   .mode-hint { display: block; color: var(--accent); }
 
 /* ── Toast ── */
 #toast {
-  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(16px);
+  position: fixed; bottom: 24px; right: 24px;
   background: var(--surface); border: 1px solid var(--border);
-  color: var(--text); padding: 8px 20px; border-radius: 8px; font-size: 13px;
+  color: var(--text); padding: 8px 18px; border-radius: 20px; font-size: 13px;
   opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s;
   z-index: 2000; box-shadow: 0 4px 20px rgba(0,0,0,.5);
-  white-space: nowrap;
+  white-space: nowrap; transform: translateY(10px);
 }
-#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+#toast.show { opacity: 1; transform: translateY(0); }
 
 /* ── Modal Backdrop ── */
 .modal-backdrop {
@@ -555,6 +573,45 @@ body[data-mode="code"]   .mode-hint { display: block; color: var(--accent); }
 }
 .modal-backdrop.open { display: flex; }
 @keyframes fade-in { from { opacity:0; } to { opacity:1; } }
+
+/* ── History Modal ── */
+#history-modal-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  width: 100%; max-width: 480px;
+  max-height: 70vh;
+  display: flex; flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,.7);
+  animation: modal-in .2s cubic-bezier(.34,1.56,.64,1);
+  overflow: hidden;
+}
+.history-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 18px; border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.history-header h3 { font-size: 15px; font-weight: 600; }
+.history-close { background: transparent; border: none; color: var(--muted); font-size: 20px; cursor: pointer; transition: color .15s; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 5px; }
+.history-close:hover { color: var(--text); background: rgba(255,255,255,.06); }
+#history-list { flex: 1; overflow-y: auto; padding: 10px; }
+.history-empty { text-align: center; color: var(--muted); padding: 32px 16px; font-size: 13.5px; }
+.history-item {
+  padding: 10px 12px; border-radius: 8px; cursor: pointer;
+  transition: background .12s; display: flex; flex-direction: column; gap: 3px;
+  border: 1px solid transparent; margin-bottom: 4px;
+}
+.history-item:hover { background: rgba(255,255,255,.05); border-color: var(--border); }
+.history-item-title { font-size: 13.5px; color: var(--text); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.history-item-date { font-size: 11.5px; color: var(--muted); }
+.history-footer { padding: 12px; border-top: 1px solid var(--border); flex-shrink: 0; }
+.btn-new-chat {
+  width: 100%; padding: 9px; background: rgba(37,99,235,.12);
+  border: 1px solid rgba(37,99,235,.3); border-radius: 8px;
+  color: var(--accent); font-size: 13.5px; font-weight: 600; cursor: pointer;
+  transition: all .15s;
+}
+.btn-new-chat:hover { background: rgba(37,99,235,.2); }
 
 /* ── PRO Modal ── */
 #pro-modal-card {
@@ -636,22 +693,10 @@ body[data-mode="code"]   .mode-hint { display: block; color: var(--accent); }
   color: #fff; font-size: 15px; font-weight: 700;
   cursor: pointer; transition: opacity .15s, transform .1s;
   box-shadow: 0 4px 16px rgba(249,115,22,.35);
-  margin-bottom: 10px;
   display: flex; align-items: center; justify-content: center; gap: 8px;
 }
 .btn-stripe:hover { opacity: .9; transform: translateY(-1px); }
 .btn-stripe:active { transform: translateY(0); }
-
-.btn-demo-pro {
-  width: 100%; padding: 11px;
-  background: rgba(255,255,255,.05);
-  border: 1px solid rgba(255,255,255,.12);
-  border-radius: 10px;
-  color: var(--muted); font-size: 13.5px; font-weight: 500;
-  cursor: pointer; transition: all .15s;
-  display: flex; align-items: center; justify-content: center; gap: 6px;
-}
-.btn-demo-pro:hover { background: rgba(16,185,129,.08); border-color: rgba(16,185,129,.3); color: var(--green); }
 
 /* Mode-specific topbar label icon */
 body[data-mode="chat"]   #mode-label::before { content: "💬 "; }
@@ -666,6 +711,9 @@ body[data-mode="design"] #mode-label::before { content: "🎨 "; }
 </style>
 </head>
 <body data-mode="chat">
+
+<!-- Hidden file input for attachment -->
+<input type="file" id="file-input" accept=".txt,.js,.py,.html,.css,.json,.md,.ts,.jsx,.tsx,.c,.cpp,.java,.go,.rs,.sql" style="display:none" />
 
 <!-- ── PRO Modal ── -->
 <div class="modal-backdrop" id="pro-modal">
@@ -705,8 +753,21 @@ body[data-mode="design"] #mode-label::before { content: "🎨 "; }
         <span class="price-amount">₺299</span>
         <span class="price-period">/ay · İstediğiniz zaman iptal</span>
       </div>
-      <button class="btn-stripe" onclick="stripeCheckout()">💳 Stripe ile Öde</button>
-      <button class="btn-demo-pro" onclick="activateDemoPro()">🧪 Demo Pro Aktifle (test)</button>
+      <button class="btn-stripe" onclick="stripeCheckout()">💳 Yakında — Stripe ile Öde</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── History Modal ── -->
+<div class="modal-backdrop" id="history-modal">
+  <div id="history-modal-card">
+    <div class="history-header">
+      <h3>📋 Geçmiş Sohbetler</h3>
+      <button class="history-close" onclick="closeHistoryModal()">✕</button>
+    </div>
+    <div id="history-list"></div>
+    <div class="history-footer">
+      <button class="btn-new-chat" onclick="startNewChat()">＋ Yeni Sohbet</button>
     </div>
   </div>
 </div>
@@ -817,9 +878,11 @@ body[data-mode="design"] #mode-label::before { content: "🎨 "; }
 
     <!-- Input Bar -->
     <div id="input-bar">
+      <!-- Attached file chips -->
+      <div id="attach-chips"></div>
       <div class="input-row">
         <div class="input-wrap">
-          <button class="input-side-btn" id="btn-attach" title="Dosya ekle (yakında)" disabled>＋</button>
+          <button class="input-side-btn" id="btn-attach" title="Dosya ekle" onclick="triggerFileAttach()">＋</button>
           <textarea id="user-input" rows="1" placeholder="Mesajınızı yazın… (Enter → gönder, Shift+Enter → yeni satır)"></textarea>
           <button class="input-side-btn" id="btn-mic" onclick="toggleMic()" title="Sesle yaz (Ctrl+M)">🎤</button>
         </div>
@@ -913,7 +976,7 @@ let CURRENT_USER = null;
 /* ═══════════════════════════════════════════════
    STATE
 ═══════════════════════════════════════════════ */
-const SESSION_ID = (() => {
+let SESSION_ID = (() => {
   let s = localStorage.getItem('artus_session_id');
   if (!s) {
     s = (crypto.randomUUID ? crypto.randomUUID() : 'sess_' + Math.random().toString(36).slice(2) + Date.now());
@@ -927,6 +990,13 @@ let currentModel  = localStorage.getItem('artus_model') || 'llama-3.3-70b-versat
 let streaming     = false;
 let micActive     = false;
 let recognition   = null;
+
+// Per-session message tracking for history
+let sessionMessages = []; // [{role, content}]
+let currentHistoryId = null; // ID in artus_history for this session
+
+// Attached files state
+let attachedFiles = []; // [{name, content}]
 
 const VALID_MODELS = [
   'llama-3.3-70b-versatile',
@@ -959,16 +1029,15 @@ const tokenCounter    = document.getElementById('token-counter');
 const debugSession    = document.getElementById('debug-session');
 const modeHint        = document.getElementById('mode-hint');
 const tierBadge       = document.getElementById('tier-badge');
+const fileInput       = document.getElementById('file-input');
+const attachChips     = document.getElementById('attach-chips');
 
 /* ═══════════════════════════════════════════════
    INIT
 ═══════════════════════════════════════════════ */
 function init() {
-  // Show user info
   renderUserUI();
-
   debugSession.textContent = SESSION_ID;
-
   applyMode(currentMode, false);
   applyModel(currentModel, false);
   checkHealth();
@@ -979,6 +1048,9 @@ function init() {
   });
 
   document.addEventListener('keydown', handleShortcuts);
+
+  // File input change handler
+  fileInput.addEventListener('change', handleFileSelected);
 
   // Close dropdowns on outside click
   document.addEventListener('click', e => {
@@ -991,11 +1063,15 @@ function init() {
     if (e.target === document.getElementById('pro-modal')) {
       closeProModal();
     }
+    if (e.target === document.getElementById('history-modal')) {
+      closeHistoryModal();
+    }
   });
 
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
       closeProModal();
+      closeHistoryModal();
       document.getElementById('settings-panel').classList.remove('open');
       closeUserDropdown();
     }
@@ -1008,25 +1084,20 @@ function init() {
 function renderUserUI() {
   if (!CURRENT_USER) return;
 
-  // Update welcome greeting
   const firstName = CURRENT_USER.name ? CURRENT_USER.name.split(' ')[0] : 'Hoş geldin';
   const greetingEl = document.getElementById('wlc-greeting');
   if (greetingEl) greetingEl.textContent = `Merhaba, ${firstName}!`;
 
-  // Avatar button
   const avatarBtn = document.getElementById('user-avatar-btn');
   if (CURRENT_USER.picture) {
     avatarBtn.innerHTML = `<img src="${CURRENT_USER.picture}" alt="${CURRENT_USER.name}" referrerpolicy="no-referrer" />`;
   } else {
-    const initials = getInitials(CURRENT_USER.name);
-    avatarBtn.textContent = initials;
+    avatarBtn.textContent = getInitials(CURRENT_USER.name);
   }
 
-  // Dropdown
   document.getElementById('ud-name').textContent = CURRENT_USER.name || '';
   document.getElementById('ud-email').textContent = CURRENT_USER.email || '';
 
-  // Tier badge
   updateTierBadge();
 }
 
@@ -1036,7 +1107,6 @@ function updateTierBadge() {
   tierBadge.textContent = isPro ? 'PRO' : 'ÜCRETSİZ';
   tierBadge.className = 'badge ' + (isPro ? 'badge-pro' : 'badge-free');
 
-  // PRO mode: unlock icons
   document.getElementById('code-lock').style.display = isPro ? 'none' : '';
   document.getElementById('design-lock').style.display = isPro ? 'none' : '';
 }
@@ -1072,14 +1142,176 @@ function closeProModal() {
   document.getElementById('pro-modal').classList.remove('open');
 }
 function stripeCheckout() {
-  alert('💳 Stripe ödeme yakında aktif olacak!\n\nBu özellik için çalışmalarımız devam ediyor.');
+  showToast('💳 Stripe ödeme yakında aktif olacak!');
 }
-function activateDemoPro() {
-  CURRENT_USER.pro = true;
-  localStorage.setItem('artus_user', JSON.stringify(CURRENT_USER));
-  updateTierBadge();
-  closeProModal();
-  showToast('⚡ Demo Pro aktifleştirildi!');
+
+/* ═══════════════════════════════════════════════
+   HISTORY
+═══════════════════════════════════════════════ */
+function getHistory() {
+  try {
+    return JSON.parse(localStorage.getItem('artus_history') || '[]');
+  } catch(_) { return []; }
+}
+
+function saveHistory(entries) {
+  localStorage.setItem('artus_history', JSON.stringify(entries));
+}
+
+function createHistoryEntry(firstMessage) {
+  const id = crypto.randomUUID ? crypto.randomUUID() : 'h_' + Date.now() + Math.random().toString(36).slice(2);
+  const title = firstMessage.length > 40 ? firstMessage.slice(0, 40) + '…' : firstMessage;
+  const entry = {
+    id,
+    title,
+    date: new Date().toISOString(),
+    messages: [...sessionMessages],
+    sessionId: SESSION_ID,
+  };
+  const history = getHistory();
+  history.unshift(entry);
+  saveHistory(history);
+  currentHistoryId = id;
+  return id;
+}
+
+function updateHistoryEntry() {
+  if (!currentHistoryId) return;
+  const history = getHistory();
+  const idx = history.findIndex(h => h.id === currentHistoryId);
+  if (idx === -1) return;
+  history[idx].messages = [...sessionMessages];
+  saveHistory(history);
+}
+
+function showHistory() {
+  const modal = document.getElementById('history-modal');
+  const listEl = document.getElementById('history-list');
+  const history = getHistory();
+
+  if (history.length === 0) {
+    listEl.innerHTML = '<div class="history-empty">Henüz geçmiş sohbet yok.<br>İlk mesajını göndererek başla!</div>';
+  } else {
+    listEl.innerHTML = '';
+    history.forEach(entry => {
+      const item = document.createElement('div');
+      item.className = 'history-item';
+      const d = new Date(entry.date);
+      const dateStr = d.toLocaleDateString('tr-TR', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
+      item.innerHTML = `
+        <div class="history-item-title">${escapeHtml(entry.title)}</div>
+        <div class="history-item-date">${dateStr} · ${entry.messages.length} mesaj</div>`;
+      item.addEventListener('click', () => restoreConversation(entry));
+      listEl.appendChild(item);
+    });
+  }
+
+  modal.classList.add('open');
+}
+
+function closeHistoryModal() {
+  document.getElementById('history-modal').classList.remove('open');
+}
+
+function restoreConversation(entry) {
+  closeHistoryModal();
+  // Clear current view
+  chatArea.innerHTML = '';
+  sessionMessages = [...entry.messages];
+  currentHistoryId = entry.id;
+  SESSION_ID = entry.sessionId || SESSION_ID;
+
+  // Re-render messages
+  entry.messages.forEach(msg => {
+    if (msg.role === 'user') {
+      appendUserMsgRestore(msg.content);
+    } else if (msg.role === 'assistant') {
+      const bubble = createBotBubble();
+      renderBubble(bubble, msg.content, currentMode);
+    }
+  });
+
+  showToast('📋 Sohbet yüklendi');
+}
+
+function appendUserMsgRestore(text) {
+  const div = document.createElement('div');
+  div.className = 'msg user';
+  const avatarContent = CURRENT_USER && CURRENT_USER.picture
+    ? `<img src="${CURRENT_USER.picture}" alt="" referrerpolicy="no-referrer" />`
+    : getInitials(CURRENT_USER ? CURRENT_USER.name : '?');
+  div.innerHTML = `
+    <div class="avatar">${avatarContent}</div>
+    <div class="bubble">${escapeHtml(text)}</div>`;
+  chatArea.appendChild(div);
+}
+
+function startNewChat() {
+  closeHistoryModal();
+  SESSION_ID = crypto.randomUUID ? crypto.randomUUID() : 'sess_' + Math.random().toString(36).slice(2) + Date.now();
+  localStorage.setItem('artus_session_id', SESSION_ID);
+  sessionMessages = [];
+  currentHistoryId = null;
+  attachedFiles = [];
+  renderAttachChips();
+  clearChat();
+  showToast('✨ Yeni sohbet başlatıldı');
+}
+
+/* ═══════════════════════════════════════════════
+   FILE ATTACHMENT
+═══════════════════════════════════════════════ */
+function triggerFileAttach() {
+  fileInput.value = '';
+  fileInput.click();
+}
+
+function handleFileSelected(e) {
+  const files = Array.from(e.target.files);
+  if (!files.length) return;
+
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const content = ev.target.result;
+      const ext = file.name.split('.').pop() || 'txt';
+
+      // Build the block to prepend to textarea
+      const block = `[Dosya: ${file.name}]\n\`\`\`${ext}\n${content}\n\`\`\`\n\n`;
+
+      // Prepend to textarea
+      inputEl.value = block + inputEl.value;
+      onInputChange();
+
+      // Store for chip display
+      attachedFiles.push({ name: file.name, block });
+      renderAttachChips();
+      showToast(`📎 Dosya eklendi: ${file.name}`);
+    };
+    reader.onerror = () => showToast(`Dosya okunamadı: ${file.name}`);
+    reader.readAsText(file);
+  });
+}
+
+function renderAttachChips() {
+  attachChips.innerHTML = '';
+  attachedFiles.forEach((f, idx) => {
+    const chip = document.createElement('div');
+    chip.className = 'attach-chip';
+    chip.innerHTML = `📎 ${escapeHtml(f.name)} <button class="attach-chip-remove" title="Kaldır" onclick="removeAttach(${idx})">×</button>`;
+    attachChips.appendChild(chip);
+  });
+}
+
+function removeAttach(idx) {
+  const file = attachedFiles[idx];
+  if (!file) return;
+  // Remove the block from textarea
+  inputEl.value = inputEl.value.replace(file.block, '');
+  attachedFiles.splice(idx, 1);
+  renderAttachChips();
+  onInputChange();
+  showToast('Dosya kaldırıldı');
 }
 
 /* ═══════════════════════════════════════════════
@@ -1141,13 +1373,6 @@ function syncModelFromSettings() {
 }
 
 /* ═══════════════════════════════════════════════
-   HISTORY (stub)
-═══════════════════════════════════════════════ */
-function showHistory() {
-  showToast('📋 Sohbet geçmişi yakında!');
-}
-
-/* ═══════════════════════════════════════════════
    HEALTH CHECK
 ═══════════════════════════════════════════════ */
 async function checkHealth() {
@@ -1181,6 +1406,9 @@ function resetInput() {
   inputEl.style.height = 'auto';
   tokenCounter.textContent = '0';
   sendBtn.disabled = true;
+  // Clear attached files after sending
+  attachedFiles = [];
+  renderAttachChips();
 }
 
 /* ═══════════════════════════════════════════════
@@ -1217,6 +1445,8 @@ function clearChat() {
         <span class="wlc-chip" onclick="useChip(this)">📖 Açıkla</span>
       </div>
     </div>`;
+  sessionMessages = [];
+  currentHistoryId = null;
   showToast('Sohbet temizlendi');
 }
 
@@ -1291,10 +1521,26 @@ function renderBubble(bubble, rawText, mode) {
 
   let html = marked.parse(rawText, { renderer });
   if (mode === 'design') {
-    html += `<button class="design-gen-btn" onclick="showToast('✨ Tasarım taslağı oluşturuldu!')">✨ Tasarımı Oluştur</button>`;
+    // Store rawText so the button can access the last AI message
+    const safeId = 'dbtn_' + Math.random().toString(36).slice(2);
+    html += `<button class="design-gen-btn" id="${safeId}" onclick="openDesignCreate('${safeId}')">✨ Oluştur</button>`;
+    // Store the raw text as a data attribute on the bubble for retrieval
+    bubble.dataset.rawText = rawText;
   }
 
   bubble.innerHTML = html;
+  if (mode === 'design') {
+    // Also store on button for easy access
+    const btn = bubble.querySelector('.design-gen-btn');
+    if (btn) btn.dataset.rawText = rawText;
+  }
+}
+
+function openDesignCreate(btnId) {
+  const btn = document.getElementById(btnId);
+  const text = btn ? (btn.dataset.rawText || '') : '';
+  const query = encodeURIComponent(text.slice(0, 200));
+  window.open('https://www.bing.com/images/create?q=' + query, '_blank');
 }
 
 function acceptCode(id) {
@@ -1319,9 +1565,22 @@ function copyCode(id, btn) {
   const code = wrap.querySelector('pre code');
   if (!code) return;
   navigator.clipboard.writeText(code.innerText).then(() => {
-    btn.textContent = 'Kopyalandı!';
+    btn.textContent = '✓ Kopyalandı';
     btn.classList.add('copied');
-    setTimeout(() => { btn.textContent = 'Kopyala'; btn.classList.remove('copied'); }, 1800);
+    showToast('✓ Kopyalandı!');
+    setTimeout(() => { btn.textContent = 'Kopyala'; btn.classList.remove('copied'); }, 2000);
+  }).catch(() => {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = code.innerText;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.textContent = '✓ Kopyalandı';
+    btn.classList.add('copied');
+    showToast('✓ Kopyalandı!');
+    setTimeout(() => { btn.textContent = 'Kopyala'; btn.classList.remove('copied'); }, 2000);
   });
 }
 
@@ -1341,6 +1600,14 @@ async function sendMessage() {
   resetInput();
   appendUserMsg(text);
   setStreaming(true);
+
+  // Track in session messages
+  sessionMessages.push({ role: 'user', content: text });
+
+  // Create or update history entry
+  if (!currentHistoryId) {
+    createHistoryEntry(text);
+  }
 
   const bubble = createBotBubble();
   let fullText = '';
@@ -1397,6 +1664,12 @@ async function sendMessage() {
           }
         } catch(_) {}
       }
+    }
+
+    // Save assistant response to session messages and update history
+    if (fullText) {
+      sessionMessages.push({ role: 'assistant', content: fullText });
+      updateHistoryEntry();
     }
 
   } catch(err) {
@@ -1462,7 +1735,7 @@ function showToast(msg) {
   toastEl.textContent = msg;
   toastEl.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2400);
+  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2500);
 }
 
 /* ═══════════════════════════════════════════════
