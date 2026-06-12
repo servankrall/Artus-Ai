@@ -151,6 +151,24 @@ async def health():
     return {"status": "ok", "provider": provider}
 
 
+@app.get("/debug")
+async def debug():
+    """config.txt okunuyor mu, key var mi? Tarayicida localhost:8000/debug ile bak."""
+    keys = get_keys()
+    groq = keys.get("GROQ_API_KEY", "")
+    anth = keys.get("ANTHROPIC_API_KEY", "")
+    config_exists = CONFIG_PATH.exists()
+    config_raw = CONFIG_PATH.read_text(encoding="utf-8") if config_exists else "(yok)"
+    return {
+        "config_txt_bulundu": config_exists,
+        "config_txt_icerik": config_raw,
+        "groq_key_algilandi": bool(groq),
+        "groq_key_onizleme": (groq[:8] + "...") if groq else "YOK - key eklenmemis!",
+        "anthropic_key_algilandi": bool(anth),
+        "kullanilacak_provider": "groq" if groq else ("anthropic" if anth else "FREE (rate limit riski!)"),
+    }
+
+
 @app.post("/api/chat")
 async def chat(request: ChatRequest):
     session_id = request.session_id.strip()
