@@ -16,8 +16,8 @@ from pydantic import BaseModel
 # ---------------------------------------------------------------------------
 
 BASE_DIR = Path(__file__).resolve().parent
-SYSTEM_PROMPT_PATH = BASE_DIR.parent / "prompts" / "omni-agent-v1.md"
-FRONTEND_DIR = BASE_DIR.parent / "frontend"
+SYSTEM_PROMPT_PATH = BASE_DIR / "prompts" / "omni-agent-v1.md"
+FRONTEND_DIR = BASE_DIR / "frontend"
 MAX_HISTORY = 50
 
 # Provider selection:
@@ -30,8 +30,11 @@ ANTHROPIC_MODEL = "claude-sonnet-4-6"
 FREE_API_URL = "https://text.pollinations.ai/openai"
 FREE_MODEL = "openai"  # Pollinations'ın ücretsiz varsayılan modeli
 
-with open(SYSTEM_PROMPT_PATH, "r", encoding="utf-8") as f:
-    SYSTEM_PROMPT = f.read()
+try:
+    with open(SYSTEM_PROMPT_PATH, "r", encoding="utf-8") as f:
+        SYSTEM_PROMPT = f.read()
+except OSError:
+    SYSTEM_PROMPT = "Sen OMNI AGENT v1'sin: uzman seviyesinde, verimli ve profesyonel bir dijital operatör."
 
 # In-memory conversation history: session_id -> list of messages
 conversation_history: dict[str, list[dict]] = defaultdict(list)
@@ -160,3 +163,9 @@ async def chat(request: ChatRequest):
 
 if FRONTEND_DIR.exists():
     app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(app, host="127.0.0.1", port=8000)

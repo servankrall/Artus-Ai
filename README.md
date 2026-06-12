@@ -23,7 +23,7 @@ Sonra tarayıcıda aç: http://localhost:8000
 
 ```
 ├── prompts/omni-agent-v1.md   # Sistem promptu (AI'nın kişiliği)
-├── backend/main.py            # FastAPI sunucu
+├── app.py                     # FastAPI sunucu
 ├── frontend/index.html        # Chat arayüzü
 ├── start.bat                  # Windows başlatıcı
 └── start.sh                   # Linux/Mac başlatıcı
