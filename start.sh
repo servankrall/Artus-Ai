@@ -5,8 +5,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND_DIR="$SCRIPT_DIR/backend"
 
 echo "==> Installing dependencies..."
-pip install -r "$BACKEND_DIR/requirements.txt" --quiet
+python3 -m pip install -r "$BACKEND_DIR/requirements.txt" --quiet
 
-echo "==> Starting Artus AI..."
+echo "==> Starting Artus AI... Tarayıcıda http://localhost:8000 adresini açın."
 cd "$BACKEND_DIR"
-exec uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+exec python3 -m uvicorn main:app --host 127.0.0.1 --port 8000
