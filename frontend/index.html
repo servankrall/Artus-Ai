@@ -7,6 +7,10 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 <style>
 /* ── Reset & Root ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -786,6 +790,35 @@ body[data-mode="design"] #mode-label::before { content: "🎨 "; }
   .plan-cols { grid-template-columns: 1fr; }
   #pro-modal-card { margin: 0 12px; }
 }
+
+/* ── New feature styles ── */
+.topbar-icon-btn { background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 9px;border-radius:6px;cursor:pointer;font-size:13px;transition:border-color .15s,color .15s; }
+.topbar-icon-btn:hover { border-color:var(--accent);color:var(--text); }
+#btn-artifacts.has-artifacts { color:var(--accent);border-color:var(--accent); }
+.exp-item { padding:9px 14px;cursor:pointer;font-size:13px;color:var(--text);transition:background .1s; }
+.exp-item:hover { background:rgba(255,255,255,.06); }
+.palette-item { padding:10px 14px;cursor:pointer;font-size:14px;color:var(--text);border-radius:6px;transition:background .1s; }
+.palette-item:hover,.palette-item:focus { background:rgba(37,99,235,.15);outline:none; }
+.suggestion-chips { display:flex;gap:8px;flex-wrap:wrap;padding:4px 0 8px 40px; }
+.suggestion-chip { background:var(--surface);border:1px solid var(--border);color:var(--muted);padding:5px 12px;border-radius:20px;cursor:pointer;font-size:12.5px;transition:border-color .15s,color .15s; }
+.suggestion-chip:hover { border-color:var(--accent);color:var(--text); }
+.drag-over { outline:2px dashed var(--accent)!important;background:rgba(37,99,235,.05)!important; }
+.stat-row { display:flex;justify-content:space-between;font-size:12.5px;padding:4px 0;color:var(--muted); }
+.stat-row strong { color:var(--text); }
+.jv-key { color:#79c0ff; } .jv-val { color:#a8ff78; } .jv-bracket { color:#7d8590; }
+.template-item { display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--surface);border-radius:6px;margin-bottom:4px;font-size:13px; }
+.template-item span { cursor:pointer;flex:1; } .template-item span:hover { color:var(--accent); }
+.template-item button { background:none;border:none;color:var(--red);cursor:pointer;font-size:14px; }
+.search-match { outline:2px solid rgba(245,158,11,.4); }
+.search-current { outline:2px solid var(--yellow)!important;background:rgba(245,158,11,.1)!important; }
+.accent-swatch { width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border-color .15s;display:inline-block; }
+.accent-swatch:hover,.accent-swatch.active { border-color:#fff; }
+@media print {
+  #sidebar,#topbar,#input-bar,#settings-panel,#palette-overlay,#shortcuts-modal,.suggestion-chips { display:none!important; }
+  #main { width:100%; } #chat-area { overflow:visible; }
+  body { background:#fff;color:#000; }
+  .bubble { background:#f5f5f5!important;color:#000!important;max-width:100%!important; }
+}
 </style>
 </head>
 <body data-mode="chat">
@@ -918,6 +951,30 @@ body[data-mode="design"] #mode-label::before { content: "🎨 "; }
         <!-- Tier badge -->
         <span class="badge badge-free" id="tier-badge" onclick="openProModal()">ÜCRETSİZ</span>
 
+        <!-- Search -->
+        <button class="topbar-icon-btn" onclick="toggleSearch()" title="Ara (Ctrl+F)">🔍</button>
+
+        <!-- Artifacts -->
+        <button class="topbar-icon-btn" id="btn-artifacts" onclick="toggleArtifacts()" title="Artifacts">⬡</button>
+
+        <!-- Summarize -->
+        <button class="topbar-icon-btn" onclick="summarize()" title="Özetle">📋</button>
+
+        <!-- Export dropdown -->
+        <div style="position:relative">
+          <button class="topbar-icon-btn" onclick="document.getElementById('export-dropdown').style.display=document.getElementById('export-dropdown').style.display==='block'?'none':'block'" title="İndir">⬇▾</button>
+          <div id="export-dropdown" style="display:none;position:absolute;right:0;top:calc(100%+4px);background:#1c2128;border:1px solid #30363d;border-radius:8px;min-width:140px;z-index:300;overflow:hidden;">
+            <div class="exp-item" onclick="exportAs('pdf')">🖨️ PDF</div>
+            <div class="exp-item" onclick="exportAs('md')">📝 Markdown</div>
+            <div class="exp-item" onclick="exportAs('json')">📦 JSON</div>
+            <div class="exp-item" onclick="exportAs('html')">🌐 HTML</div>
+            <div class="exp-item" onclick="exportAs('txt')">📄 TXT</div>
+          </div>
+        </div>
+
+        <!-- Command palette -->
+        <button class="topbar-icon-btn" onclick="openPalette()" title="Komut Paleti (Ctrl+K)">⌘</button>
+
         <!-- Clear chat -->
         <button id="btn-clear-top" onclick="clearChat()" title="Ctrl+L">Temizle</button>
 
@@ -941,6 +998,15 @@ body[data-mode="design"] #mode-label::before { content: "🎨 "; }
     </div>
 
     <!-- Chat Area -->
+    <!-- Search bar -->
+    <div id="search-bar" style="display:none;align-items:center;gap:8px;padding:6px 16px;background:#161b22;border-bottom:1px solid #30363d;">
+      <input id="search-input" placeholder="Mesajlarda ara..." oninput="doSearch()" onkeydown="if(e.key==='Escape')toggleSearch()" style="flex:1;background:#1c2128;border:1px solid #30363d;border-radius:6px;padding:5px 10px;color:#e6edf3;outline:none;font-size:13px;">
+      <button onclick="searchNav(-1)" style="background:transparent;border:none;color:#7d8590;cursor:pointer;font-size:16px;">↑</button>
+      <button onclick="searchNav(1)" style="background:transparent;border:none;color:#7d8590;cursor:pointer;font-size:16px;">↓</button>
+      <span id="search-count" style="color:#7d8590;font-size:12px;min-width:36px;"></span>
+      <button onclick="toggleSearch()" style="background:transparent;border:none;color:#7d8590;cursor:pointer;">✕</button>
+    </div>
+
     <div id="chat-area">
       <div id="welcome">
         <div class="wlc-icon">⚡</div>
@@ -1032,6 +1098,51 @@ body[data-mode="design"] #mode-label::before { content: "🎨 "; }
       Session: <span id="debug-session" style="font-family:monospace;font-size:10.5px;word-break:break-all;color:var(--muted);"></span>
     </div>
 
+    <!-- Appearance -->
+    <div class="settings-group">
+      <label>Yazı Boyutu</label>
+      <input type="range" min="11" max="18" value="14" oninput="setFontSize(this.value); this.nextElementSibling.textContent=this.value+'px'" style="width:100%;accent-color:var(--accent)">
+      <span style="font-size:12px;color:var(--muted)">14px</span>
+    </div>
+
+    <div class="settings-group">
+      <label>Görünüm Yoğunluğu</label>
+      <div style="display:flex;gap:8px">
+        <button onclick="setDensity('compact');showToast('Kompakt')" class="topbar-icon-btn">Kompakt</button>
+        <button onclick="setDensity('normal');showToast('Normal')" class="topbar-icon-btn">Normal</button>
+        <button onclick="setDensity('wide');showToast('Geniş')" class="topbar-icon-btn">Geniş</button>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <label>Tema Rengi</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <span class="accent-swatch" style="background:#2563eb" onclick="setAccent('blue')" title="Mavi"></span>
+        <span class="accent-swatch" style="background:#7c3aed" onclick="setAccent('purple')" title="Mor"></span>
+        <span class="accent-swatch" style="background:#059669" onclick="setAccent('green')" title="Yeşil"></span>
+        <span class="accent-swatch" style="background:#ea580c" onclick="setAccent('orange')" title="Turuncu"></span>
+        <span class="accent-swatch" style="background:#db2777" onclick="setAccent('pink')" title="Pembe"></span>
+        <span class="accent-swatch" style="background:#dc2626" onclick="setAccent('red')" title="Kırmızı"></span>
+      </div>
+    </div>
+
+    <!-- Prompt Templates -->
+    <div class="settings-group">
+      <label>Prompt Şablonları</label>
+      <div id="templates-list"></div>
+      <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">
+        <input id="tmpl-name" placeholder="Şablon adı" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);font-size:12px;outline:none">
+        <textarea id="tmpl-prompt" placeholder="Şablon içeriği..." rows="2" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);font-size:12px;resize:none;outline:none"></textarea>
+        <button onclick="addTemplate()" class="topbar-icon-btn" style="align-self:flex-start">+ Ekle</button>
+      </div>
+    </div>
+
+    <!-- Session Stats -->
+    <div class="settings-group">
+      <label>Oturum İstatistikleri</label>
+      <div id="stats-panel"></div>
+    </div>
+
     <div class="settings-group">
       <label>Tehlikeli Bölge</label>
       <div class="danger-zone">
@@ -1052,6 +1163,307 @@ body[data-mode="design"] #mode-label::before { content: "🎨 "; }
 ══════════════════════════════════════════════ */
 const STRIPE_PAYMENT_LINK = "https://buy.stripe.com/8x2bJ23qeaZe3496MbaZi00";
 const PRO_ACTIVATION_CODE = "SERVAN2026OMNI";
+
+// ── Mermaid init ──
+mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'loose' });
+
+// ── Draft autosave ──
+let _draftTimer = null;
+function saveDraft(v) { clearTimeout(_draftTimer); _draftTimer = setTimeout(() => localStorage.setItem('artus_draft', v), 500); }
+function loadDraft() {
+  const d = localStorage.getItem('artus_draft');
+  if (d) { const ta = document.getElementById('input-textarea'); if (ta) { ta.value = d; showToast('Taslak geri yüklendi'); onInputChange(); } }
+}
+
+// ── Session stats ──
+const SESSION_START = Date.now();
+let SESSION_MSGS = 0, SESSION_TOKENS = 0;
+function updateStats(text) { SESSION_MSGS++; SESSION_TOKENS += Math.ceil(text.length / 4); renderStats(); }
+function renderStats() {
+  const el = document.getElementById('stats-panel');
+  if (!el) return;
+  const mins = Math.floor((Date.now() - SESSION_START) / 60000);
+  el.innerHTML = `<div class="stat-row"><span>Mesajlar</span><strong>${SESSION_MSGS}</strong></div><div class="stat-row"><span>~Token</span><strong>${SESSION_TOKENS.toLocaleString()}</strong></div><div class="stat-row"><span>Süre</span><strong>${mins}dk</strong></div>`;
+}
+
+// ── Accent colors ──
+const ACCENTS = { blue:'#2563eb', purple:'#7c3aed', green:'#059669', orange:'#ea580c', pink:'#db2777', red:'#dc2626' };
+function setAccent(name) {
+  document.documentElement.style.setProperty('--accent', ACCENTS[name] || ACCENTS.blue);
+  document.documentElement.style.setProperty('--accent-h', ACCENTS[name] || ACCENTS.blue);
+  localStorage.setItem('artus_accent', name);
+}
+(function(){ const a = localStorage.getItem('artus_accent'); if(a) setAccent(a); })();
+
+// ── Font size ──
+function setFontSize(px) { document.getElementById('chat-area').style.fontSize = px + 'px'; localStorage.setItem('artus_font_size', px); }
+(function(){ const f = localStorage.getItem('artus_font_size'); if(f) setFontSize(f); })();
+
+// ── Density ──
+const DENSITIES = { compact: '6px 10px', normal: '10px 14px', wide: '16px 20px' };
+function setDensity(d) {
+  document.documentElement.style.setProperty('--bubble-pad', DENSITIES[d] || DENSITIES.normal);
+  localStorage.setItem('artus_density', d);
+}
+(function(){ const d = localStorage.getItem('artus_density'); if(d) setDensity(d); })();
+
+// ── Artifacts ──
+const artifacts = [];
+function addArtifact(code, lang) {
+  const id = artifacts.length + 1;
+  artifacts.push({ id, code, lang, title: `Artifact ${id}` });
+  renderArtifactPanel();
+  document.getElementById('btn-artifacts').dataset.count = artifacts.length;
+  document.getElementById('btn-artifacts').classList.add('has-artifacts');
+}
+function renderArtifactPanel() {
+  const panel = document.getElementById('artifacts-panel');
+  if (!panel) return;
+  panel.innerHTML = artifacts.map((a, i) => `
+    <div class="artifact-tab" onclick="showArtifact(${i})">
+      <span>⬡ ${a.title}</span>
+      <button onclick="downloadArtifact(${i})" title="İndir">⬇</button>
+    </div>
+    <iframe id="af-${i}" sandbox="allow-scripts allow-same-origin" class="artifact-frame" srcdoc="${a.code.replace(/"/g,'&quot;')}"></iframe>
+  `).join('');
+}
+function showArtifact(i) {
+  document.querySelectorAll('.artifact-frame').forEach((f,j) => f.style.display = j===i?'block':'none');
+}
+function downloadArtifact(i) {
+  const a = artifacts[i];
+  const blob = new Blob([a.code], {type:'text/html'});
+  const el = document.createElement('a'); el.href = URL.createObjectURL(blob);
+  el.download = `artifact-${i+1}.html`; el.click();
+}
+
+// ── Quick reply suggestions ──
+const SUGGESTIONS = {
+  code: ['Kodu açıkla', 'Test yaz', 'Optimize et'],
+  list: ['Detaylandır', 'Önceliklendir', 'Özetle'],
+  explain: ['Örnek ver', 'Daha basit anlat', 'Devam et'],
+  default: ['Devam et', 'Daha fazla', 'Farklı yaklaşım']
+};
+function getSuggestions(text) {
+  if (/```/.test(text)) return SUGGESTIONS.code;
+  if (/^\s*[-*\d]/.test(text)) return SUGGESTIONS.list;
+  if (text.length > 300) return SUGGESTIONS.explain;
+  return SUGGESTIONS.default;
+}
+function addSuggestions(text) {
+  const chips = getSuggestions(text);
+  const div = document.createElement('div');
+  div.className = 'suggestion-chips';
+  div.innerHTML = chips.map(c => `<button class="suggestion-chip" onclick="sendSuggestion(this,'${c}')">${c}</button>`).join('');
+  document.getElementById('chat-area').appendChild(div);
+  scrollToBottom();
+}
+function sendSuggestion(btn, text) {
+  btn.closest('.suggestion-chips').remove();
+  document.getElementById('input-textarea').value = text;
+  sendMessage();
+}
+
+// ── Message search ──
+let searchResults = [], searchIdx = 0;
+function toggleSearch() {
+  const bar = document.getElementById('search-bar');
+  bar.style.display = bar.style.display === 'none' ? 'flex' : 'none';
+  if (bar.style.display === 'flex') document.getElementById('search-input').focus();
+  else clearSearch();
+}
+function doSearch() {
+  clearSearch();
+  const q = document.getElementById('search-input').value.trim().toLowerCase();
+  if (!q) return;
+  searchResults = [];
+  document.querySelectorAll('.bubble').forEach(b => {
+    if (b.textContent.toLowerCase().includes(q)) {
+      b.classList.add('search-match');
+      searchResults.push(b);
+    }
+  });
+  searchIdx = 0;
+  if (searchResults.length) { searchResults[0].classList.add('search-current'); searchResults[0].scrollIntoView({behavior:'smooth',block:'center'}); }
+  document.getElementById('search-count').textContent = searchResults.length ? `1/${searchResults.length}` : '0';
+}
+function clearSearch() {
+  document.querySelectorAll('.search-match').forEach(b => b.classList.remove('search-match','search-current'));
+  searchResults = []; searchIdx = 0;
+  document.getElementById('search-count').textContent = '';
+}
+function searchNav(dir) {
+  if (!searchResults.length) return;
+  searchResults[searchIdx].classList.remove('search-current');
+  searchIdx = (searchIdx + dir + searchResults.length) % searchResults.length;
+  searchResults[searchIdx].classList.add('search-current');
+  searchResults[searchIdx].scrollIntoView({behavior:'smooth',block:'center'});
+  document.getElementById('search-count').textContent = `${searchIdx+1}/${searchResults.length}`;
+}
+
+// ── Drag & Drop ──
+function initDragDrop() {
+  const area = document.getElementById('chat-area');
+  if (!area) return;
+  area.addEventListener('dragover', e => { e.preventDefault(); area.classList.add('drag-over'); });
+  area.addEventListener('dragleave', () => area.classList.remove('drag-over'));
+  area.addEventListener('drop', e => {
+    e.preventDefault(); area.classList.remove('drag-over');
+    [...e.dataTransfer.files].forEach(f => processFile(f));
+  });
+}
+
+// ── Command Palette (Ctrl+K) ──
+const COMMANDS = [
+  { icon:'💬', label:'Yeni Sohbet', fn: () => newChat() },
+  { icon:'🗑️', label:'Sohbeti Temizle', fn: () => clearChat() },
+  { icon:'⬇', label:'PDF İndir', fn: () => window.print() },
+  { icon:'🔍', label:'Mesajlarda Ara', fn: () => toggleSearch() },
+  { icon:'🎤', label:'Mikrofon Aç/Kapat', fn: () => toggleMic() },
+  { icon:'🌐', label:'Web Modu Aç/Kapat', fn: () => toggleWebSearch() },
+  { icon:'⚙️', label:'Ayarlar', fn: () => toggleSettings() },
+  { icon:'📋', label:'Konuşmayı Özetle', fn: () => summarize() },
+  { icon:'🌙', label:'Tema Değiştir', fn: () => toggleTheme() },
+  { icon:'⬡', label:'Artifacts Paneli', fn: () => toggleArtifacts() },
+];
+function openPalette() {
+  document.getElementById('palette-overlay').style.display = 'flex';
+  document.getElementById('palette-input').value = '';
+  renderPaletteItems('');
+  document.getElementById('palette-input').focus();
+}
+function closePalette() { document.getElementById('palette-overlay').style.display = 'none'; }
+function renderPaletteItems(q) {
+  const filtered = COMMANDS.filter(c => c.label.toLowerCase().includes(q.toLowerCase()));
+  document.getElementById('palette-list').innerHTML = filtered.map((c,i) =>
+    `<div class="palette-item" tabindex="0" onclick="runCommand(${COMMANDS.indexOf(c)})">${c.icon} ${c.label}</div>`
+  ).join('');
+}
+function runCommand(i) { closePalette(); COMMANDS[i].fn(); }
+
+// ── Summarize ──
+function summarize() {
+  const ta = document.getElementById('input-textarea');
+  ta.value = 'Bu konuşmayı madde madde özetle, ana konuları ve çıkarımları listele.';
+  sendMessage();
+}
+
+// ── Export formats ──
+function exportAs(fmt) {
+  const msgs = [...document.querySelectorAll('.msg')].map(m => {
+    const role = m.classList.contains('user') ? 'user' : 'assistant';
+    const content = m.querySelector('.bubble')?.textContent || '';
+    return { role, content };
+  });
+  if (fmt === 'json') {
+    const blob = new Blob([JSON.stringify(msgs, null, 2)], {type:'application/json'});
+    dlBlob(blob, 'omni-chat.json');
+  } else if (fmt === 'md') {
+    const md = msgs.map(m => `## ${m.role === 'user' ? '👤 Sen' : '⚡ OMNI'}\n\n${m.content}`).join('\n\n---\n\n');
+    dlBlob(new Blob([md],{type:'text/markdown'}), 'omni-chat.md');
+  } else if (fmt === 'txt') {
+    const txt = msgs.map(m => `[${m.role.toUpperCase()}]: ${m.content}`).join('\n\n');
+    dlBlob(new Blob([txt],{type:'text/plain'}), 'omni-chat.txt');
+  } else if (fmt === 'html') {
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>OMNI Chat</title><style>body{font-family:sans-serif;max-width:800px;margin:40px auto;background:#0d1117;color:#e6edf3;}.user{text-align:right;color:#60a5fa;}.bot{color:#e6edf3;}hr{border-color:#30363d;}</style></head><body>${msgs.map(m=>`<div class="${m.role==='user'?'user':'bot'}"><p>${m.content.replace(/</g,'&lt;')}</p><hr></div>`).join('')}</body></html>`;
+    dlBlob(new Blob([html],{type:'text/html'}), 'omni-chat.html');
+  } else if (fmt === 'pdf') {
+    window.print();
+  }
+  document.getElementById('export-dropdown').style.display = 'none';
+}
+function dlBlob(blob, name) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+}
+
+// ── Prompt Templates ──
+const DEFAULT_TEMPLATES = [
+  { name: 'Kod Yaz', prompt: 'Şu kodu yaz ve açıkla: ' },
+  { name: 'Hata Düzelt', prompt: 'Bu kodda hata var, düzelt:\n```\n' },
+  { name: 'Proje Planla', prompt: 'Şu proje için detaylı plan: ' },
+  { name: 'Tasarım Öner', prompt: 'Şu için UI/UX tasarım öner: ' },
+  { name: 'Özetle', prompt: 'Şunu özetle: ' },
+  { name: 'Çevir', prompt: 'Türkçeye çevir: ' },
+];
+function getTemplates() {
+  const custom = JSON.parse(localStorage.getItem('artus_templates') || '[]');
+  return [...DEFAULT_TEMPLATES, ...custom];
+}
+function applyTemplate(prompt) {
+  document.getElementById('input-textarea').value = prompt;
+  document.getElementById('input-textarea').focus();
+  showToast('Şablon uygulandı');
+}
+function renderTemplates() {
+  const el = document.getElementById('templates-list');
+  if (!el) return;
+  el.innerHTML = getTemplates().map((t,i) => `<div class="template-item"><span onclick="applyTemplate('${t.prompt.replace(/'/g,"\\'")}')">📝 ${t.name}</span>${i>=DEFAULT_TEMPLATES.length?`<button onclick="deleteTemplate(${i-DEFAULT_TEMPLATES.length})">×</button>`:''}</div>`).join('');
+}
+function addTemplate() {
+  const name = document.getElementById('tmpl-name').value.trim();
+  const prompt = document.getElementById('tmpl-prompt').value.trim();
+  if (!name || !prompt) return;
+  const custom = JSON.parse(localStorage.getItem('artus_templates') || '[]');
+  custom.push({ name, prompt });
+  localStorage.setItem('artus_templates', JSON.stringify(custom));
+  renderTemplates();
+  document.getElementById('tmpl-name').value = '';
+  document.getElementById('tmpl-prompt').value = '';
+  showToast('Şablon eklendi');
+}
+function deleteTemplate(i) {
+  const custom = JSON.parse(localStorage.getItem('artus_templates') || '[]');
+  custom.splice(i, 1);
+  localStorage.setItem('artus_templates', JSON.stringify(custom));
+  renderTemplates();
+}
+
+// ── Shortcuts help modal ──
+function toggleShortcutsModal() {
+  const m = document.getElementById('shortcuts-modal');
+  m.style.display = m.style.display === 'flex' ? 'none' : 'flex';
+}
+
+// ── JSON/CSV pretty viewer ──
+function renderJsonTree(obj, depth=0) {
+  if (typeof obj !== 'object' || obj === null) return `<span class="jv-val">${JSON.stringify(obj)}</span>`;
+  const isArr = Array.isArray(obj);
+  const entries = isArr ? obj.map((v,i)=>[i,v]) : Object.entries(obj);
+  return `<span class="jv-bracket">${isArr?'[':'{'}</span><div class="jv-body" style="padding-left:${(depth+1)*12}px">${entries.map(([k,v])=>`<div><span class="jv-key">${JSON.stringify(k)}</span>: ${renderJsonTree(v,depth+1)}</div>`).join('')}</div><span class="jv-bracket">${isArr?']':'}'}</span>`;
+}
+
+// ── KaTeX render helper ──
+function renderMath(el) {
+  if (typeof renderMathInElement !== 'undefined') {
+    try { renderMathInElement(el, { delimiters: [{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}], throwOnError: false }); } catch(e) {}
+  }
+}
+
+// ── Pyodide execution ──
+let pyodide = null, pyodideLoading = false;
+async function runPython(code, outputEl) {
+  outputEl.textContent = 'Python yükleniyor...';
+  if (!pyodide && !pyodideLoading) {
+    pyodideLoading = true;
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/pyodide/v0.26.0/full/pyodide.js';
+    document.head.appendChild(s);
+    await new Promise(r => s.onload = r);
+    pyodide = await loadPyodide();
+    pyodideLoading = false;
+  }
+  while (pyodideLoading) await new Promise(r => setTimeout(r, 200));
+  try {
+    let out = '';
+    pyodide.setStdout({ batched: s => { out += s + '\n'; } });
+    const result = await pyodide.runPythonAsync(code);
+    outputEl.textContent = out + (result !== undefined ? '→ ' + result : '');
+    outputEl.style.color = '#10b981';
+  } catch(e) {
+    outputEl.textContent = '❌ ' + e.message;
+    outputEl.style.color = '#ef4444';
+  }
+}
 
 /* ═══════════════════════════════════════════════
    AUTH GUARD
@@ -1594,6 +2006,7 @@ function onInputChange() {
   const tokens = Math.round(chars / 4);
   tokenCounter.textContent = `${modelLabel} · ${chars} karakter · ~${tokens} token`;
   sendBtn.disabled = chars === 0 || streaming;
+  saveDraft(inputEl.value);
 }
 
 function resetInput() {
@@ -1687,7 +2100,26 @@ function renderBubble(bubble, rawText, mode) {
 
   const renderer = new marked.Renderer();
   renderer.code = (code, lang) => {
-    const language = lang || 'plaintext';
+    const language = (lang || 'plaintext').toLowerCase();
+
+    // Mermaid diyagram
+    if (language === 'mermaid') {
+      const mid = 'mm_' + Math.random().toString(36).slice(2);
+      setTimeout(async () => {
+        const el = document.getElementById(mid);
+        if (el) { try { const {svg} = await mermaid.render('svg_'+mid, code); el.innerHTML = svg; } catch(e) { el.textContent = code; } }
+      }, 100);
+      return `<div id="${mid}" class="mermaid-block" style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px;margin:8px 0;overflow:auto;">${escapeHtml(code)}</div>`;
+    }
+
+    // JSON pretty viewer
+    if (language === 'json') {
+      const jid = 'jv_' + Math.random().toString(36).slice(2);
+      let tree = '';
+      try { tree = renderJsonTree(JSON.parse(code)); } catch(e) { tree = escapeHtml(code); }
+      return `<div class="code-wrap" id="${jid}"><div class="code-header"><span class="code-lang">json</span><button class="btn-copy" onclick="copyCode('${jid}',this)">Kopyala</button></div><div style="padding:8px;font-size:12.5px;font-family:monospace;line-height:1.5">${tree}</div></div>`;
+    }
+
     const highlighted = (() => {
       try {
         if (hljs.getLanguage(language)) return hljs.highlight(code, { language }).value;
@@ -1696,22 +2128,37 @@ function renderBubble(bubble, rawText, mode) {
     })();
 
     const id = 'cw_' + Math.random().toString(36).slice(2);
+
+    // HTML artifact detection
+    const isArtifact = (language === 'html' && (code.includes('<html') || code.includes('<!DOCTYPE') || code.includes('<body')));
+
     const actionsHtml = mode === 'code' ? `
       <div class="code-actions">
         <button class="btn-accept" onclick="acceptCode('${id}')">✓ Kabul Et</button>
         <button class="btn-reject" onclick="rejectCode('${id}')">✗ Reddet</button>
       </div>` : '';
 
+    const previewBtn = (language === 'html' || language === 'css' || language === 'javascript' || language === 'js')
+      ? `<button class="btn-copy" onclick="previewCode(this,'${language}')" data-code="${encodeURIComponent(code)}">▶ Önizle</button>` : '';
+
+    const artifactBtn = isArtifact
+      ? `<button class="btn-copy" onclick="addArtifact(decodeURIComponent('${encodeURIComponent(code)}'),'html');showToast('Artifact eklendi')">⬡ Artifact</button>` : '';
+
+    const runBtn = (language === 'python' || language === 'py')
+      ? `<button class="btn-copy" onclick="runPythonBlock('${id}')">▶ Çalıştır</button>` : '';
+
     return `
       <div class="code-wrap" id="${id}">
         <div class="code-header">
           <span class="code-lang">${escapeHtml(language)}</span>
-          <div class="code-header-right">
+          <div class="code-header-right" style="display:flex;gap:4px">
+            ${previewBtn}${artifactBtn}${runBtn}
             <button class="btn-copy" onclick="copyCode('${id}', this)">Kopyala</button>
           </div>
         </div>
         <pre><code class="hljs language-${escapeHtml(language)}">${highlighted}</code></pre>
         ${actionsHtml}
+        <div class="py-output" id="out_${id}" style="display:none;padding:8px 12px;background:#0d1117;border-top:1px solid #30363d;font-family:monospace;font-size:12.5px;white-space:pre-wrap;"></div>
       </div>`;
   };
 
@@ -1736,6 +2183,39 @@ function renderBubble(bubble, rawText, mode) {
     const btn = bubble.querySelector('.design-gen-btn');
     if (btn) btn.dataset.rawText = rawText;
   }
+
+  // KaTeX math rendering
+  renderMath(bubble);
+
+  // Add quick suggestions after AI response
+  addSuggestions(rawText);
+
+  // Update session stats
+  updateStats(rawText);
+}
+
+function runPythonBlock(id) {
+  const out = document.getElementById('out_' + id);
+  if (!out) return;
+  out.style.display = 'block';
+  const codeEl = document.querySelector('#' + id + ' code');
+  const code = codeEl ? codeEl.textContent : '';
+  runPython(code, out);
+}
+
+function previewCode(btn, lang) {
+  const code = decodeURIComponent(btn.dataset.code || '');
+  let src = code;
+  if (lang === 'js' || lang === 'javascript') src = `<script>${code}<\/script>`;
+  if (lang === 'css') src = `<style>${code}</style><div style="padding:12px">Preview</div>`;
+  const panel = document.getElementById('artifacts-panel');
+  panel.style.display = 'block';
+  panel.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><strong style="color:var(--text)">▶ Önizleme</strong><button onclick="document.getElementById('artifacts-panel').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px">×</button></div><iframe sandbox="allow-scripts allow-same-origin" style="width:100%;height:calc(100% - 40px);border:1px solid var(--border);border-radius:8px;background:#fff" srcdoc="${src.replace(/"/g,'&quot;')}"></iframe>`;
+}
+
+function toggleArtifacts() {
+  const p = document.getElementById('artifacts-panel');
+  p.style.display = p.style.display === 'none' || !p.style.display ? 'block' : 'none';
 }
 
 function copyBubble(btn) {
@@ -1959,6 +2439,8 @@ function stopMic() {
 function toggleSettings() {
   document.getElementById('settings-panel').classList.toggle('open');
   checkHealth();
+  renderStats();
+  renderTemplates();
 }
 
 /* ═══════════════════════════════════════════════
@@ -1987,6 +2469,47 @@ function handleShortcuts(e) {
 
 /* ── Start ── */
 init();
+loadDraft();
+initDragDrop();
+renderTemplates();
+
+// Ctrl+K command palette
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key === 'k') { e.preventDefault(); openPalette(); }
+  if (e.key === '?' && document.activeElement.tagName !== 'TEXTAREA' && document.activeElement.tagName !== 'INPUT') toggleShortcutsModal();
+  if (e.ctrlKey && e.key === 'f') { e.preventDefault(); toggleSearch(); }
+});
+
+// Close export dropdown on outside click
+document.addEventListener('click', e => {
+  if (!e.target.closest('#export-dropdown') && !e.target.closest('[onclick*="export-dropdown"]')) {
+    const dd = document.getElementById('export-dropdown');
+    if (dd) dd.style.display = 'none';
+  }
+});
 </script>
+
+<!-- Command Palette -->
+<div id="palette-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;align-items:flex-start;justify-content:center;padding-top:15vh;" onclick="if(event.target===this)closePalette()">
+  <div style="background:#1c2128;border:1px solid #30363d;border-radius:12px;width:520px;max-width:90vw;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.6)">
+    <input id="palette-input" placeholder="Komut ara..." oninput="renderPaletteItems(this.value)" onkeydown="if(event.key==='Escape')closePalette()" style="width:100%;padding:14px 18px;background:transparent;border:none;border-bottom:1px solid #30363d;color:#e6edf3;font-size:15px;outline:none;">
+    <div id="palette-list" style="max-height:320px;overflow-y:auto;padding:8px;"></div>
+    <div style="padding:8px 14px;border-top:1px solid #30363d;color:#7d8590;font-size:11px;">Enter seç · Esc kapat</div>
+  </div>
+</div>
+
+<!-- Shortcuts Modal -->
+<div id="shortcuts-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;align-items:center;justify-content:center;" onclick="if(event.target===this)toggleShortcutsModal()">
+  <div style="background:#1c2128;border:1px solid #30363d;border-radius:12px;width:540px;max-width:90vw;padding:24px;box-shadow:0 24px 64px rgba(0,0,0,.6)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="color:#e6edf3">⌨️ Klavye Kısayolları</h3><button onclick="toggleShortcutsModal()" style="background:none;border:none;color:#7d8590;font-size:20px;cursor:pointer">×</button></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;">
+      ${[['Ctrl+K','Komut paleti'],['Ctrl+L','Sohbeti temizle'],['Ctrl+M','Mikrofon'],['Ctrl+F','Ara'],['Ctrl+1','Chat modu'],['Ctrl+2','Omni Code'],['Ctrl+3','Omni Design'],['?','Bu pencere'],['Shift+Enter','Yeni satır'],['Enter','Gönder']].map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:6px 10px;background:#161b22;border-radius:6px"><span style="color:#7d8590">${v}</span><kbd style="background:#0d1117;border:1px solid #30363d;border-radius:4px;padding:1px 6px;color:#e6edf3;font-family:monospace">${k}</kbd></div>`).join('')}
+    </div>
+  </div>
+</div>
+
+<!-- Artifacts Panel -->
+<div id="artifacts-panel" style="display:none;position:fixed;right:0;top:52px;bottom:0;width:40%;background:#161b22;border-left:1px solid #30363d;z-index:100;overflow:auto;padding:12px;"></div>
+
 </body>
 </html>
