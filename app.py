@@ -77,15 +77,27 @@ GROQ_MODELS = [
     "llama3-8b-8192",
 ]
 
+def _trim_history(history: list[dict], max_chars: int = 12000) -> list[dict]:
+    """Toplam karakter sayısı sınırı aşarsa eski mesajları baştan at."""
+    trimmed = list(history)
+    while trimmed:
+        total = sum(len(m.get("content", "")) for m in trimmed)
+        if total <= max_chars:
+            break
+        trimmed = trimmed[2:]  # en eski user+assistant çiftini at
+    return trimmed or history[-2:]  # en az son 2 mesajı koru
+
+
 async def stream_groq(history: list[dict], key: str) -> AsyncGenerator[str, None]:
     headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
     model_idx = 0
+    safe_history = _trim_history(history)
 
     while True:  # rate limit olunca asla hata verme, sessizce retry yap
         model = GROQ_MODELS[model_idx % len(GROQ_MODELS)]
         payload = {
             "model": model,
-            "messages": [{"role": "system", "content": SYSTEM_PROMPT}] + history,
+            "messages": [{"role": "system", "content": SYSTEM_PROMPT}] + safe_history,
             "stream": True,
             "max_tokens": 4096,
         }
@@ -119,7 +131,11 @@ async def stream_groq(history: list[dict], key: str) -> AsyncGenerator[str, None
                 await asyncio.sleep(8)
                 model_idx += 1
                 continue
-            raise  # 429 disindaki hatalar gercek hata
+            if e.response.status_code == 413:
+                # Hala buyukse daha agresif kirp
+                safe_history = safe_history[-2:] if len(safe_history) > 2 else safe_history
+                continue
+            raise  # diger hatalar gercek hata
         except Exception:
             await asyncio.sleep(3)
             continue
