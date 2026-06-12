@@ -18,31 +18,8 @@ FRONTEND_DIR = BASE_DIR / "frontend"
 CONFIG_PATH = BASE_DIR / "config.txt"
 MAX_HISTORY = 50
 
-# config.txt'den key oku (varsa)
-def _load_config() -> dict:
-    cfg = {}
-    if CONFIG_PATH.exists():
-        for line in CONFIG_PATH.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if line.startswith("#") or "=" not in line:
-                continue
-            k, v = line.split("=", 1)
-            cfg[k.strip().upper()] = v.strip()
-    return cfg
-
-_cfg = _load_config()
-GROQ_API_KEY     = _cfg.get("GROQ_API_KEY")     or os.environ.get("GROQ_API_KEY", "")
-ANTHROPIC_API_KEY = _cfg.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_API_KEY", "")
-
-if ANTHROPIC_API_KEY:
-    PROVIDER = "anthropic"
-elif GROQ_API_KEY:
-    PROVIDER = "groq"
-else:
-    PROVIDER = "free"
-
 ANTHROPIC_MODEL = "claude-sonnet-4-6"
-GROQ_MODEL      = "llama-3.3-70b-versatile"
+GROQ_MODEL = "llama-3.3-70b-versatile"
 
 try:
     with open(SYSTEM_PROMPT_PATH, "r", encoding="utf-8") as f:
@@ -52,7 +29,27 @@ except OSError:
 
 conversation_history: dict[str, list[dict]] = defaultdict(list)
 
-app = FastAPI(title="Artus AI", version="1.4.0")
+
+def get_keys() -> dict:
+    """Her istekte config.txt'i oku — restart gerekmez."""
+    cfg = {}
+    if CONFIG_PATH.exists():
+        for line in CONFIG_PATH.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            v = v.strip()
+            if v and v != "buraya_groq_key_yapistir" and v != "buraya_anthropic_key_yapistir":
+                cfg[k.strip().upper()] = v
+    # Ortam degiskenleri config'i ezer
+    for k in ("GROQ_API_KEY", "ANTHROPIC_API_KEY"):
+        if os.environ.get(k):
+            cfg[k] = os.environ[k]
+    return cfg
+
+
+app = FastAPI(title="Artus AI", version="1.5.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True,
                    allow_methods=["*"], allow_headers=["*"])
 
@@ -62,9 +59,9 @@ class ChatRequest(BaseModel):
     message: str
 
 
-async def stream_anthropic(history: list[dict]) -> AsyncGenerator[str, None]:
+async def stream_anthropic(history: list[dict], key: str) -> AsyncGenerator[str, None]:
     import anthropic
-    client = anthropic.AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
+    client = anthropic.AsyncAnthropic(api_key=key)
     async with client.messages.stream(
         model=ANTHROPIC_MODEL, max_tokens=8096,
         system=SYSTEM_PROMPT, messages=history,
@@ -73,20 +70,19 @@ async def stream_anthropic(history: list[dict]) -> AsyncGenerator[str, None]:
             yield text
 
 
-async def stream_groq(history: list[dict]) -> AsyncGenerator[str, None]:
+async def stream_groq(history: list[dict], key: str) -> AsyncGenerator[str, None]:
     payload = {
         "model": GROQ_MODEL,
         "messages": [{"role": "system", "content": SYSTEM_PROMPT}] + history,
         "stream": True,
         "max_tokens": 8096,
     }
-    headers = {
-        "Authorization": f"Bearer {GROQ_API_KEY}",
-        "Content-Type": "application/json",
-    }
     async with httpx.AsyncClient(timeout=90) as client:
-        async with client.stream("POST", "https://api.groq.com/openai/v1/chat/completions",
-                                  json=payload, headers=headers) as resp:
+        async with client.stream(
+            "POST", "https://api.groq.com/openai/v1/chat/completions",
+            json=payload,
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+        ) as resp:
             resp.raise_for_status()
             async for line in resp.aiter_lines():
                 if not line.startswith("data:"):
@@ -103,21 +99,23 @@ async def stream_groq(history: list[dict]) -> AsyncGenerator[str, None]:
 
 
 async def stream_free(history: list[dict]) -> AsyncGenerator[str, None]:
-    """Son care: Pollinations — rate limit yasanabilir."""
     payload = {
         "model": "openai",
         "messages": [{"role": "system", "content": SYSTEM_PROMPT}] + history,
         "stream": True,
     }
-    for attempt in range(4):
+    for attempt in range(5):
         try:
             async with httpx.AsyncClient(timeout=90) as client:
                 async with client.stream(
                     "POST", "https://text.pollinations.ai/openai",
-                    json=payload, headers={"Referer": "https://pollinations.ai"}
+                    json=payload,
+                    headers={"Referer": "https://pollinations.ai"},
                 ) as resp:
                     if resp.status_code == 429:
-                        await asyncio.sleep(5 * (attempt + 1))
+                        wait = 8 * (attempt + 1)
+                        yield f"__WAIT__{wait}"
+                        await asyncio.sleep(wait)
                         continue
                     resp.raise_for_status()
                     async for line in resp.aiter_lines():
@@ -136,19 +134,21 @@ async def stream_free(history: list[dict]) -> AsyncGenerator[str, None]:
         except Exception:
             await asyncio.sleep(3)
     raise Exception(
-        "Ucretsiz API rate limit yedi. config.txt dosyasina GROQ_API_KEY ekle "
-        "(groq.com - ucretsiz kayit, 1 dakika)."
+        "Ucretsiz API cevap vermiyor. "
+        "Lutfen config.txt dosyasina Groq key ekle: console.groq.com (ucretsiz)"
     )
-
-
-_providers = {"anthropic": stream_anthropic, "groq": stream_groq, "free": stream_free}
 
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "provider": PROVIDER,
-            "model": ANTHROPIC_MODEL if PROVIDER == "anthropic" else
-                     GROQ_MODEL if PROVIDER == "groq" else "pollinations"}
+    keys = get_keys()
+    if keys.get("ANTHROPIC_API_KEY"):
+        provider = "anthropic"
+    elif keys.get("GROQ_API_KEY"):
+        provider = "groq"
+    else:
+        provider = "free"
+    return {"status": "ok", "provider": provider}
 
 
 @app.post("/api/chat")
@@ -156,9 +156,9 @@ async def chat(request: ChatRequest):
     session_id = request.session_id.strip()
     user_message = request.message.strip()
     if not session_id:
-        raise HTTPException(400, "session_id is required")
+        raise HTTPException(400, "session_id required")
     if not user_message:
-        raise HTTPException(400, "message is required")
+        raise HTTPException(400, "message required")
 
     history = conversation_history[session_id]
     history.append({"role": "user", "content": user_message})
@@ -166,16 +166,32 @@ async def chat(request: ChatRequest):
         conversation_history[session_id] = history[-MAX_HISTORY:]
         history = conversation_history[session_id]
 
-    provider_fn = _providers[PROVIDER]
+    # Her istekte config'i taze oku
+    keys = get_keys()
+    anthropic_key = keys.get("ANTHROPIC_API_KEY", "")
+    groq_key = keys.get("GROQ_API_KEY", "")
 
     async def event_stream() -> AsyncGenerator[str, None]:
         full_response = ""
         try:
-            async for text in provider_fn(history):
+            if anthropic_key:
+                gen = stream_anthropic(history, anthropic_key)
+            elif groq_key:
+                gen = stream_groq(history, groq_key)
+            else:
+                gen = stream_free(history)
+
+            async for text in gen:
+                if text.startswith("__WAIT__"):
+                    secs = text.replace("__WAIT__", "")
+                    yield f"data: {json.dumps({'type': 'text', 'content': f'[Sunucu mesgul, {secs}s bekleniyor...]'})}\n\n"
+                    continue
                 full_response += text
                 yield f"data: {json.dumps({'type': 'text', 'content': text})}\n\n"
+
             history.append({"role": "assistant", "content": full_response})
             yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
         except Exception as exc:
             if history and history[-1]["role"] == "user":
                 history.pop()
