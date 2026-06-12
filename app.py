@@ -24,6 +24,11 @@ ANTHROPIC_MODEL = "claude-sonnet-4-6"
 # Sırayla denenen ücretsiz, key'siz API'ler
 FREE_PROVIDERS = [
     {
+        "url": "https://api.llm7.io/v1/chat/completions",
+        "model": "gpt-4o-mini",
+        "headers": {"Authorization": "Bearer unused"},
+    },
+    {
         "url": "https://text.pollinations.ai/openai",
         "model": "openai",
         "headers": {"Referer": "https://pollinations.ai"},
