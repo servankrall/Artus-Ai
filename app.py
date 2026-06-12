@@ -31,7 +31,6 @@ conversation_history: dict[str, list[dict]] = defaultdict(list)
 
 
 def get_keys() -> dict:
-    """Her istekte config.txt'i oku — restart gerekmez."""
     cfg = {}
     if CONFIG_PATH.exists():
         for line in CONFIG_PATH.read_text(encoding="utf-8").splitlines():
@@ -42,14 +41,13 @@ def get_keys() -> dict:
             v = v.strip()
             if v and v != "buraya_groq_key_yapistir" and v != "buraya_anthropic_key_yapistir":
                 cfg[k.strip().upper()] = v
-    # Ortam degiskenleri config'i ezer
     for k in ("GROQ_API_KEY", "ANTHROPIC_API_KEY"):
         if os.environ.get(k):
             cfg[k] = os.environ[k]
     return cfg
 
 
-app = FastAPI(title="Artus AI", version="1.5.0")
+app = FastAPI(title="Artus AI", version="1.6.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True,
                    allow_methods=["*"], allow_headers=["*"])
 
@@ -59,14 +57,18 @@ class ChatRequest(BaseModel):
     message: str
     model: str = ""
     mode: str = "chat"
+    system_prompt: str = ""
+    temperature: float = 0.7
 
 
-async def stream_anthropic(history: list[dict], key: str) -> AsyncGenerator[str, None]:
+async def stream_anthropic(history: list[dict], key: str, system_prompt: str = "", temperature: float = 0.7) -> AsyncGenerator[str, None]:
     import anthropic
     client = anthropic.AsyncAnthropic(api_key=key)
+    effective_system = system_prompt if system_prompt else SYSTEM_PROMPT
     async with client.messages.stream(
         model=ANTHROPIC_MODEL, max_tokens=8096,
-        system=SYSTEM_PROMPT, messages=history,
+        system=effective_system, messages=history,
+        temperature=temperature,
     ) as stream:
         async for text in stream.text_stream:
             yield text
@@ -80,23 +82,21 @@ GROQ_MODELS = [
 ]
 
 def _trim_history(history: list[dict], max_chars: int = 12000) -> list[dict]:
-    """Toplam karakter sınırı aşarsa eski mesajları at. Her zaman user ile başla."""
     trimmed = list(history)
     while trimmed:
         total = sum(len(m.get("content", "")) for m in trimmed)
         if total <= max_chars:
             break
-        trimmed = trimmed[2:]  # en eski user+assistant çiftini at
-    # Boş içerik veya assistant ile başlama durumunu düzelt
+        trimmed = trimmed[2:]
     trimmed = [m for m in trimmed if m.get("content", "").strip()]
     while trimmed and trimmed[0]["role"] != "user":
         trimmed = trimmed[1:]
     return trimmed if trimmed else history[-1:]
 
 
-async def stream_groq(history: list[dict], key: str, preferred_model: str = "") -> AsyncGenerator[str, None]:
+async def stream_groq(history: list[dict], key: str, preferred_model: str = "", system_prompt: str = "", temperature: float = 0.7) -> AsyncGenerator[str, None]:
     headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
-    # Use preferred model as starting point if valid, otherwise default
+    effective_system = system_prompt if system_prompt else SYSTEM_PROMPT
     if preferred_model and preferred_model in GROQ_MODELS:
         start_model = preferred_model
         fallback_models = [m for m in GROQ_MODELS if m != preferred_model] + [preferred_model]
@@ -106,16 +106,17 @@ async def stream_groq(history: list[dict], key: str, preferred_model: str = "") 
     model_idx = 0
     safe_history = _trim_history(history)
 
-    while True:  # rate limit olunca asla hata verme, sessizce retry yap
+    while True:
         if model_idx == 0:
             model = start_model
         else:
             model = fallback_models[(model_idx - 1) % len(fallback_models)]
         payload = {
             "model": model,
-            "messages": [{"role": "system", "content": SYSTEM_PROMPT}] + safe_history,
+            "messages": [{"role": "system", "content": effective_system}] + safe_history,
             "stream": True,
             "max_tokens": 4096,
+            "temperature": temperature,
         }
         try:
             async with httpx.AsyncClient(timeout=90) as client:
@@ -126,7 +127,7 @@ async def stream_groq(history: list[dict], key: str, preferred_model: str = "") 
                     if resp.status_code == 429:
                         wait = int(resp.headers.get("retry-after", 5))
                         await asyncio.sleep(min(wait, 10))
-                        model_idx += 1  # sonraki modeli dene
+                        model_idx += 1
                         continue
                     resp.raise_for_status()
                     async for line in resp.aiter_lines():
@@ -141,27 +142,28 @@ async def stream_groq(history: list[dict], key: str, preferred_model: str = "") 
                             continue
                         if text:
                             yield text
-                    return  # basarili bitti
+                    return
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 429:
                 await asyncio.sleep(8)
                 model_idx += 1
                 continue
             if e.response.status_code == 413:
-                # Hala buyukse daha agresif kirp
                 safe_history = safe_history[-2:] if len(safe_history) > 2 else safe_history
                 continue
-            raise  # diger hatalar gercek hata
+            raise
         except Exception:
             await asyncio.sleep(3)
             continue
 
 
-async def stream_free(history: list[dict]) -> AsyncGenerator[str, None]:
+async def stream_free(history: list[dict], system_prompt: str = "", temperature: float = 0.7) -> AsyncGenerator[str, None]:
+    effective_system = system_prompt if system_prompt else SYSTEM_PROMPT
     payload = {
         "model": "openai",
-        "messages": [{"role": "system", "content": SYSTEM_PROMPT}] + history,
+        "messages": [{"role": "system", "content": effective_system}] + history,
         "stream": True,
+        "temperature": temperature,
     }
     for attempt in range(5):
         try:
@@ -222,7 +224,6 @@ async def health():
 
 @app.get("/debug")
 async def debug():
-    """config.txt okunuyor mu, key var mi? Tarayicida localhost:8000/debug ile bak."""
     keys = get_keys()
     groq = keys.get("GROQ_API_KEY", "")
     anth = keys.get("ANTHROPIC_API_KEY", "")
@@ -253,7 +254,6 @@ async def chat(request: ChatRequest):
         conversation_history[session_id] = history[-MAX_HISTORY:]
         history = conversation_history[session_id]
 
-    # Her istekte config'i taze oku
     keys = get_keys()
     anthropic_key = keys.get("ANTHROPIC_API_KEY", "")
     groq_key = keys.get("GROQ_API_KEY", "")
@@ -262,11 +262,11 @@ async def chat(request: ChatRequest):
         full_response = ""
         try:
             if anthropic_key:
-                gen = stream_anthropic(history, anthropic_key)
+                gen = stream_anthropic(history, anthropic_key, system_prompt=request.system_prompt, temperature=request.temperature)
             elif groq_key:
-                gen = stream_groq(history, groq_key, preferred_model=request.model)
+                gen = stream_groq(history, groq_key, preferred_model=request.model, system_prompt=request.system_prompt, temperature=request.temperature)
             else:
-                gen = stream_free(history)
+                gen = stream_free(history, system_prompt=request.system_prompt, temperature=request.temperature)
 
             async for text in gen:
                 if text.startswith("__WAIT__"):
