@@ -70,32 +70,60 @@ async def stream_anthropic(history: list[dict], key: str) -> AsyncGenerator[str,
             yield text
 
 
+GROQ_FALLBACK_MODELS = [
+    "llama-3.3-70b-versatile",
+    "llama-3.1-8b-instant",
+    "gemma2-9b-it",
+]
+
 async def stream_groq(history: list[dict], key: str) -> AsyncGenerator[str, None]:
-    payload = {
-        "model": GROQ_MODEL,
-        "messages": [{"role": "system", "content": SYSTEM_PROMPT}] + history,
-        "stream": True,
-        "max_tokens": 8096,
-    }
-    async with httpx.AsyncClient(timeout=90) as client:
-        async with client.stream(
-            "POST", "https://api.groq.com/openai/v1/chat/completions",
-            json=payload,
-            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-        ) as resp:
-            resp.raise_for_status()
-            async for line in resp.aiter_lines():
-                if not line.startswith("data:"):
+    headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+
+    for model in GROQ_FALLBACK_MODELS:
+        payload = {
+            "model": model,
+            "messages": [{"role": "system", "content": SYSTEM_PROMPT}] + history,
+            "stream": True,
+            "max_tokens": 4096,
+        }
+        for attempt in range(4):
+            try:
+                async with httpx.AsyncClient(timeout=90) as client:
+                    async with client.stream(
+                        "POST", "https://api.groq.com/openai/v1/chat/completions",
+                        json=payload, headers=headers,
+                    ) as resp:
+                        if resp.status_code == 429:
+                            # Groq'un retry-after header'ini oku, yoksa 10s bekle
+                            retry_after = int(resp.headers.get("retry-after", 10))
+                            await asyncio.sleep(min(retry_after, 15))
+                            continue
+                        resp.raise_for_status()
+                        async for line in resp.aiter_lines():
+                            if not line.startswith("data:"):
+                                continue
+                            data = line[5:].strip()
+                            if data == "[DONE]":
+                                return
+                            try:
+                                text = json.loads(data)["choices"][0]["delta"].get("content") or ""
+                            except (json.JSONDecodeError, KeyError, IndexError):
+                                continue
+                            if text:
+                                yield text
+                        return
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 429:
+                    await asyncio.sleep(10 * (attempt + 1))
                     continue
-                data = line[5:].strip()
-                if data == "[DONE]":
-                    break
-                try:
-                    text = json.loads(data)["choices"][0]["delta"].get("content") or ""
-                except (json.JSONDecodeError, KeyError, IndexError):
-                    continue
-                if text:
-                    yield text
+                raise
+            except Exception:
+                await asyncio.sleep(3)
+                continue
+        # Bu model basarisiz, sonrakini dene
+        continue
+
+    raise Exception("Groq tum modeller rate limit yedi. 1 dakika bekle.")
 
 
 async def stream_free(history: list[dict]) -> AsyncGenerator[str, None]:
