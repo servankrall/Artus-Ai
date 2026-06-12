@@ -57,6 +57,8 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True,
 class ChatRequest(BaseModel):
     session_id: str
     message: str
+    model: str = ""
+    mode: str = "chat"
 
 
 async def stream_anthropic(history: list[dict], key: str) -> AsyncGenerator[str, None]:
@@ -90,17 +92,25 @@ def _trim_history(history: list[dict], max_chars: int = 12000) -> list[dict]:
     while trimmed and trimmed[0]["role"] != "user":
         trimmed = trimmed[1:]
     return trimmed if trimmed else history[-1:]
-        trimmed = trimmed[2:]  # en eski user+assistant çiftini at
-    return trimmed or history[-2:]  # en az son 2 mesajı koru
 
 
-async def stream_groq(history: list[dict], key: str) -> AsyncGenerator[str, None]:
+async def stream_groq(history: list[dict], key: str, preferred_model: str = "") -> AsyncGenerator[str, None]:
     headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+    # Use preferred model as starting point if valid, otherwise default
+    if preferred_model and preferred_model in GROQ_MODELS:
+        start_model = preferred_model
+        fallback_models = [m for m in GROQ_MODELS if m != preferred_model] + [preferred_model]
+    else:
+        start_model = GROQ_MODELS[0]
+        fallback_models = GROQ_MODELS
     model_idx = 0
     safe_history = _trim_history(history)
 
     while True:  # rate limit olunca asla hata verme, sessizce retry yap
-        model = GROQ_MODELS[model_idx % len(GROQ_MODELS)]
+        if model_idx == 0:
+            model = start_model
+        else:
+            model = fallback_models[(model_idx - 1) % len(fallback_models)]
         payload = {
             "model": model,
             "messages": [{"role": "system", "content": SYSTEM_PROMPT}] + safe_history,
@@ -244,7 +254,7 @@ async def chat(request: ChatRequest):
             if anthropic_key:
                 gen = stream_anthropic(history, anthropic_key)
             elif groq_key:
-                gen = stream_groq(history, groq_key)
+                gen = stream_groq(history, groq_key, preferred_model=request.model)
             else:
                 gen = stream_free(history)
 
