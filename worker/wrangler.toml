@@ -1,0 +1,6 @@
+name = "omni-ai-proxy"
+main = "index.js"
+compatibility_date = "2024-01-01"
+
+# GROQ_API_KEY'i Cloudflare dashboard'dan ekle:
+# Workers & Pages → omni-ai-proxy → Settings → Variables → GROQ_API_KEY

@@ -1,12 +1,17 @@
 /* ════════════════════════════════════════════════════════════
-   omni.ai — İstemci taraflı AI motoru (statik / backend'siz)
-   Groq API'ye doğrudan tarayıcıdan bağlanır.
-   API anahtarı tarayıcıda (localStorage) saklanır, kodda değildir.
+   omni.ai — AI motoru
+   Cloudflare Worker proxy üzerinden Groq'a bağlanır.
+   Worker URL burada ayarlanır, Groq key kullanıcıya görünmez.
 ════════════════════════════════════════════════════════════ */
 (function () {
+  // ── Cloudflare Worker URL'ini buraya yaz ──
+  // Örnek: "https://omni-ai-proxy.KULLANICIADIN.workers.dev"
+  // Worker deploy ettikten sonra bu satırı güncelle.
+  const WORKER_URL = "https://omni-ai-proxy.servankrall.workers.dev";
+
   const SYSTEM_PROMPT = `# OMNI AGENT v1
 
-Sen dünyanın en yetenekli dijital operatörüsün.
+Sen dünyanın en yetenekli dijital operatörüsün. Adın omni.ai.
 
 ## Uzmanlık Alanların
 Yazılım geliştirme, web geliştirme, yapay zeka sistemleri, siber güvenlik, veri analizi, oyun geliştirme, mobil uygulama, DevOps, UI/UX, iş geliştirme, pazarlama, eğitim, araştırma.
@@ -42,53 +47,31 @@ Kullanıcının istediği sonucu en kısa sürede, en yüksek doğrulukla ve pro
     "llama3-8b-8192",
   ];
 
-  const KEY_STORAGE = "omni_groq_key";
-
-  function getKey() {
-    return (localStorage.getItem(KEY_STORAGE) || "").trim();
-  }
-  function setKey(k) {
-    localStorage.setItem(KEY_STORAGE, (k || "").trim());
-  }
-  function hasKey() {
-    return getKey().startsWith("gsk_");
-  }
-
-  // Sohbet geçmişini karakter sınırına göre kırp; her zaman 'user' ile başlasın
   function trimHistory(history, maxChars) {
     maxChars = maxChars || 12000;
     let trimmed = history.slice();
     while (trimmed.length) {
-      const total = trimmed.reduce((s, m) => s + (m.content || "").length, 0);
+      const total = trimmed.reduce(function(s, m) { return s + (m.content || "").length; }, 0);
       if (total <= maxChars) break;
       trimmed = trimmed.slice(2);
     }
-    trimmed = trimmed.filter((m) => (m.content || "").trim());
+    trimmed = trimmed.filter(function(m) { return (m.content || "").trim(); });
     while (trimmed.length && trimmed[0].role !== "user") trimmed = trimmed.slice(1);
     return trimmed.length ? trimmed : history.slice(-1);
   }
 
-  /* Groq'a doğrudan akışlı (streaming) istek.
-     opts: { messages, model, systemPrompt, temperature, onText, signal } */
   async function streamChat(opts) {
-    const key = getKey();
-    if (!key) {
-      throw new Error("NO_KEY");
-    }
-
     const sysPrompt = (opts.systemPrompt && opts.systemPrompt.trim()) || SYSTEM_PROMPT;
     const temperature = typeof opts.temperature === "number" ? opts.temperature : 0.7;
-    const onText = opts.onText || function () {};
+    const onText = opts.onText || function() {};
     const safeHistory = trimHistory(opts.messages || []);
 
-    // Tercih edilen modeli başa al, sonra diğerlerine düş
-    let order = MODELS.slice();
+    var order = MODELS.slice();
     if (opts.model && MODELS.includes(opts.model)) {
-      order = [opts.model].concat(MODELS.filter((m) => m !== opts.model));
+      order = [opts.model].concat(MODELS.filter(function(m) { return m !== opts.model; }));
     }
 
     let lastErr = null;
-    // Her modeli sırayla dene; 429'da sıradakine geç
     for (let attempt = 0; attempt < order.length + 2; attempt++) {
       const model = order[attempt % order.length];
       const payload = {
@@ -100,20 +83,20 @@ Kullanıcının istediği sonucu en kısa sürede, en yüksek doğrulukla ve pro
       };
 
       try {
-        const resp = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        const resp = await fetch(WORKER_URL, {
           method: "POST",
-          headers: {
-            Authorization: "Bearer " + key,
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
           signal: opts.signal,
         });
 
-        if (resp.status === 401) throw new Error("BAD_KEY");
         if (resp.status === 429) {
-          await new Promise((r) => setTimeout(r, 1200));
-          continue; // sıradaki modeli dene
+          await new Promise(function(r) { setTimeout(r, 1500); });
+          continue;
+        }
+        if (resp.status === 500) {
+          const txt = await resp.text();
+          throw new Error("WORKER_ERR:" + txt);
         }
         if (!resp.ok) {
           lastErr = new Error("HTTP " + resp.status);
@@ -137,25 +120,26 @@ Kullanıcının istediği sonucu en kısa sürede, en yüksek doğrulukla ve pro
             try {
               const delta = JSON.parse(data).choices[0].delta.content || "";
               if (delta) onText(delta);
-            } catch (_) {}
+            } catch(_) {}
           }
         }
-        return; // başarıyla bitti
-      } catch (e) {
-        if (e.message === "BAD_KEY" || e.name === "AbortError") throw e;
+        return;
+      } catch(e) {
+        if (e.name === "AbortError") throw e;
         lastErr = e;
-        await new Promise((r) => setTimeout(r, 800));
+        await new Promise(function(r) { setTimeout(r, 800); });
       }
     }
     throw lastErr || new Error("Groq cevap vermedi");
   }
 
   window.OmniAI = {
-    SYSTEM_PROMPT,
-    MODELS,
-    getKey,
-    setKey,
-    hasKey,
-    streamChat,
+    SYSTEM_PROMPT: SYSTEM_PROMPT,
+    MODELS: MODELS,
+    // Key fonksiyonları artık boş — key worker'da
+    getKey: function() { return ""; },
+    setKey: function() {},
+    hasKey: function() { return true; },
+    streamChat: streamChat,
   };
 })();
