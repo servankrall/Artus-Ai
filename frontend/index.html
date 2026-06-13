@@ -813,6 +813,7 @@ body[data-mode="design"] #mode-label::before { content: "🎨 "; }
 .search-current { outline:2px solid var(--yellow)!important;background:rgba(245,158,11,.1)!important; }
 .accent-swatch { width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border-color .15s;display:inline-block; }
 .accent-swatch:hover,.accent-swatch.active { border-color:#fff; }
+#btn-web.web-active { color:var(--accent)!important;background:rgba(37,99,235,.15)!important; }
 @media print {
   #sidebar,#topbar,#input-bar,#settings-panel,#palette-overlay,#shortcuts-modal,.suggestion-chips { display:none!important; }
   #main { width:100%; } #chat-area { overflow:visible; }
@@ -1039,6 +1040,7 @@ body[data-mode="design"] #mode-label::before { content: "🎨 "; }
       <div class="input-row">
         <div class="input-wrap">
           <button class="input-side-btn" id="btn-attach" title="Dosya ekle" onclick="triggerFileAttach()">＋</button>
+          <button class="input-side-btn" id="btn-web" title="Web arama modu" onclick="toggleWebSearch()">🌐</button>
           <textarea id="user-input" rows="1" placeholder="Mesajınızı yazın… (Enter → gönder, Shift+Enter → yeni satır)"></textarea>
           <button class="input-side-btn" id="btn-mic" onclick="toggleMic()" title="Sesle yaz (Ctrl+M)">🎤</button>
         </div>
@@ -1096,6 +1098,23 @@ body[data-mode="design"] #mode-label::before { content: "🎨 "; }
 
     <div class="settings-info" style="font-size:11.5px;">
       Session: <span id="debug-session" style="font-family:monospace;font-size:10.5px;word-break:break-all;color:var(--muted);"></span>
+    </div>
+
+    <!-- System Prompt -->
+    <div class="settings-group">
+      <label>Sistem Promptu</label>
+      <textarea id="sys-prompt-input" rows="4" placeholder="Boş bırakırsan varsayılan OMNI AGENT promptu kullanılır." style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:12px;resize:vertical;outline:none"></textarea>
+      <div style="display:flex;gap:8px;margin-top:6px">
+        <button onclick="saveSystemPrompt()" class="topbar-icon-btn">Kaydet</button>
+        <button onclick="resetSystemPrompt()" class="topbar-icon-btn">Sıfırla</button>
+      </div>
+    </div>
+
+    <!-- Temperature -->
+    <div class="settings-group">
+      <label>Yaratıcılık (<span id="temp-label">0.7</span>)</label>
+      <input type="range" min="0.1" max="1.5" step="0.1" value="0.7" oninput="setTemperature(this.value)" style="width:100%;accent-color:var(--accent)">
+      <span style="font-size:11px;color:var(--muted)">Düşük = kesin · Yüksek = yaratıcı</span>
     </div>
 
     <!-- Appearance -->
@@ -1167,12 +1186,49 @@ const PRO_ACTIVATION_CODE = "SERVAN2026OMNI";
 // ── Mermaid init ──
 mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'loose' });
 
+// ── Eksik fonksiyon köprüleri (mevcut kodla uyum) ──
+function scrollToBottom() { try { scrollBottom(); } catch(_) { const c = document.getElementById('chat-area'); if(c) c.scrollTop = c.scrollHeight; } }
+function newChat() { try { startNewChat(); } catch(_) {} }
+function processFile(file) {
+  // Drag-drop / paste ile gelen tek dosyayı handleFileSelected ile aynı şekilde işle
+  handleFileSelected({ target: { files: [file] } });
+}
+
+// ── Web Arama modu ──
+let webSearchOn = false;
+function toggleWebSearch() {
+  webSearchOn = !webSearchOn;
+  const btn = document.getElementById('btn-web');
+  if (btn) btn.classList.toggle('web-active', webSearchOn);
+  showToast(webSearchOn ? '🌐 Web modu açık' : 'Web modu kapalı');
+}
+
+// ── Sistem promptu + yaratıcılık (localStorage) ──
+function getSystemPrompt() { return localStorage.getItem('artus_system_prompt') || ''; }
+function saveSystemPrompt() {
+  const v = document.getElementById('sys-prompt-input').value;
+  localStorage.setItem('artus_system_prompt', v);
+  showToast('Sistem promptu kaydedildi');
+}
+function resetSystemPrompt() {
+  localStorage.removeItem('artus_system_prompt');
+  const el = document.getElementById('sys-prompt-input');
+  if (el) el.value = '';
+  showToast('Sistem promptu sıfırlandı');
+}
+function getTemperature() { return parseFloat(localStorage.getItem('artus_temperature') || '0.7'); }
+function setTemperature(v) {
+  localStorage.setItem('artus_temperature', v);
+  const lbl = document.getElementById('temp-label');
+  if (lbl) lbl.textContent = parseFloat(v).toFixed(1);
+}
+
 // ── Draft autosave ──
 let _draftTimer = null;
 function saveDraft(v) { clearTimeout(_draftTimer); _draftTimer = setTimeout(() => localStorage.setItem('artus_draft', v), 500); }
 function loadDraft() {
   const d = localStorage.getItem('artus_draft');
-  if (d) { const ta = document.getElementById('input-textarea'); if (ta) { ta.value = d; showToast('Taslak geri yüklendi'); onInputChange(); } }
+  if (d) { const ta = inputEl; if (ta) { ta.value = d; showToast('Taslak geri yüklendi'); onInputChange(); } }
 }
 
 // ── Session stats ──
@@ -1260,7 +1316,7 @@ function addSuggestions(text) {
 }
 function sendSuggestion(btn, text) {
   btn.closest('.suggestion-chips').remove();
-  document.getElementById('input-textarea').value = text;
+  inputEl.value = text;
   sendMessage();
 }
 
@@ -1343,7 +1399,7 @@ function runCommand(i) { closePalette(); COMMANDS[i].fn(); }
 
 // ── Summarize ──
 function summarize() {
-  const ta = document.getElementById('input-textarea');
+  const ta = inputEl;
   ta.value = 'Bu konuşmayı madde madde özetle, ana konuları ve çıkarımları listele.';
   sendMessage();
 }
@@ -1390,8 +1446,8 @@ function getTemplates() {
   return [...DEFAULT_TEMPLATES, ...custom];
 }
 function applyTemplate(prompt) {
-  document.getElementById('input-textarea').value = prompt;
-  document.getElementById('input-textarea').focus();
+  inputEl.value = prompt;
+  inputEl.focus();
   showToast('Şablon uygulandı');
 }
 function renderTemplates() {
@@ -1577,6 +1633,12 @@ function init() {
   applyMode(currentMode, false);
   applyModel(currentModel, false);
   checkHealth();
+
+  // Kayıtlı sistem promptu + yaratıcılık değerlerini yükle
+  const sp = document.getElementById('sys-prompt-input');
+  if (sp) sp.value = getSystemPrompt();
+  const tempLbl = document.getElementById('temp-label');
+  if (tempLbl) tempLbl.textContent = getTemperature().toFixed(1);
 
   inputEl.addEventListener('input', onInputChange);
   inputEl.addEventListener('keydown', e => {
@@ -2311,6 +2373,12 @@ async function sendMessage() {
     messageText = messageText + '\n' + mentions;
   }
 
+  // Web arama modu: AI'ya güncel bilgi kullanma talimatı ekle
+  let sendText = messageText;
+  if (webSearchOn) {
+    sendText = '[WEB ARAMA MODU - internetteki güncel bilgileri kullanarak cevap ver, emin değilsen söyle]: ' + messageText;
+  }
+
   resetInput();
   appendUserMsg(messageText);
   setStreaming(true);
@@ -2332,9 +2400,11 @@ async function sendMessage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         session_id: SESSION_ID,
-        message: messageText,
+        message: sendText,
         model: currentModel,
         mode: currentMode,
+        system_prompt: getSystemPrompt(),
+        temperature: getTemperature(),
       }),
     });
 
