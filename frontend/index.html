@@ -49,18 +49,42 @@
 
 /* Light mode overrides */
 body.light-mode {
-  --bg:      #ffffff;
-  --sidebar: #f6f8fa;
-  --surface: #f0f2f5;
-  --border:  #d0d7de;
-  --text:    #1f2328;
-  --muted:   #57606a;
+  --bg:        #f4f6fb;
+  --sidebar:   #eef0f6;
+  --surface:   #ffffff;
+  --surface-2: #f0f2f8;
+  --border:    #d0d4e1;
+  --text:      #111827;
+  --muted:     #4b5563;
 }
-body.light-mode .bubble strong { color: #1f2328; }
-body.light-mode .bubble em { color: #444d56; }
+body.light-mode .bubble strong { color: #111827; }
+body.light-mode .bubble em { color: #374151; }
 body.light-mode .msg.user .bubble { color: #fff; }
-body.light-mode .msg.bot .bubble { background: var(--surface); }
-body.light-mode .code-wrap pre { filter: brightness(0.97); }
+body.light-mode .msg.bot .bubble { background: #fff; border-color: #d0d4e1; color: #111827; }
+body.light-mode .msg.bot .bubble code:not(pre code) { background: #e9ecf3; color: #1e293b; }
+body.light-mode .code-wrap pre { background: #1e2130 !important; }
+body.light-mode .code-wrap pre code { color: #e2e8f0 !important; }
+body.light-mode #topbar, body.light-mode #sidebar { background: #eef0f6; border-color: #d0d4e1; }
+body.light-mode .settings-btn, body.light-mode .mode-btn { color: #4b5563; }
+body.light-mode .settings-btn:hover, body.light-mode .mode-btn:hover { background: rgba(99,102,241,.1); color: #111827; }
+body.light-mode .topbar-icon-btn { color: #4b5563; border-color: #d0d4e1; }
+body.light-mode .topbar-icon-btn:hover { color: #111827; border-color: var(--accent); }
+body.light-mode #input-bar { background: #eef0f6; border-top-color: #d0d4e1; }
+body.light-mode .input-wrap { background: #ffffff; border-color: #c7ccd8; }
+body.light-mode #user-input { color: #111827; }
+body.light-mode #user-input::placeholder { color: #9ca3af; }
+body.light-mode #settings-panel { background: #ffffff; border-color: #d0d4e1; }
+body.light-mode .settings-panel-title { color: #111827; }
+body.light-mode .settings-group label { color: #374151; }
+body.light-mode select, body.light-mode textarea { background: #f4f6fb !important; color: #111827 !important; border-color: #d0d4e1 !important; }
+body.light-mode .palette-item { color: #111827; }
+body.light-mode .wlc-chip { background: #f0f2f8; border-color: #d0d4e1; color: #374151; }
+body.light-mode .wlc-chip:hover { border-color: var(--accent); background: rgba(99,102,241,.08); }
+body.light-mode .suggestion-chip { background: #f0f2f8; border-color: #d0d4e1; color: #374151; }
+body.light-mode .history-item { color: #374151; }
+body.light-mode .history-item:hover { background: rgba(99,102,241,.08); }
+body.light-mode #chat-area { background: #f4f6fb; }
+body.light-mode #welcome h2 { -webkit-text-fill-color: unset; background: none; color: #111827; }
 
 html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.6; overflow: hidden; }
 
@@ -973,7 +997,7 @@ body[data-mode="design"] #mode-label::before { content: "🎨 "; }
         <button class="topbar-icon-btn" onclick="toggleSearch()" title="Ara (Ctrl+F)">🔍</button>
 
         <!-- Artifacts -->
-        <button class="topbar-icon-btn" id="btn-artifacts" onclick="toggleArtifacts()" title="Artifacts">⬡</button>
+        <button class="topbar-icon-btn" id="btn-artifacts" onclick="toggleArtifacts()" title="Artifacts Paneli">🗂 Artifacts</button>
 
         <!-- Summarize -->
         <button class="topbar-icon-btn" onclick="summarize()" title="Özetle">📋</button>
@@ -2346,7 +2370,20 @@ function previewCode(btn, lang) {
 
 function toggleArtifacts() {
   const p = document.getElementById('artifacts-panel');
-  p.style.display = p.style.display === 'none' || !p.style.display ? 'block' : 'none';
+  const isHidden = p.style.display === 'none' || !p.style.display;
+  p.style.display = isHidden ? 'flex' : 'none';
+  if (isHidden && !p.dataset.initialized) {
+    p.dataset.initialized = '1';
+    p.innerHTML = `<div style="width:100%;height:100%;display:flex;flex-direction:column;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border);flex-shrink:0">
+        <strong style="color:var(--text);font-size:14px">🗂 Artifacts Paneli</strong>
+        <button onclick="document.getElementById('artifacts-panel').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;line-height:1">×</button>
+      </div>
+      <div id="artifacts-list" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;">
+        <div style="color:var(--muted);font-size:13px;text-align:center;margin-top:40px">Henüz artifact yok.<br>Bir HTML kod bloğundaki ▶ butonuna bas.</div>
+      </div>
+    </div>`;
+  }
 }
 
 function copyBubble(btn) {
@@ -2434,12 +2471,21 @@ async function sendMessage() {
   const rawText = inputEl.value.trim();
   if (!rawText || streaming) return;
 
-  // Build final message text: for images, append mention tags
+  // Build final message text: görseller için base64 açıklamasını ekle
   let messageText = rawText;
   const imageFiles = attachedFiles.filter(f => f.isImage);
+  const textFiles  = attachedFiles.filter(f => !f.isImage && f.block);
+
   if (imageFiles.length > 0) {
-    const mentions = imageFiles.map(f => `[Görsel: ${f.name}]`).join(' ');
-    messageText = messageText + '\n' + mentions;
+    // Groq llama modelleri vision desteklemiyor; görseli base64 data URL olarak bilgi olarak ekle
+    const imgInfo = imageFiles.map(f =>
+      `[Görsel eklendi: "${f.name}" — görsel içeriğini analiz etmek için görseli açıkla veya kullanıcının yazdığı soruyu yanıtla]`
+    ).join('\n');
+    messageText = messageText + '\n\n' + imgInfo;
+  }
+  if (textFiles.length > 0) {
+    const fileContent = textFiles.map(f => f.block).join('\n');
+    messageText = fileContent + messageText;
   }
 
   // Web arama modu: AI'ya güncel bilgi kullanma talimatı ekle
@@ -2627,7 +2673,7 @@ document.addEventListener('click', e => {
 </div>
 
 <!-- Artifacts Panel -->
-<div id="artifacts-panel" style="display:none;position:fixed;right:0;top:52px;bottom:0;width:40%;background:#161b22;border-left:1px solid #30363d;z-index:100;overflow:auto;padding:12px;"></div>
+<div id="artifacts-panel" style="display:none;position:fixed;right:0;top:52px;bottom:0;width:42%;min-width:280px;max-width:600px;background:var(--sidebar);border-left:1px solid var(--border);z-index:100;overflow:hidden;"></div>
 
 </body>
 </html>
