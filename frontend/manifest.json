@@ -1,7 +1,7 @@
 {
-  "name": "OMNI AGENT",
-  "short_name": "OMNI",
-  "description": "Artus AI — Dünyanın en yetenekli dijital operatörü. Yazılım, tasarım, araştırma ve daha fazlası için AI asistanın.",
+  "name": "omni.ai",
+  "short_name": "omni.ai",
+  "description": "omni.ai — Dünyanın en yetenekli dijital operatörü. Yazılım, tasarım, araştırma ve daha fazlası için AI asistanın.",
   "start_url": "/loading.html",
   "scope": "/",
   "display": "standalone",
