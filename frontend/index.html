@@ -3,6 +3,12 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#2563eb" />
+<link rel="manifest" href="/manifest.json" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%E2%9A%A1%3C/text%3E%3C/svg%3E" />
+<link rel="apple-touch-icon" href="/icon-192.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="OMNI AGENT" />
 <title>OMNI AGENT — Artus AI</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
@@ -952,6 +958,9 @@ body[data-mode="design"] #mode-label::before { content: "🎨 "; }
         <!-- Tier badge -->
         <span class="badge badge-free" id="tier-badge" onclick="openProModal()">ÜCRETSİZ</span>
 
+        <!-- Install PWA -->
+        <button class="topbar-icon-btn" id="btn-install" onclick="installApp()" title="Uygulamayı yükle" style="display:none;border-color:var(--accent);color:var(--accent)">⬇ Yükle</button>
+
         <!-- Search -->
         <button class="topbar-icon-btn" onclick="toggleSearch()" title="Ara (Ctrl+F)">🔍</button>
 
@@ -1185,6 +1194,36 @@ const PRO_ACTIVATION_CODE = "SERVAN2026OMNI";
 
 // ── Mermaid init ──
 mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'loose' });
+
+// ── PWA: kurulabilir uygulama ──
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+let deferredInstall = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstall = e;
+  const btn = document.getElementById('btn-install');
+  if (btn) btn.style.display = 'inline-block';
+});
+window.addEventListener('appinstalled', () => {
+  deferredInstall = null;
+  const btn = document.getElementById('btn-install');
+  if (btn) btn.style.display = 'none';
+  try { showToast('⚡ OMNI AGENT yüklendi!'); } catch(_) {}
+});
+async function installApp() {
+  if (!deferredInstall) {
+    showToast('Tarayıcı menüsünden "Uygulamayı yükle" seçeneğini kullanın');
+    return;
+  }
+  deferredInstall.prompt();
+  const { outcome } = await deferredInstall.userChoice;
+  if (outcome === 'accepted') showToast('⚡ Yükleniyor...');
+  deferredInstall = null;
+  const btn = document.getElementById('btn-install');
+  if (btn) btn.style.display = 'none';
+}
 
 // ── Eksik fonksiyon köprüleri (mevcut kodla uyum) ──
 function scrollToBottom() { try { scrollBottom(); } catch(_) { const c = document.getElementById('chat-area'); if(c) c.scrollTop = c.scrollHeight; } }

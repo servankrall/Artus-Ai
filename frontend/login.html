@@ -3,6 +3,12 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#2563eb" />
+<link rel="manifest" href="/manifest.json" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%E2%9A%A1%3C/text%3E%3C/svg%3E" />
+<link rel="apple-touch-icon" href="/icon-192.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="OMNI AGENT" />
 <title>OMNI AGENT — Artus AI</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -256,6 +262,29 @@ window.GOOGLE_CLIENT_ID = "552424284167-4qar5shifabthdkdg3627c99vephep6s.apps.go
     }
   } catch(_) {}
 })();
+
+// ── PWA: service worker + install ──
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+let deferredInstall = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstall = e;
+  const b = document.getElementById('btn-install-login');
+  if (b) b.style.display = 'flex';
+});
+async function installApp() {
+  if (!deferredInstall) {
+    alert('Uygulamayı yüklemek için: Chrome/Edge adres çubuğundaki ⊕ simgesine ya da tarayıcı menüsünden "Uygulamayı yükle" seçeneğine tıklayın. (iPhone Safari: Paylaş → Ana Ekrana Ekle)');
+    return;
+  }
+  deferredInstall.prompt();
+  await deferredInstall.userChoice;
+  deferredInstall = null;
+  const b = document.getElementById('btn-install-login');
+  if (b) b.style.display = 'none';
+}
 </script>
 
 <div class="stars"></div>
@@ -298,6 +327,9 @@ window.GOOGLE_CLIENT_ID = "552424284167-4qar5shifabthdkdg3627c99vephep6s.apps.go
 
       <button class="btn-demo" id="btn-demo" onclick="demoLogin()">
         🚀 Demo Girişi (Google gerekmez)
+      </button>
+      <button class="btn-demo" id="btn-install-login" onclick="installApp()" style="display:none;border-color:rgba(37,99,235,0.4);color:var(--accent)">
+        ⚡ Uygulamayı Cihaza Yükle
       </button>
     </div>
 
