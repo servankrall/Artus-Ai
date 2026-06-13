@@ -1,0 +1,10 @@
+# omni.ai — statik site yayını (Netlify / Cloudflare Pages uyumlu)
+[build]
+  publish = "frontend"
+  command = ""
+
+# SPA benzeri yönlendirme: kök adres index.html'e gider
+[[redirects]]
+  from = "/"
+  to = "/index.html"
+  status = 200

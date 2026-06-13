@@ -17,6 +17,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<script src="/omni-config.js"></script>
 <style>
 /* ── Reset & Root ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1105,6 +1106,18 @@ body[data-mode="design"] #mode-label::before { content: "🎨 "; }
       API Durumu: <span id="api-status-text">kontrol ediliyor…</span>
     </div>
 
+    <!-- Groq API Key -->
+    <div class="settings-group">
+      <label>🔑 Groq API Anahtarı</label>
+      <input type="password" id="groq-key-input" placeholder="gsk_..." autocomplete="off"
+        style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:12px;outline:none;font-family:monospace">
+      <div style="display:flex;gap:8px;margin-top:6px">
+        <button onclick="saveGroqKey()" class="topbar-icon-btn">Kaydet</button>
+        <a href="https://console.groq.com/keys" target="_blank" rel="noopener" class="topbar-icon-btn" style="text-decoration:none;display:inline-flex;align-items:center">Ücretsiz key al →</a>
+      </div>
+      <span style="font-size:11px;color:var(--muted);display:block;margin-top:4px">Anahtarın yalnızca senin tarayıcında saklanır, hiçbir sunucuya gönderilmez.</span>
+    </div>
+
     <div class="settings-info" style="font-size:11.5px;">
       Session: <span id="debug-session" style="font-family:monospace;font-size:10.5px;word-break:break-all;color:var(--muted);"></span>
     </div>
@@ -1702,6 +1715,7 @@ function init() {
   debugSession.textContent = SESSION_ID;
   applyMode(currentMode, false);
   applyModel(currentModel, false);
+  loadGroqKey();
   checkHealth();
 
   // Kayıtlı sistem promptu + yaratıcılık değerlerini yükle
@@ -2112,19 +2126,32 @@ function syncModelFromSettings() {
 /* ═══════════════════════════════════════════════
    HEALTH CHECK
 ═══════════════════════════════════════════════ */
-async function checkHealth() {
+function checkHealth() {
   const el = document.getElementById('api-status-text');
-  try {
-    const r = await fetch('/health');
-    const d = await r.json();
-    if (d.provider === 'groq' || d.provider === 'anthropic') {
-      el.innerHTML = `<span class="api-status-dot api-ok"></span>Bağlı (${d.provider})`;
-    } else {
-      el.innerHTML = `<span class="api-status-dot api-warn"></span>Ücretsiz mod (sınırlı)`;
-    }
-  } catch(_) {
-    el.innerHTML = `<span class="api-status-dot api-err"></span>Sunucuya erişilemiyor`;
+  if (!el) return;
+  if (window.OmniAI && OmniAI.hasKey()) {
+    el.innerHTML = `<span class="api-status-dot api-ok"></span>Bağlı (Groq)`;
+  } else {
+    el.innerHTML = `<span class="api-status-dot api-warn"></span>API anahtarı gerekli — Ayarlar'dan ekle`;
   }
+}
+
+function saveGroqKey() {
+  const inp = document.getElementById('groq-key-input');
+  if (!inp) return;
+  const k = inp.value.trim();
+  if (k && !k.startsWith('gsk_')) {
+    showToast('⚠️ Groq anahtarı gsk_ ile başlamalı');
+    return;
+  }
+  OmniAI.setKey(k);
+  checkHealth();
+  showToast(k ? '🔑 API anahtarı kaydedildi' : 'Anahtar temizlendi');
+}
+
+function loadGroqKey() {
+  const inp = document.getElementById('groq-key-input');
+  if (inp && window.OmniAI) inp.value = OmniAI.getKey();
 }
 
 /* ═══════════════════════════════════════════════
@@ -2464,70 +2491,42 @@ async function sendMessage() {
   const bubble = createBotBubble();
   let fullText = '';
 
+  // Groq mesaj geçmişini oluştur (son kullanıcı mesajını web-arama metniyle değiştir)
+  const groqMessages = sessionMessages.map(m => ({ role: m.role, content: m.content }));
+  if (groqMessages.length) {
+    groqMessages[groqMessages.length - 1] = { role: 'user', content: sendText };
+  }
+
   try {
-    const resp = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        session_id: SESSION_ID,
-        message: sendText,
-        model: currentModel,
-        mode: currentMode,
-        system_prompt: getSystemPrompt(),
-        temperature: getTemperature(),
-      }),
+    await OmniAI.streamChat({
+      messages: groqMessages,
+      model: currentModel,
+      systemPrompt: getSystemPrompt(),
+      temperature: getTemperature(),
+      onText: (chunk) => {
+        fullText += chunk;
+        renderBubble(bubble, fullText, currentMode);
+        scrollBottom();
+      },
     });
-
-    if (!resp.ok) {
-      const err = await resp.json().catch(() => ({ detail: resp.statusText }));
-      bubble.textContent = `Hata: ${err.detail || resp.statusText}`;
-      setStreaming(false);
-      return;
-    }
-
-    const reader = resp.body.getReader();
-    const decoder = new TextDecoder();
-    let buf = '';
-
-    outer: while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buf += decoder.decode(value, { stream: true });
-      const lines = buf.split('\n');
-      buf = lines.pop();
-
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue;
-        const raw = line.slice(6).trim();
-        if (!raw) continue;
-        try {
-          const evt = JSON.parse(raw);
-          if (evt.type === 'text') {
-            fullText += evt.content;
-            renderBubble(bubble, fullText, currentMode);
-            scrollBottom();
-          } else if (evt.type === 'done') {
-            break outer;
-          } else if (evt.type === 'error') {
-            const msg = evt.content || '';
-            if (msg.match(/429|rate.?limit|too.?many/i)) {
-              bubble.innerHTML = '<em style="color:var(--yellow)">⏳ Sunucu meşgul, biraz bekle ve tekrar dene.</em>';
-            } else {
-              bubble.textContent = `Hata: ${msg}`;
-            }
-          }
-        } catch(_) {}
-      }
-    }
 
     // Save assistant response to session messages and update history
     if (fullText) {
       sessionMessages.push({ role: 'assistant', content: fullText });
       updateHistoryEntry();
+    } else {
+      bubble.innerHTML = '<em style="color:var(--yellow)">Boş cevap geldi, tekrar dene.</em>';
     }
 
   } catch(err) {
-    bubble.textContent = `Bağlantı hatası: ${err.message}`;
+    if (err.message === 'NO_KEY') {
+      bubble.innerHTML = '<em style="color:var(--yellow)">🔑 Groq API anahtarı gerekli. Ayarlar (⚙️) → API Anahtarı bölümünden ücretsiz key ekle: <a href="https://console.groq.com/keys" target="_blank" style="color:var(--accent)">console.groq.com/keys</a></em>';
+      try { document.getElementById('settings-panel').classList.add('open'); loadGroqKey(); checkHealth(); } catch(_) {}
+    } else if (err.message === 'BAD_KEY') {
+      bubble.innerHTML = '<em style="color:var(--red)">❌ API anahtarı geçersiz. Ayarlar\'dan kontrol et.</em>';
+    } else {
+      bubble.textContent = `Bağlantı hatası: ${err.message}`;
+    }
   } finally {
     setStreaming(false);
     scrollBottom();
