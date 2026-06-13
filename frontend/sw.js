@@ -1,33 +1,36 @@
-// omni.ai Service Worker
-const CACHE = 'omni-ai-v2';
+// Omni.Ai Service Worker — otomatik güncellenir
+const CACHE = 'omni-ai-v4';
 const ASSETS = [
   '/loading.html',
   '/login.html',
   '/index.html',
+  '/omni-config.js',
   '/icon-192.png',
   '/icon-512.png',
   '/manifest.json',
 ];
 
 self.addEventListener('install', (e) => {
+  // Yeni sürüm hazır olur olmaz devral — bekleme yok
+  self.skipWaiting();
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS).catch(() => {})));
-  // Don't skipWaiting immediately — wait for user to trigger update
 });
 
 self.addEventListener('activate', (e) => {
   e.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
-    )
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
+  // API ve GET olmayan istekleri asla yakalama
   if (url.pathname.startsWith('/api/') || e.request.method !== 'GET') {
     return;
   }
+  // HER ZAMAN önce ağ; başarısızsa (offline) cache'e düş
   e.respondWith(
     fetch(e.request)
       .then((resp) => {
@@ -35,13 +38,10 @@ self.addEventListener('fetch', (e) => {
         caches.open(CACHE).then((c) => c.put(e.request, copy)).catch(() => {});
         return resp;
       })
-      .catch(() => caches.match(e.request).then((r) => r || caches.match('/loading.html')))
+      .catch(() => caches.match(e.request).then((r) => r || caches.match('/index.html')))
   );
 });
 
-// Listen for skip-waiting message from client
 self.addEventListener('message', (e) => {
-  if (e.data === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
+  if (e.data === 'SKIP_WAITING') self.skipWaiting();
 });

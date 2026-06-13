@@ -1231,18 +1231,13 @@ mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'loose' }
 // ── PWA: kurulabilir uygulama + otomatik güncelleme ──
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').then((reg) => {
-    // Yeni service worker geldiğinde güncelleme bildirimi göster
-    reg.addEventListener('updatefound', () => {
-      const newWorker = reg.installing;
-      newWorker.addEventListener('statechange', () => {
-        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-          showUpdateBanner();
-        }
-      });
-    });
+    // Her açılışta yeni sürüm var mı diye kontrol et
+    reg.update().catch(() => {});
+    // Sayfa açıkken periyodik kontrol (her 60 sn)
+    setInterval(() => reg.update().catch(() => {}), 60000);
   }).catch(() => {});
 
-  // SW kontrolü değişince sayfayı otomatik yenile
+  // Yeni SW devralınca sayfayı otomatik tazele
   let refreshing = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (!refreshing) { refreshing = true; window.location.reload(); }

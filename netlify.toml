@@ -11,3 +11,20 @@
   from = "/"
   to = "/index.html"
   status = 200
+
+# Service worker, HTML ve config dosyaları asla cache'lenmesin —
+# böylece her ziyarette en güncel sürüm gelir
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+[[headers]]
+  for = "/omni-config.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
