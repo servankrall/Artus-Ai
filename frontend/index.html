@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="theme-color" content="#2563eb" />
+<meta name="theme-color" content="#6366f1" />
 <link rel="manifest" href="/manifest.json" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%E2%9A%A1%3C/text%3E%3C/svg%3E" />
 <link rel="apple-touch-icon" href="/icon-192.png" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-title" content="omni.ai" />
-<title>omni.ai</title>
+<meta name="apple-mobile-web-app-title" content="Omni.Ai" />
+<title>Omni.Ai</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -18,27 +18,33 @@
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 <script src="/omni-config.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 /* ── Reset & Root ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg:        #0d1117;
-  --sidebar:   #161b22;
-  --surface:   #1c2128;
-  --border:    #30363d;
-  --accent:    #2563eb;
-  --accent-h:  #1d4ed8;
-  --text:      #e6edf3;
-  --muted:     #7d8590;
+  --bg:        #0b0e14;
+  --sidebar:   #11151d;
+  --surface:   #161b24;
+  --surface-2: #1b212c;
+  --border:    #262d3a;
+  --accent:    #6366f1;
+  --accent-h:  #4f46e5;
+  --accent-2:  #8b5cf6;
+  --text:      #e8ecf3;
+  --muted:     #8b94a7;
   --green:     #10b981;
   --red:       #ef4444;
   --yellow:    #f59e0b;
   --orange:    #f97316;
-  --purple:    #7c3aed;
-  --radius:    10px;
-  --font:      'Segoe UI', system-ui, -apple-system, sans-serif;
-  --mono:      'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  --purple:    #8b5cf6;
+  --radius:    14px;
+  --shadow:    0 4px 24px rgba(0,0,0,0.35);
+  --font:      'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --mono:      'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
 }
 
 /* Light mode overrides */
@@ -83,12 +89,12 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   font-size: 18px;
   margin-bottom: 12px;
   flex-shrink: 0;
-  box-shadow: 0 0 16px rgba(37,99,235,0.3);
+  box-shadow: 0 0 16px rgba(99,102,241,0.3);
   animation: logo-glow 3s ease-in-out infinite;
 }
 @keyframes logo-glow {
-  0%,100% { box-shadow: 0 0 10px rgba(37,99,235,0.3); }
-  50%     { box-shadow: 0 0 20px rgba(37,99,235,0.6); }
+  0%,100% { box-shadow: 0 0 10px rgba(99,102,241,0.3); }
+  50%     { box-shadow: 0 0 20px rgba(99,102,241,0.6); }
 }
 
 .sidebar-spacer { flex: 1; }
@@ -106,7 +112,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   position: relative;
 }
 .mode-btn:hover { background: rgba(255,255,255,.07); color: var(--text); }
-.mode-btn.active { background: rgba(37,99,235,.2); color: var(--accent); }
+.mode-btn.active { background: rgba(99,102,241,.2); color: var(--accent); }
 
 /* PRO lock overlay */
 .mode-btn .pro-lock {
@@ -320,15 +326,15 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   gap: 16px; text-align: center; padding: 60px 20px; color: var(--muted);
 }
 .wlc-icon {
-  font-size: 58px;
+  font-size: 64px;
   animation: wlc-pulse 3s ease-in-out infinite;
-  filter: drop-shadow(0 0 20px rgba(37,99,235,0.4));
+  filter: drop-shadow(0 0 24px rgba(99,102,241,0.5));
 }
 @keyframes wlc-pulse {
-  0%,100% { transform: scale(1); filter: drop-shadow(0 0 15px rgba(37,99,235,0.3)); }
-  50%     { transform: scale(1.06); filter: drop-shadow(0 0 30px rgba(37,99,235,0.6)); }
+  0%,100% { transform: scale(1); filter: drop-shadow(0 0 18px rgba(99,102,241,0.4)); }
+  50%     { transform: scale(1.06); filter: drop-shadow(0 0 36px rgba(139,92,246,0.7)); }
 }
-#welcome h2 { color: var(--text); font-size: 26px; font-weight: 700; }
+#welcome h2 { color: var(--text); font-size: 30px; font-weight: 800; letter-spacing: -0.5px; background: linear-gradient(135deg, var(--text), var(--accent-2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 #welcome .wlc-greeting { font-size: 15px; color: var(--muted); margin-top: -8px; }
 #welcome p { font-size: 13.5px; max-width: 420px; line-height: 1.7; }
 .wlc-chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 8px; }
@@ -339,7 +345,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   transition: border-color .15s, background .15s, transform .1s;
   display: flex; align-items: center; gap: 5px;
 }
-.wlc-chip:hover { border-color: var(--accent); background: rgba(37,99,235,.1); transform: translateY(-1px); }
+.wlc-chip:hover { border-color: var(--accent); background: rgba(99,102,241,.12); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,0.2); }
 .wlc-chip:active { transform: translateY(0); }
 
 /* ── Messages ── */
@@ -353,18 +359,19 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   font-size: 13px; font-weight: 700; margin-top: 2px;
   overflow: hidden;
 }
-.msg.user .avatar { background: var(--accent); color: #fff; border: 2px solid rgba(37,99,235,.4); }
+.msg.user .avatar { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; border: 2px solid rgba(99,102,241,.4); }
 .msg.user .avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
-.msg.bot  .avatar { background: linear-gradient(135deg,#21262d,#161b22); color: var(--text); border: 2px solid var(--border); }
+.msg.bot  .avatar { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; border: 2px solid rgba(99,102,241,.4); box-shadow: 0 0 12px rgba(99,102,241,0.4); }
 
 .bubble {
-  max-width: 76%; padding: 10px 14px;
+  max-width: 76%; padding: 12px 16px;
   border-radius: var(--radius);
-  word-break: break-word; font-size: 14px;
+  word-break: break-word; font-size: 14.5px;
   position: relative;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.18);
 }
-.msg.user .bubble { background: var(--accent-h); border-top-right-radius: 3px; color: #fff; }
-.msg.bot  .bubble { background: var(--surface); border: 1px solid var(--border); border-top-left-radius: 3px; }
+.msg.user .bubble { background: linear-gradient(135deg, var(--accent), var(--accent-2)); border-top-right-radius: 4px; color: #fff; box-shadow: 0 4px 18px rgba(99,102,241,0.35); }
+.msg.bot  .bubble { background: var(--surface); border: 1px solid var(--border); border-top-left-radius: 4px; }
 
 /* Bot bubble action bar (copy, download) */
 .bubble-actions {
@@ -473,14 +480,14 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 }
 .attach-chip {
   display: inline-flex; align-items: center; gap: 5px;
-  background: rgba(37,99,235,.12); border: 1px solid rgba(37,99,235,.3);
+  background: rgba(99,102,241,.12); border: 1px solid rgba(99,102,241,.3);
   border-radius: 20px; padding: 3px 10px;
   font-size: 12px; color: var(--accent);
 }
 .attach-chip img.chip-thumb {
   height: 80px; max-width: 120px; object-fit: cover;
   border-radius: 6px; display: block;
-  border: 1px solid rgba(37,99,235,.3);
+  border: 1px solid rgba(99,102,241,.3);
 }
 .attach-chip-remove {
   background: transparent; border: none; color: var(--muted);
@@ -493,13 +500,13 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .input-row { display: flex; gap: 8px; align-items: flex-end; }
 .input-wrap {
   flex: 1; background: var(--bg);
-  border: 1.5px solid var(--border); border-radius: 12px;
-  display: flex; align-items: flex-end; gap: 4px; padding: 4px 8px;
+  border: 1.5px solid var(--border); border-radius: 16px;
+  display: flex; align-items: flex-end; gap: 4px; padding: 5px 10px;
   transition: border-color .2s, box-shadow .2s;
 }
 .input-wrap:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+  box-shadow: 0 0 0 3px rgba(99,102,241,.15);
 }
 
 #user-input {
@@ -530,14 +537,14 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 }
 
 #btn-send {
-  background: var(--accent); border: none; color: #fff;
-  width: 42px; height: 42px; border-radius: 12px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2)); border: none; color: #fff;
+  width: 44px; height: 44px; border-radius: 14px;
   cursor: pointer; font-size: 17px;
   display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; transition: background .15s, transform .1s, box-shadow .15s;
-  box-shadow: 0 2px 8px rgba(37,99,235,.35);
+  flex-shrink: 0; transition: filter .15s, transform .1s, box-shadow .15s;
+  box-shadow: 0 4px 14px rgba(99,102,241,.4);
 }
-#btn-send:hover { background: var(--accent-h); box-shadow: 0 4px 12px rgba(37,99,235,.5); }
+#btn-send:hover { filter: brightness(1.1); box-shadow: 0 6px 18px rgba(99,102,241,.55); }
 #btn-send:active { transform: scale(.93); }
 #btn-send:disabled { opacity: .4; cursor: not-allowed; transform: none; box-shadow: none; }
 
@@ -665,12 +672,12 @@ body[data-mode="code"]   .mode-hint { display: block; color: var(--accent); }
 .history-item-date { font-size: 11.5px; color: var(--muted); }
 .history-footer { padding: 12px; border-top: 1px solid var(--border); flex-shrink: 0; }
 .btn-new-chat {
-  width: 100%; padding: 9px; background: rgba(37,99,235,.12);
-  border: 1px solid rgba(37,99,235,.3); border-radius: 8px;
+  width: 100%; padding: 9px; background: rgba(99,102,241,.12);
+  border: 1px solid rgba(99,102,241,.3); border-radius: 8px;
   color: var(--accent); font-size: 13.5px; font-weight: 600; cursor: pointer;
   transition: all .15s;
 }
-.btn-new-chat:hover { background: rgba(37,99,235,.2); }
+.btn-new-chat:hover { background: rgba(99,102,241,.2); }
 
 /* ── PRO Modal ── */
 #pro-modal-card {
@@ -687,7 +694,7 @@ body[data-mode="code"]   .mode-hint { display: block; color: var(--accent); }
 
 .pro-modal-header {
   padding: 28px 28px 20px;
-  background: linear-gradient(135deg, rgba(37,99,235,.12), rgba(16,185,129,.06));
+  background: linear-gradient(135deg, rgba(99,102,241,.12), rgba(16,185,129,.06));
   border-bottom: 1px solid var(--border);
   text-align: center;
   position: relative;
@@ -712,8 +719,8 @@ body[data-mode="code"]   .mode-hint { display: block; color: var(--accent); }
   border-radius: 12px; padding: 16px;
 }
 .plan-col.pro-col {
-  border-color: rgba(37,99,235,.4);
-  background: rgba(37,99,235,.06);
+  border-color: rgba(99,102,241,.4);
+  background: rgba(99,102,241,.06);
   position: relative;
 }
 .plan-label {
@@ -805,11 +812,11 @@ body[data-mode="design"] #mode-label::before { content: "🎨 "; }
 .exp-item { padding:9px 14px;cursor:pointer;font-size:13px;color:var(--text);transition:background .1s; }
 .exp-item:hover { background:rgba(255,255,255,.06); }
 .palette-item { padding:10px 14px;cursor:pointer;font-size:14px;color:var(--text);border-radius:6px;transition:background .1s; }
-.palette-item:hover,.palette-item:focus { background:rgba(37,99,235,.15);outline:none; }
+.palette-item:hover,.palette-item:focus { background:rgba(99,102,241,.15);outline:none; }
 .suggestion-chips { display:flex;gap:8px;flex-wrap:wrap;padding:4px 0 8px 40px; }
 .suggestion-chip { background:var(--surface);border:1px solid var(--border);color:var(--muted);padding:5px 12px;border-radius:20px;cursor:pointer;font-size:12.5px;transition:border-color .15s,color .15s; }
 .suggestion-chip:hover { border-color:var(--accent);color:var(--text); }
-.drag-over { outline:2px dashed var(--accent)!important;background:rgba(37,99,235,.05)!important; }
+.drag-over { outline:2px dashed var(--accent)!important;background:rgba(99,102,241,.05)!important; }
 .stat-row { display:flex;justify-content:space-between;font-size:12.5px;padding:4px 0;color:var(--muted); }
 .stat-row strong { color:var(--text); }
 .jv-key { color:#79c0ff; } .jv-val { color:#a8ff78; } .jv-bracket { color:#7d8590; }
@@ -820,7 +827,7 @@ body[data-mode="design"] #mode-label::before { content: "🎨 "; }
 .search-current { outline:2px solid var(--yellow)!important;background:rgba(245,158,11,.1)!important; }
 .accent-swatch { width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border-color .15s;display:inline-block; }
 .accent-swatch:hover,.accent-swatch.active { border-color:#fff; }
-#btn-web.web-active { color:var(--accent)!important;background:rgba(37,99,235,.15)!important; }
+#btn-web.web-active { color:var(--accent)!important;background:rgba(99,102,241,.15)!important; }
 @media print {
   #sidebar,#topbar,#input-bar,#settings-panel,#palette-overlay,#shortcuts-modal,.suggestion-chips { display:none!important; }
   #main { width:100%; } #chat-area { overflow:visible; }
@@ -839,7 +846,7 @@ body[data-mode="design"] #mode-label::before { content: "🎨 "; }
   <div id="pro-modal-card">
     <div class="pro-modal-header">
       <button class="pro-modal-close" onclick="closeProModal()">✕</button>
-      <div class="pro-modal-title">⚡ omni.ai PRO</div>
+      <div class="pro-modal-title">⚡ Omni.Ai PRO</div>
       <div class="pro-modal-sub">Tüm özelliklerin kilidini açın</div>
     </div>
     <div class="pro-modal-body">
@@ -951,7 +958,7 @@ body[data-mode="design"] #mode-label::before { content: "🎨 "; }
 
     <!-- Top Bar -->
     <div id="topbar">
-      <span class="brand-name">omni.ai</span>
+      <span class="brand-name">Omni.Ai</span>
       <span class="brand-sep">|</span>
       <span id="mode-label">Chat</span>
 
@@ -1022,7 +1029,7 @@ body[data-mode="design"] #mode-label::before { content: "🎨 "; }
       <div id="welcome">
         <div class="wlc-icon">⚡</div>
         <h2 id="wlc-greeting">Merhaba!</h2>
-        <p class="wlc-greeting">omni.ai'ye hoş geldin</p>
+        <p class="wlc-greeting">Omni.Ai'ye hoş geldin</p>
         <p>Yazılım, tasarım, araştırma ve daha fazlası için AI asistanın</p>
         <div class="wlc-chips">
           <span class="wlc-chip" onclick="useChip(this)">💻 Kod yaz</span>
@@ -1039,7 +1046,7 @@ body[data-mode="design"] #mode-label::before { content: "🎨 "; }
     <div id="typing">
       <div class="typing-inner">
         <div class="dot-bounce"><span></span><span></span><span></span></div>
-        <span class="typing-text">omni.ai yazıyor…</span>
+        <span class="typing-text">Omni.Ai yazıyor…</span>
       </div>
     </div>
 
@@ -1114,7 +1121,7 @@ body[data-mode="design"] #mode-label::before { content: "🎨 "; }
     <!-- System Prompt -->
     <div class="settings-group">
       <label>Sistem Promptu</label>
-      <textarea id="sys-prompt-input" rows="4" placeholder="Boş bırakırsan varsayılan omni.ai promptu kullanılır." style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:12px;resize:vertical;outline:none"></textarea>
+      <textarea id="sys-prompt-input" rows="4" placeholder="Boş bırakırsan varsayılan Omni.Ai promptu kullanılır." style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:12px;resize:vertical;outline:none"></textarea>
       <div style="display:flex;gap:8px;margin-top:6px">
         <button onclick="saveSystemPrompt()" class="topbar-icon-btn">Kaydet</button>
         <button onclick="resetSystemPrompt()" class="topbar-icon-btn">Sıfırla</button>
@@ -1243,7 +1250,7 @@ window.addEventListener('appinstalled', () => {
   deferredInstall = null;
   const btn = document.getElementById('btn-install');
   if (btn) btn.style.display = 'none';
-  try { showToast('⚡ omni.ai yüklendi!'); } catch(_) {}
+  try { showToast('⚡ Omni.Ai yüklendi!'); } catch(_) {}
 });
 async function installApp() {
   if (!deferredInstall) {
@@ -2170,7 +2177,7 @@ function clearChat() {
     <div id="welcome">
       <div class="wlc-icon">⚡</div>
       <h2 id="wlc-greeting">Merhaba, ${firstName}!</h2>
-      <p class="wlc-greeting">omni.ai'ye hoş geldin</p>
+      <p class="wlc-greeting">Omni.Ai'ye hoş geldin</p>
       <p>Yazılım, tasarım, araştırma ve daha fazlası için AI asistanın</p>
       <div class="wlc-chips">
         <span class="wlc-chip" onclick="useChip(this)">💻 Kod yaz</span>
@@ -2453,7 +2460,7 @@ async function sendMessage() {
     createHistoryEntry(messageText);
   }
 
-  const bubble = createBotBubble();
+  let bubble = null;
   let fullText = '';
 
   // Groq mesaj geçmişini oluştur (son kullanıcı mesajını web-arama metniyle değiştir)
@@ -2469,6 +2476,7 @@ async function sendMessage() {
       systemPrompt: getSystemPrompt(),
       temperature: getTemperature(),
       onText: (chunk) => {
+        if (!bubble) bubble = createBotBubble();  // baloncuğu ilk metin gelince oluştur
         fullText += chunk;
         renderBubble(bubble, fullText, currentMode);
         scrollBottom();
@@ -2481,10 +2489,12 @@ async function sendMessage() {
       updateHistoryEntry();
       addSuggestions(fullText);
     } else {
+      if (!bubble) bubble = createBotBubble();
       bubble.innerHTML = '<em style="color:var(--yellow)">Boş cevap geldi, tekrar dene.</em>';
     }
 
   } catch(err) {
+    if (!bubble) bubble = createBotBubble();
     bubble.innerHTML = `<em style="color:var(--yellow)">⏳ Bağlantı hatası: ${err.message}. Tekrar dene.</em>`;
   } finally {
     setStreaming(false);
@@ -2607,7 +2617,7 @@ document.addEventListener('click', e => {
 </div>
 
 <!-- Auto-update Banner (VS Code style, bottom-left) -->
-<div id="update-banner" style="display:none;position:fixed;bottom:16px;left:16px;z-index:9999;background:#1c2128;border:1px solid #2563eb;border-radius:10px;padding:12px 16px;display:none;align-items:center;gap:12px;box-shadow:0 8px 32px rgba(0,0,0,0.5);max-width:300px;cursor:pointer;" onclick="applyUpdate()">
+<div id="update-banner" style="display:none;position:fixed;bottom:16px;left:16px;z-index:9999;background:#1c2128;border:1px solid #6366f1;border-radius:12px;padding:12px 16px;display:none;align-items:center;gap:12px;box-shadow:0 8px 32px rgba(0,0,0,0.5);max-width:300px;cursor:pointer;" onclick="applyUpdate()">
   <span style="font-size:18px">🔄</span>
   <div>
     <div style="color:#e6edf3;font-size:13px;font-weight:600">Güncelleme mevcut</div>

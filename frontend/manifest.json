@@ -1,13 +1,13 @@
 {
-  "name": "omni.ai",
-  "short_name": "omni.ai",
-  "description": "omni.ai — Dünyanın en yetenekli dijital operatörü. Yazılım, tasarım, araştırma ve daha fazlası için AI asistanın.",
+  "name": "Omni.Ai",
+  "short_name": "Omni.Ai",
+  "description": "Omni.Ai — Dünyanın en yetenekli dijital operatörü. Yazılım, tasarım, araştırma ve daha fazlası için AI asistanın.",
   "start_url": "/loading.html",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#0d1117",
-  "theme_color": "#2563eb",
+  "theme_color": "#6366f1",
   "lang": "tr",
   "categories": ["productivity", "utilities", "developer"],
   "icons": [
