@@ -4,10 +4,9 @@
    Worker URL burada ayarlanır, Groq key kullanıcıya görünmez.
 ════════════════════════════════════════════════════════════ */
 (function () {
-  // ── Cloudflare Worker URL'ini buraya yaz ──
-  // Örnek: "https://omni-ai-proxy.KULLANICIADIN.workers.dev"
-  // Worker deploy ettikten sonra bu satırı güncelle.
-  const WORKER_URL = "https://omni-ai-proxy.servankrall.workers.dev";
+  // ── AI proxy adresi ──
+  // Vercel'de aynı origin'de /api/chat olarak çalışır (ekstra ayar gerekmez).
+  const WORKER_URL = "/api/chat";
 
   const SYSTEM_PROMPT = `# OMNI AGENT v1
 
