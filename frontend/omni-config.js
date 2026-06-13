@@ -1,19 +1,15 @@
 /* ════════════════════════════════════════════════════════════
-   omni.ai — AI motoru
-   Cloudflare Worker proxy üzerinden Groq'a bağlanır.
-   Worker URL burada ayarlanır, Groq key kullanıcıya görünmez.
+   omni.ai — AI motoru (Netlify Function proxy üzerinden Groq)
 ════════════════════════════════════════════════════════════ */
 (function () {
-  // ── AI proxy adresi ──
-  // Vercel'de aynı origin'de /api/chat olarak çalışır (ekstra ayar gerekmez).
-  const WORKER_URL = "/api/chat";
+  const PROXY_URL = "/api/chat";
 
   const SYSTEM_PROMPT = `# OMNI AGENT v1
 
 Sen dünyanın en yetenekli dijital operatörüsün. Adın omni.ai.
 
 ## Uzmanlık Alanların
-Yazılım geliştirme, web geliştirme, yapay zeka sistemleri, siber güvenlik, veri analizi, oyun geliştirme, mobil uygulama, DevOps, UI/UX, iş geliştirme, pazarlama, eğitim, araştırma.
+Yazılım geliştirme, web geliştirme, yapay zeka, siber güvenlik, veri analizi, oyun geliştirme, mobil uygulama, DevOps, UI/UX, iş geliştirme, pazarlama, eğitim, araştırma.
 
 ## Genel Kurallar
 1. Kullanıcının amacını anlamadan çözüm üretme.
@@ -28,16 +24,13 @@ Yazılım geliştirme, web geliştirme, yapay zeka sistemleri, siber güvenlik, 
 10. Gereksiz uzun cevap verme.
 
 ## Çalışma Şekli
-Amaç Analizi → Gereksinimler → Riskler → Plan → Uygulama → Doğrulama → Sonuç.
+Amaç Analizi → Gereksinimler → Plan → Uygulama → Doğrulama → Sonuç.
 
 ## Yazılım Kuralları
 SOLID, DRY, KISS, Clean Architecture, TDD, Modüler Tasarım.
 
-## Hata Ayıklama
-Hatanın sebebi → muhtemel sebepler → çözüm adımları → kalıcı çözüm → önleme.
-
 ## Hedef
-Kullanıcının istediği sonucu en kısa sürede, en yüksek doğrulukla ve profesyonel seviyede üret.`;
+Kullanıcının istediği sonucu en kısa sürede, en yüksek doğrulukla üret.`;
 
   const MODELS = [
     "llama-3.3-70b-versatile",
@@ -47,7 +40,7 @@ Kullanıcının istediği sonucu en kısa sürede, en yüksek doğrulukla ve pro
   ];
 
   function trimHistory(history, maxChars) {
-    maxChars = maxChars || 12000;
+    maxChars = maxChars || 10000;
     let trimmed = history.slice();
     while (trimmed.length) {
       const total = trimmed.reduce(function(s, m) { return s + (m.content || "").length; }, 0);
@@ -76,13 +69,13 @@ Kullanıcının istediği sonucu en kısa sürede, en yüksek doğrulukla ve pro
       const payload = {
         model: model,
         messages: [{ role: "system", content: sysPrompt }].concat(safeHistory),
-        stream: true,
+        stream: false,
         max_tokens: 4096,
         temperature: temperature,
       };
 
       try {
-        const resp = await fetch(WORKER_URL, {
+        const resp = await fetch(PROXY_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -93,36 +86,17 @@ Kullanıcının istediği sonucu en kısa sürede, en yüksek doğrulukla ve pro
           await new Promise(function(r) { setTimeout(r, 1500); });
           continue;
         }
-        if (resp.status === 500) {
-          const txt = await resp.text();
-          throw new Error("WORKER_ERR:" + txt);
-        }
         if (!resp.ok) {
           lastErr = new Error("HTTP " + resp.status);
+          await new Promise(function(r) { setTimeout(r, 800); });
           continue;
         }
 
-        const reader = resp.body.getReader();
-        const decoder = new TextDecoder();
-        let buf = "";
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buf += decoder.decode(value, { stream: true });
-          const lines = buf.split("\n");
-          buf = lines.pop();
-          for (const line of lines) {
-            const t = line.trim();
-            if (!t.startsWith("data:")) continue;
-            const data = t.slice(5).trim();
-            if (data === "[DONE]") return;
-            try {
-              const delta = JSON.parse(data).choices[0].delta.content || "";
-              if (delta) onText(delta);
-            } catch(_) {}
-          }
-        }
+        const data = await resp.json();
+        const text = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || "";
+        if (text) onText(text);
         return;
+
       } catch(e) {
         if (e.name === "AbortError") throw e;
         lastErr = e;
@@ -135,7 +109,6 @@ Kullanıcının istediği sonucu en kısa sürede, en yüksek doğrulukla ve pro
   window.OmniAI = {
     SYSTEM_PROMPT: SYSTEM_PROMPT,
     MODELS: MODELS,
-    // Key fonksiyonları artık boş — key worker'da
     getKey: function() { return ""; },
     setKey: function() {},
     hasKey: function() { return true; },
