@@ -143,9 +143,15 @@ html, body {
 </div>
 
 <script>
-/* ── Service worker kaydı (PWA / kurulabilir uygulama) ── */
+/* ── Service worker kaydı + zorla güncelleme (PWA) ── */
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').catch(() => {});
+  navigator.serviceWorker.register('/sw.js').then((reg) => {
+    reg.update().catch(() => {});  // uygulama her açılışta güncelleme ara
+  }).catch(() => {});
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!refreshing) { refreshing = true; window.location.reload(); }
+  });
 }
 
 /* ── Animate progress bar over 1.5s ── */
