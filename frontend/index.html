@@ -987,6 +987,27 @@ body.light-mode .wlc-card { background: #fff; border-color: #d0d4e1; }
   .bubble { background:#f5f5f5!important;color:#000!important;max-width:100%!important; }
 }
 
+/* ── Reasoning block ── */
+#btn-reason.reason-on { color:var(--accent)!important;background:rgba(99,102,241,.15)!important; }
+.reason-block { background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.25);border-radius:10px;margin:6px 0;overflow:hidden; }
+.reason-head { padding:8px 12px;font-size:12.5px;color:var(--accent);cursor:pointer;display:flex;align-items:center;gap:8px;font-weight:600; }
+.reason-body { padding:0 12px 10px 32px;font-size:13px;color:var(--muted);white-space:pre-wrap;display:none;line-height:1.6; }
+.reason-block.open .reason-body { display:block; }
+.reason-block.open .reason-arrow { transform:rotate(90deg); }
+.reason-arrow { transition:transform .15s; }
+
+/* ── Global search results ── */
+.gs-result { padding:10px 12px;border-radius:8px;cursor:pointer;margin-bottom:4px;border:1px solid transparent;transition:background .12s; }
+.gs-result:hover { background:rgba(255,255,255,.05);border-color:var(--border); }
+.gs-title { font-size:13px;font-weight:600;color:var(--accent);margin-bottom:3px; }
+.gs-snippet { font-size:12px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
+.gs-snippet mark { background:rgba(245,158,11,.3);color:var(--text);border-radius:2px; }
+
+/* ── Profile picture upload in dropdown ── */
+.pfp-edit { display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border); }
+.pfp-preview { width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;overflow:hidden;flex-shrink:0; }
+.pfp-preview img { width:100%;height:100%;object-fit:cover; }
+
 /* ── Compare mode (2 models side by side) ── */
 #btn-compare.compare-on { color:var(--accent)!important;background:rgba(99,102,241,.15)!important; }
 .compare-row { display:flex;gap:12px;width:100%; }
@@ -1089,6 +1110,7 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
 
 <!-- Hidden file input for attachment — images handled separately via readAsDataURL -->
 <input type="file" id="file-input" accept=".pdf,.txt,.js,.py,.html,.css,.json,.md,.ts,.jsx,.tsx,.c,.cpp,.java,.go,.rs,.sql,.csv,.xml,.yaml,.yml,.jpg,.jpeg,.png,.gif,.webp,.svg" multiple style="display:none" />
+<input type="file" id="pfp-input" accept="image/*" style="display:none" onchange="uploadProfilePic(event)" />
 
 <!-- ── PRO Modal ── -->
 <div class="modal-backdrop" id="pro-modal">
@@ -1243,6 +1265,9 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
           </div>
         </div>
 
+        <!-- Reasoning / deep think -->
+        <button class="topbar-icon-btn" id="btn-reason" onclick="toggleReasoning()" title="Derin düşünme modu">🧠</button>
+
         <!-- Compare mode -->
         <button class="topbar-icon-btn" id="btn-compare" onclick="toggleCompareMode()" title="Karşılaştır: 2 model yan yana">⚖️</button>
 
@@ -1265,13 +1290,19 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
         <div class="user-dropdown-wrap">
           <button class="user-avatar-btn" id="user-avatar-btn" onclick="toggleUserDropdown()"></button>
           <div class="user-dropdown" id="user-dropdown">
-            <div class="ud-header">
-              <div class="ud-name" id="ud-name">—</div>
-              <div class="ud-email" id="ud-email">—</div>
+            <div class="pfp-edit">
+              <div class="pfp-preview" id="pfp-preview"></div>
+              <div style="flex:1;min-width:0">
+                <div class="ud-name" id="ud-name">—</div>
+                <div class="ud-email" id="ud-email">—</div>
+              </div>
+              <button class="msg-act-btn" onclick="document.getElementById('pfp-input').click()" title="Fotoğraf yükle">📷</button>
             </div>
             <button class="ud-item" onclick="openProModal(); closeUserDropdown();">⚡ Pro'ya Yükselt</button>
             <button class="ud-item" onclick="toggleSettings(); closeUserDropdown();">⚙️ Ayarlar</button>
             <button class="ud-item" onclick="startNewChat(); closeUserDropdown();">✨ Yeni Sohbet</button>
+            <button class="ud-item" onclick="openGlobalSearch(); closeUserDropdown();">🔎 Tüm Sohbetlerde Ara</button>
+            <button class="ud-item" onclick="showWhatsNew(); closeUserDropdown();">✨ Yenilikler</button>
             <button class="ud-item danger" onclick="signOut()">↩ Çıkış Yap</button>
           </div>
         </div>
@@ -1423,6 +1454,16 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
       <label>Çeşitlilik / Top-P (<span id="topp-label">1.0</span>)</label>
       <input type="range" min="0.1" max="1.0" step="0.05" value="1.0" oninput="setTopP(this.value)" style="width:100%;accent-color:var(--accent)">
       <span style="font-size:11px;color:var(--muted)">Düşük = odaklı · Yüksek = çeşitli</span>
+    </div>
+
+    <!-- TTS voice & speed -->
+    <div class="settings-group">
+      <label>Seslendirme Sesi</label>
+      <select id="tts-voice" onchange="localStorage.setItem('artus_tts_voice', this.value)"></select>
+    </div>
+    <div class="settings-group">
+      <label>Seslendirme Hızı (<span id="ttsrate-label">1.05</span>x)</label>
+      <input type="range" min="0.6" max="1.8" step="0.05" value="1.05" oninput="setTtsRate(this.value)" style="width:100%;accent-color:var(--accent)">
     </div>
 
     <!-- Appearance -->
@@ -2262,8 +2303,14 @@ function init() {
   // Restore advanced params + focus mode
   const mt = getMaxTokens(); const mtl = document.getElementById('maxtok-label'); if (mtl) mtl.textContent = mt;
   const tp = getTopP(); const tpl = document.getElementById('topp-label'); if (tpl) tpl.textContent = tp.toFixed(2);
+  const trl = document.getElementById('ttsrate-label'); if (trl) trl.textContent = getTtsRate().toFixed(2);
   if (localStorage.getItem('artus_focus') === '1') document.body.classList.add('focus-mode');
   loadCustomInstructions();
+  renderPfpPreview();
+  if ('speechSynthesis' in window) {
+    populateVoices();
+    speechSynthesis.onvoiceschanged = populateVoices;
+  }
 
   // Kayıtlı sistem promptu + yaratıcılık değerlerini yükle
   const sp = document.getElementById('sys-prompt-input');
@@ -2274,6 +2321,12 @@ function init() {
   inputEl.addEventListener('input', () => { onInputChange(); handleSlashInput(); });
   inputEl.addEventListener('keydown', e => {
     if (slashKeyNav(e)) return; // slash menu handles arrows/enter/esc
+    // ↑ on empty input → edit last user message (ChatGPT style)
+    if (e.key === 'ArrowUp' && !inputEl.value.trim() && !streaming) {
+      const userMsgs = [...chatArea.querySelectorAll('.msg.user')];
+      const last = userMsgs[userMsgs.length - 1];
+      if (last) { e.preventDefault(); const b = last.querySelector('.msg-act-btn'); if (b) b.click(); return; }
+    }
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   });
 
@@ -2443,7 +2496,26 @@ function createHistoryEntry(firstMessage) {
   currentHistoryId = id;
   renderConvoList();
   updateConvoTitle();
+  autoTitle(id, firstMessage); // AI ile akıllı başlık üret
   return id;
+}
+
+/* ── AI smart auto-title ── */
+async function autoTitle(id, firstMessage) {
+  if (firstMessage.length < 8) return;
+  try {
+    let t = '';
+    await OmniAI.streamChat({
+      messages: [{ role:'user', content:`Bu mesaj için 3-5 kelimelik kısa, net bir sohbet başlığı üret. Sadece başlığı yaz, tırnak veya noktalama ekleme:\n\n"${firstMessage.slice(0,300)}"` }],
+      model: 'llama-3.1-8b-instant', temperature: 0.3, maxTokens: 24,
+      onText: c => { t += c; },
+    });
+    t = t.replace(/["'.\n]/g,'').trim().slice(0, 48);
+    if (!t) return;
+    const history = getHistory();
+    const e = history.find(h => h.id === id);
+    if (e && !e._titled) { e.title = t; e._titled = true; saveHistory(history); renderConvoList(); if (currentHistoryId===id) updateConvoTitle(); }
+  } catch(_) {}
 }
 
 function updateHistoryEntry() {
@@ -3004,7 +3076,9 @@ function renderBubble(bubble, rawText, mode) {
       ? `<button class="btn-copy" onclick="addArtifact(decodeURIComponent('${encodeURIComponent(code)}'),'html');showToast('Artifact eklendi')">⬡ Artifact</button>` : '';
 
     const runBtn = (language === 'python' || language === 'py')
-      ? `<button class="btn-copy" onclick="runPythonBlock('${id}')">▶ Çalıştır</button>` : '';
+      ? `<button class="btn-copy" onclick="runPythonBlock('${id}')">▶ Çalıştır</button>`
+      : (language === 'javascript' || language === 'js')
+      ? `<button class="btn-copy" onclick="runJsBlock('${id}')">▶ Çalıştır</button>` : '';
 
     return `
       <div class="code-wrap" id="${id}">
@@ -3021,7 +3095,21 @@ function renderBubble(bubble, rawText, mode) {
       </div>`;
   };
 
-  let html = marked.parse(rawText, { renderer });
+  // Extract <thinking> reasoning into a collapsible block
+  let reasoningHtml = '';
+  const { think, rest } = extractReasoning(rawText);
+  if (think) {
+    rawText = rest;
+    const rid = 'reason_' + Math.random().toString(36).slice(2);
+    reasoningHtml = `<div class="reason-block" id="${rid}">
+      <div class="reason-head" onclick="document.getElementById('${rid}').classList.toggle('open')">
+        <span class="reason-arrow">▶</span> 🧠 Düşünme süreci
+      </div>
+      <div class="reason-body">${escapeHtml(think)}</div>
+    </div>`;
+  }
+
+  let html = reasoningHtml + marked.parse(rawText, { renderer });
   if (mode === 'design') {
     const safeId = 'dbtn_' + Math.random().toString(36).slice(2);
     html += `<button class="design-gen-btn" id="${safeId}" onclick="openDesignCreate('${safeId}')">✨ Oluştur</button>`;
@@ -3242,7 +3330,7 @@ async function sendMessage() {
     await OmniAI.streamChat({
       messages: groqMessages,
       model: currentModel,
-      systemPrompt: buildSystemPrompt(),
+      systemPrompt: buildSystemPrompt() + reasoningInstruction(),
       temperature: getTemperature(),
       maxTokens: getMaxTokens(),
       topP: getTopP(),
@@ -3368,7 +3456,8 @@ function speakMsg(btn) {
   // strip markdown/code for cleaner speech
   const raw = (btn.dataset.raw || '').replace(/```[\s\S]*?```/g, ' kod bloğu ').replace(/[#*`_>]/g, '');
   const u = new SpeechSynthesisUtterance(raw);
-  u.lang = 'tr-TR'; u.rate = 1.05;
+  u.lang = 'tr-TR'; u.rate = getTtsRate();
+  const v = getTtsVoice(); if (v) u.voice = v;
   u.onend = () => { _speaking = false; btn.textContent = '🔊 Seslendir'; };
   speechSynthesis.cancel();
   speechSynthesis.speak(u);
@@ -3525,6 +3614,151 @@ function handleShortcuts(e) {
     if (e.key === '2') { e.preventDefault(); handleModeClick('code'); }
     if (e.key === '3') { e.preventDefault(); handleModeClick('design'); }
   }
+}
+
+/* ════════════════════════════════════════════════════════
+   REASONING / DEEP THINK MODE
+════════════════════════════════════════════════════════ */
+let reasoningMode = false;
+function toggleReasoning() {
+  reasoningMode = !reasoningMode;
+  document.getElementById('btn-reason').classList.toggle('reason-on', reasoningMode);
+  showToast(reasoningMode ? '🧠 Derin düşünme açık (adım adım akıl yürütme)' : 'Derin düşünme kapalı');
+}
+function reasoningInstruction() {
+  return reasoningMode
+    ? '\n\nÖnce <thinking> ve </thinking> etiketleri arasında adım adım düşün, problemi analiz et, sonra nihai yanıtı ver.'
+    : '';
+}
+/* Convert <thinking>...</thinking> into a collapsible block before markdown render */
+function extractReasoning(text) {
+  const m = text.match(/<thinking>([\s\S]*?)<\/thinking>/i);
+  if (!m) return { think:'', rest:text };
+  return { think: m[1].trim(), rest: text.replace(m[0], '').trim() };
+}
+
+/* ════════════════════════════════════════════════════════
+   GLOBAL SEARCH (across all conversations)
+════════════════════════════════════════════════════════ */
+function openGlobalSearch() {
+  const modal = document.getElementById('history-modal');
+  document.querySelector('#history-modal-card .history-header h3').textContent = '🔎 Tüm Sohbetlerde Ara';
+  const listEl = document.getElementById('history-list');
+  listEl.innerHTML = `<input id="gs-input" placeholder="Aranacak kelime…" oninput="runGlobalSearch(this.value)" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:13.5px;outline:none;margin-bottom:10px;font-family:var(--font)"><div id="gs-results"></div>`;
+  modal.classList.add('open');
+  setTimeout(() => document.getElementById('gs-input')?.focus(), 50);
+}
+function runGlobalSearch(q) {
+  q = (q||'').trim().toLowerCase();
+  const el = document.getElementById('gs-results');
+  if (!el) return;
+  if (!q) { el.innerHTML = '<div class="history-empty">Aramak için yazın…</div>'; return; }
+  const results = [];
+  getHistory().forEach(h => {
+    (h.messages||[]).forEach(m => {
+      const idx = (m.content||'').toLowerCase().indexOf(q);
+      if (idx !== -1) {
+        const start = Math.max(0, idx-30);
+        const snip = (start>0?'…':'') + m.content.slice(start, idx+q.length+50);
+        results.push({ id:h.id, title:h.title, snip, role:m.role });
+      }
+    });
+  });
+  if (!results.length) { el.innerHTML = '<div class="history-empty">Sonuç yok</div>'; return; }
+  el.innerHTML = results.slice(0,40).map(r => {
+    const hl = escapeHtml(r.snip).replace(new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','ig'),'<mark>$1</mark>');
+    return `<div class="gs-result" onclick="openConvo('${r.id}');closeHistoryModal()">
+      <div class="gs-title">${r.role==='user'?'👤':'⚡'} ${escapeHtml(r.title||'Sohbet')}</div>
+      <div class="gs-snippet">${hl}</div></div>`;
+  }).join('');
+}
+
+/* ════════════════════════════════════════════════════════
+   PROFILE PICTURE
+════════════════════════════════════════════════════════ */
+function uploadProfilePic(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    CURRENT_USER.picture = ev.target.result;
+    localStorage.setItem('artus_user', JSON.stringify(CURRENT_USER));
+    renderUserUI();
+    renderPfpPreview();
+    showToast('📷 Profil fotoğrafı güncellendi');
+  };
+  reader.readAsDataURL(file);
+}
+function renderPfpPreview() {
+  const el = document.getElementById('pfp-preview');
+  if (!el) return;
+  if (CURRENT_USER && CURRENT_USER.picture) el.innerHTML = `<img src="${CURRENT_USER.picture}">`;
+  else el.textContent = getInitials(CURRENT_USER ? CURRENT_USER.name : '?');
+}
+
+/* ════════════════════════════════════════════════════════
+   TTS VOICE & SPEED
+════════════════════════════════════════════════════════ */
+function setTtsRate(v) { localStorage.setItem('artus_tts_rate', v); const l=document.getElementById('ttsrate-label'); if(l) l.textContent=parseFloat(v).toFixed(2); }
+function getTtsRate() { return parseFloat(localStorage.getItem('artus_tts_rate') || '1.05'); }
+function populateVoices() {
+  const sel = document.getElementById('tts-voice');
+  if (!sel || !('speechSynthesis' in window)) return;
+  const voices = speechSynthesis.getVoices();
+  const saved = localStorage.getItem('artus_tts_voice') || '';
+  sel.innerHTML = '<option value="">Otomatik (Türkçe)</option>' +
+    voices.map(v => `<option value="${v.name}" ${v.name===saved?'selected':''}>${v.name} (${v.lang})</option>`).join('');
+}
+function getTtsVoice() {
+  const name = localStorage.getItem('artus_tts_voice');
+  if (!name || !('speechSynthesis' in window)) return null;
+  return speechSynthesis.getVoices().find(v => v.name === name) || null;
+}
+
+/* ════════════════════════════════════════════════════════
+   JS CODE EXECUTION (sandboxed console capture)
+════════════════════════════════════════════════════════ */
+function runJsBlock(id) {
+  const out = document.getElementById('out_' + id);
+  if (!out) return;
+  out.style.display = 'block';
+  const codeEl = document.querySelector('#' + id + ' code');
+  const code = codeEl ? codeEl.textContent : '';
+  const logs = [];
+  const origLog = console.log;
+  try {
+    console.log = (...a) => { logs.push(a.map(x => typeof x==='object'?JSON.stringify(x):String(x)).join(' ')); };
+    const result = Function('"use strict";' + code)();
+    console.log = origLog;
+    out.textContent = logs.join('\n') + (result !== undefined ? '\n→ ' + result : '');
+    out.style.color = 'var(--green)';
+  } catch(err) {
+    console.log = origLog;
+    out.textContent = '❌ ' + err.message;
+    out.style.color = 'var(--red)';
+  }
+}
+
+/* ════════════════════════════════════════════════════════
+   WHAT'S NEW
+════════════════════════════════════════════════════════ */
+function showWhatsNew() {
+  const modal = document.getElementById('history-modal');
+  document.querySelector('#history-modal-card .history-header h3').textContent = '✨ Yenilikler';
+  document.getElementById('history-list').innerHTML = `
+    <div style="padding:8px;font-size:13px;line-height:1.9;color:var(--text)">
+      <p>🧠 <b>Derin düşünme modu</b> — adım adım akıl yürütme</p>
+      <p>⚖️ <b>Karşılaştırma</b> — 2 modeli yan yana</p>
+      <p>🎨 <b>Görsel üretme</b> + 📊 <b>grafikler</b></p>
+      <p>🎙️ <b>Sesli konuşma modu</b> + 🔊 seslendirme</p>
+      <p>📄 <b>PDF okuma</b>, 📋 pano yapıştırma</p>
+      <p>⌨️ <b>Slash komutları</b> (/), ✨ prompt geliştirici</p>
+      <p>🧠 <b>Bellek</b>, 📁 projeler, 📝 özel talimatlar</p>
+      <p>⭐ <b>Yer imleri</b>, 🔎 global arama, 🎯 odak modu</p>
+      <p>🔀 <b>Yanıt dallanması</b> + başka modelle yenile</p>
+      <p>🌍 <b>Çeviri</b>, ↪️ devam et, 🔗 paylaş</p>
+    </div>`;
+  modal.classList.add('open');
 }
 
 /* ════════════════════════════════════════════════════════
