@@ -983,6 +983,49 @@ body.light-mode .wlc-card { background: #fff; border-color: #d0d4e1; }
   body { background:#fff;color:#000; }
   .bubble { background:#f5f5f5!important;color:#000!important;max-width:100%!important; }
 }
+
+/* ── Settings tabs ── */
+.stab { background:transparent;border:none;color:var(--muted);font-size:12.5px;padding:10px 12px;cursor:pointer;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;font-family:var(--font);font-weight:500; }
+.stab:hover { color:var(--text); }
+.stab.active { color:var(--accent);border-bottom-color:var(--accent); }
+.stab-content { display:flex;flex-direction:column;gap:16px; }
+
+/* ── Context menu ── */
+#ctx-menu { position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:10px;min-width:180px;z-index:9000;box-shadow:0 8px 24px rgba(0,0,0,.5);overflow:hidden;display:none;animation:dropdown-in .1s ease; }
+.ctx-item { padding:9px 16px;font-size:13px;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:9px;transition:background .1s; }
+.ctx-item:hover { background:rgba(255,255,255,.07); }
+.ctx-item.danger { color:var(--red); }
+.ctx-sep { height:1px;background:var(--border);margin:4px 0; }
+
+/* ── Image generation result ── */
+.img-gen-wrap { margin:8px 0;border-radius:12px;overflow:hidden;border:1px solid var(--border); }
+.img-gen-wrap img { display:block;width:100%;max-height:400px;object-fit:cover; }
+.img-gen-bar { display:flex;gap:8px;padding:8px 12px;background:rgba(0,0,0,.2); }
+
+/* ── Memory items ── */
+.mem-item { display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:8px 10px;font-size:13px; }
+.mem-item span { flex:1;color:var(--text); }
+.mem-item button { background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;transition:color .15s; }
+.mem-item button:hover { color:var(--red); }
+
+/* ── Project items ── */
+.proj-item { display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;cursor:pointer;transition:border-color .15s; }
+.proj-item:hover { border-color:var(--accent); }
+.proj-item.active-proj { border-color:var(--accent);background:rgba(99,102,241,.1); }
+.proj-item-icon { font-size:15px; }
+.proj-item-name { flex:1;font-size:13px;color:var(--text);font-weight:500; }
+.proj-item-del { background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;opacity:0;transition:opacity .12s,color .12s; }
+.proj-item:hover .proj-item-del { opacity:1; }
+.proj-item-del:hover { color:var(--red); }
+
+/* ── Img gen mode active ── */
+#btn-img-gen.img-active { color:#a855f7!important;background:rgba(168,85,247,.15)!important; }
+body.light-mode .stab { color:#6b7280; }
+body.light-mode .stab.active { color:var(--accent); }
+body.light-mode .mem-item, body.light-mode .proj-item { background:#fff;border-color:#d0d4e1; }
+body.light-mode #ctx-menu { background:#fff;border-color:#d0d4e1; }
+body.light-mode .ctx-item { color:#111827; }
+body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
 </style>
 </head>
 <body data-mode="chat">
@@ -1143,6 +1186,9 @@ body.light-mode .wlc-card { background: #fff; border-color: #d0d4e1; }
           </div>
         </div>
 
+        <!-- Share -->
+        <button class="topbar-icon-btn" onclick="shareConvo()" title="Sohbeti paylaş">🔗</button>
+
         <!-- Command palette -->
         <button class="topbar-icon-btn" onclick="openPalette()" title="Komut Paleti (Ctrl+K)">⌘</button>
 
@@ -1196,11 +1242,16 @@ body.light-mode .wlc-card { background: #fff; border-color: #d0d4e1; }
         <div class="input-wrap">
           <button class="input-side-btn" id="btn-attach" title="Dosya ekle" onclick="triggerFileAttach()">＋</button>
           <button class="input-side-btn" id="btn-web" title="Web arama modu" onclick="toggleWebSearch()">🌐</button>
+          <button class="input-side-btn" id="btn-img-gen" title="Görsel üret (Ctrl+G)" onclick="toggleImgGenMode()">🎨</button>
           <textarea id="user-input" rows="1" placeholder="Mesajınızı yazın… (Enter → gönder, Shift+Enter → yeni satır)"></textarea>
           <button class="input-side-btn" id="btn-mic" onclick="toggleMic()" title="Sesle yaz (Ctrl+M)">🎤</button>
         </div>
         <button id="btn-send" onclick="sendMessage()" title="Gönder (Enter)" disabled>➤</button>
         <button id="btn-stop" onclick="stopGeneration()" title="Durdur" style="display:none;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:var(--red);width:44px;height:44px;border-radius:14px;cursor:pointer;font-size:16px;display:none;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s;">⏹</button>
+      </div>
+      <!-- Context usage bar -->
+      <div id="usage-bar-wrap" style="height:3px;background:var(--border);border-radius:2px;margin:4px 0 2px;overflow:hidden;">
+        <div id="usage-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent-2));border-radius:2px;transition:width .4s;"></div>
       </div>
       <div class="input-meta">
         <span class="input-hint" id="input-hint">Enter gönderin · Shift+Enter yeni satır</span>
@@ -1217,8 +1268,19 @@ body.light-mode .wlc-card { background: #fff; border-color: #d0d4e1; }
     <h3>⚙️ Ayarlar</h3>
     <button class="settings-close" onclick="toggleSettings()">✕</button>
   </div>
+
+  <!-- Settings Tabs -->
+  <div style="display:flex;border-bottom:1px solid var(--border);padding:0 12px;gap:2px;flex-shrink:0">
+    <button class="stab active" data-tab="general" onclick="switchSettingsTab('general')">Genel</button>
+    <button class="stab" data-tab="custom" onclick="switchSettingsTab('custom')">Özel Talimatlar</button>
+    <button class="stab" data-tab="memory" onclick="switchSettingsTab('memory')">Bellek</button>
+    <button class="stab" data-tab="projects" onclick="switchSettingsTab('projects')">Projeler</button>
+  </div>
+
   <div class="settings-body">
 
+  <!-- TAB: General -->
+  <div id="stab-general" class="stab-content">
     <div class="settings-group">
       <label>Model</label>
       <select id="settings-model-select" onchange="syncModelFromSettings()">
@@ -1331,15 +1393,91 @@ body.light-mode .wlc-card { background: #fff; border-color: #d0d4e1; }
       <label>Tehlikeli Bölge</label>
       <div class="danger-zone">
         <button class="btn-danger" onclick="clearChat(); toggleSettings();">🗑 Sohbet Geçmişini Temizle</button>
+        <button class="btn-danger" onclick="wipeAllData()">💣 Tüm Veriyi Sil</button>
         <button class="btn-danger" onclick="signOut();">↩ Hesaptan Çık</button>
       </div>
     </div>
+  </div><!-- /stab-general -->
 
-  </div>
-</div>
+  <!-- TAB: Custom Instructions -->
+  <div id="stab-custom" class="stab-content" style="display:none">
+    <div class="settings-group">
+      <label>Adın / Nasıl hitap edilsin?</label>
+      <input id="ci-name" type="text" placeholder="örn. Servan" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:8px 10px;color:var(--text);font-size:13.5px;outline:none;font-family:var(--font)">
+    </div>
+    <div class="settings-group">
+      <label>Kendin hakkında (arka plan, meslek, ilgi alanları)</label>
+      <textarea id="ci-about" rows="4" placeholder="örn. Ben bir web geliştiricisiyim, React ve Node.js kullanıyorum." style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:8px 10px;color:var(--text);font-size:13px;resize:vertical;outline:none;font-family:var(--font)"></textarea>
+    </div>
+    <div class="settings-group">
+      <label>Yanıt Tarzı</label>
+      <select id="ci-style" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:8px 10px;color:var(--text);font-size:13px;outline:none">
+        <option value="">Varsayılan</option>
+        <option value="concise">Kısa ve öz</option>
+        <option value="detailed">Detaylı ve kapsamlı</option>
+        <option value="casual">Samimi ve konuşma dili</option>
+        <option value="formal">Resmi ve profesyonel</option>
+        <option value="academic">Akademik</option>
+        <option value="bullet">Madde madde listele</option>
+      </select>
+    </div>
+    <div class="settings-group">
+      <label>Yanıt Dili</label>
+      <select id="ci-lang" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:8px 10px;color:var(--text);font-size:13px;outline:none">
+        <option value="">Otomatik</option>
+        <option value="tr">🇹🇷 Türkçe</option>
+        <option value="en">🇬🇧 İngilizce</option>
+        <option value="de">🇩🇪 Almanca</option>
+        <option value="fr">🇫🇷 Fransızca</option>
+        <option value="es">🇪🇸 İspanyolca</option>
+      </select>
+    </div>
+    <button onclick="saveCustomInstructions()" class="topbar-icon-btn" style="width:100%;justify-content:center;padding:10px">💾 Kaydet</button>
+  </div><!-- /stab-custom -->
+
+  <!-- TAB: Memory -->
+  <div id="stab-memory" class="stab-content" style="display:none">
+    <div class="settings-info" style="margin-bottom:8px">
+      AI her sohbette bu bilgileri hatırlayacak. Kişisel bağlamı buraya ekle.
+    </div>
+    <div id="memory-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px"></div>
+    <div style="display:flex;gap:8px">
+      <input id="mem-input" type="text" placeholder="Yeni hatıra ekle… (örn: Python kullanıyorum)" style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:8px 10px;color:var(--text);font-size:13px;outline:none;font-family:var(--font)" onkeydown="if(event.key==='Enter')addMemory()">
+      <button class="topbar-icon-btn" onclick="addMemory()">+ Ekle</button>
+    </div>
+    <button class="btn-danger" style="margin-top:12px;width:100%" onclick="clearMemory()">🗑 Tüm Belleği Temizle</button>
+  </div><!-- /stab-memory -->
+
+  <!-- TAB: Projects -->
+  <div id="stab-projects" class="stab-content" style="display:none">
+    <div class="settings-info" style="margin-bottom:8px">
+      Sohbetleri projelere göre gruplandır. Aktif proje kenar çubuğunda gösterilir.
+    </div>
+    <div id="project-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px"></div>
+    <div style="display:flex;gap:8px">
+      <input id="proj-input" type="text" placeholder="Proje adı…" style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:8px 10px;color:var(--text);font-size:13px;outline:none;font-family:var(--font)" onkeydown="if(event.key==='Enter')addProject()">
+      <button class="topbar-icon-btn" onclick="addProject()">+ Oluştur</button>
+    </div>
+  </div><!-- /stab-projects -->
+
+  </div><!-- /settings-body -->
+</div><!-- /settings-panel -->
 
 <!-- Toast -->
 <div id="toast"></div>
+
+<!-- Context Menu -->
+<div id="ctx-menu">
+  <div class="ctx-item" id="ctx-copy">📋 Kopyala</div>
+  <div class="ctx-item" id="ctx-speak">🔊 Seslendir</div>
+  <div class="ctx-item" id="ctx-quote">💬 Alıntıla</div>
+  <div class="ctx-item" id="ctx-share">🔗 Paylaş</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" id="ctx-edit">✏️ Düzenle</div>
+  <div class="ctx-item" id="ctx-regen">🔄 Yenile</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item danger" id="ctx-delete">🗑 Sil</div>
+</div>
 
 <script>
 /* ══════════════════════════════════════════════
@@ -1624,16 +1762,21 @@ function initDragDrop() {
 
 // ── Command Palette (Ctrl+K) ──
 const COMMANDS = [
-  { icon:'💬', label:'Yeni Sohbet', fn: () => newChat() },
+  { icon:'💬', label:'Yeni Sohbet', fn: () => startNewChat() },
   { icon:'🗑️', label:'Sohbeti Temizle', fn: () => clearChat() },
+  { icon:'🎨', label:'Görsel Üret', fn: () => toggleImgGenMode() },
+  { icon:'🔗', label:'Sohbeti Paylaş', fn: () => shareConvo() },
   { icon:'⬇', label:'PDF İndir', fn: () => window.print() },
   { icon:'🔍', label:'Mesajlarda Ara', fn: () => toggleSearch() },
   { icon:'🎤', label:'Mikrofon Aç/Kapat', fn: () => toggleMic() },
   { icon:'🌐', label:'Web Modu Aç/Kapat', fn: () => toggleWebSearch() },
   { icon:'⚙️', label:'Ayarlar', fn: () => toggleSettings() },
+  { icon:'🧠', label:'Bellek Yönet', fn: () => { toggleSettings(); switchSettingsTab('memory'); } },
+  { icon:'📁', label:'Projeler', fn: () => { toggleSettings(); switchSettingsTab('projects'); } },
   { icon:'📋', label:'Konuşmayı Özetle', fn: () => summarize() },
   { icon:'🌙', label:'Tema Değiştir', fn: () => toggleTheme() },
-  { icon:'⬡', label:'Artifacts Paneli', fn: () => toggleArtifacts() },
+  { icon:'🗂', label:'Artifacts Paneli', fn: () => toggleArtifacts() },
+  { icon:'📌', label:'Geçmişi Göster', fn: () => showHistory() },
 ];
 function openPalette() {
   document.getElementById('palette-overlay').style.display = 'flex';
@@ -2021,6 +2164,11 @@ function init() {
   renderConvoList();
   updateConvoTitle();
   if (isMobile()) document.getElementById('sidebar').classList.add('collapsed');
+
+  // New feature inits
+  initContextMenu();
+  initClipboardPaste();
+  autoResume();
 
   // Kayıtlı sistem promptu + yaratıcılık değerlerini yükle
   const sp = document.getElementById('sys-prompt-input');
@@ -2894,45 +3042,50 @@ async function sendMessage() {
   const rawText = inputEl.value.trim();
   if (!rawText || streaming) return;
 
-  // Build final message text: görseller için base64 açıklamasını ekle
+  // Image generation mode
+  if (imgGenMode) {
+    resetInput();
+    appendUserMsg('🎨 ' + rawText);
+    sessionMessages.push({ role: 'user', content: '🎨 ' + rawText });
+    if (!currentHistoryId) createHistoryEntry(rawText);
+    generateImage(rawText);
+    return;
+  }
+
+  // Build final message text
   let messageText = rawText;
   const imageFiles = attachedFiles.filter(f => f.isImage);
   const textFiles  = attachedFiles.filter(f => !f.isImage && f.block);
 
   if (imageFiles.length > 0) {
-    // Groq llama modelleri vision desteklemiyor; görseli base64 data URL olarak bilgi olarak ekle
     const imgInfo = imageFiles.map(f =>
-      `[Görsel eklendi: "${f.name}" — görsel içeriğini analiz etmek için görseli açıkla veya kullanıcının yazdığı soruyu yanıtla]`
+      `[Görsel eklendi: "${f.name}" — görseli analiz ederek kullanıcının sorusunu yanıtla]`
     ).join('\n');
     messageText = messageText + '\n\n' + imgInfo;
   }
   if (textFiles.length > 0) {
-    const fileContent = textFiles.map(f => f.block).join('\n');
-    messageText = fileContent + messageText;
+    messageText = textFiles.map(f => f.block).join('\n') + messageText;
   }
 
-  // Web arama modu: AI'ya güncel bilgi kullanma talimatı ekle
   let sendText = messageText;
   if (webSearchOn) {
-    sendText = '[WEB ARAMA MODU - internetteki güncel bilgileri kullanarak cevap ver, emin değilsen söyle]: ' + messageText;
+    sendText = '[WEB ARAMA MODU - güncel bilgileri kullanarak cevap ver]: ' + messageText;
   }
 
   resetInput();
   appendUserMsg(messageText);
   setStreaming(true);
 
-  // Track in session messages
   sessionMessages.push({ role: 'user', content: messageText });
+  updateUsageBar();
 
-  // Create or update history entry
-  if (!currentHistoryId) {
-    createHistoryEntry(messageText);
-  }
+  if (!currentHistoryId) createHistoryEntry(messageText);
+  // save last convo id for auto-resume
+  localStorage.setItem('artus_last_convo', currentHistoryId);
 
   let bubble = null;
   let fullText = '';
 
-  // Groq mesaj geçmişini oluştur (son kullanıcı mesajını web-arama metniyle değiştir)
   const groqMessages = sessionMessages.map(m => ({ role: m.role, content: m.content }));
   if (groqMessages.length) {
     groqMessages[groqMessages.length - 1] = { role: 'user', content: sendText };
@@ -2942,19 +3095,20 @@ async function sendMessage() {
     await OmniAI.streamChat({
       messages: groqMessages,
       model: currentModel,
-      systemPrompt: getSystemPrompt(),
+      systemPrompt: buildSystemPrompt(),
       temperature: getTemperature(),
       onText: (chunk) => { fullText += chunk; },
     });
 
-    // Save assistant response to session messages and update history
     if (fullText) {
       if (!bubble) bubble = createBotBubble();
       await typewriteText(bubble, fullText, currentMode);
       sessionMessages.push({ role: 'assistant', content: fullText });
       updateHistoryEntry();
+      updateUsageBar();
       finalizeBotMessage(bubble, fullText);
       addSuggestions(fullText);
+      notifyDone();
     } else {
       if (!bubble) bubble = createBotBubble();
       bubble.innerHTML = '<em style="color:var(--yellow)">Boş cevap geldi, tekrar dene.</em>';
@@ -3161,12 +3315,383 @@ function handleShortcuts(e) {
   if (e.ctrlKey || e.metaKey) {
     if (e.shiftKey && (e.key === 'o' || e.key === 'O')) { e.preventDefault(); startNewChat(); return; }
     if (e.key === 'b' || e.key === 'B') { e.preventDefault(); toggleSidebar(); return; }
+    if (e.key === 'g' || e.key === 'G') { e.preventDefault(); toggleImgGenMode(); return; }
+    if (e.key === 's' || e.key === 'S') { e.preventDefault(); shareConvo(); return; }
     if (e.key === 'l' || e.key === 'L') { e.preventDefault(); clearChat(); }
     if (e.key === 'm' || e.key === 'M') { e.preventDefault(); toggleMic(); }
     if (e.key === '1') { e.preventDefault(); setMode('chat'); }
     if (e.key === '2') { e.preventDefault(); handleModeClick('code'); }
     if (e.key === '3') { e.preventDefault(); handleModeClick('design'); }
   }
+}
+
+/* ════════════════════════════════════════════════════════
+   IMAGE GENERATION (Pollinations.ai — ücretsiz, API key yok)
+════════════════════════════════════════════════════════ */
+let imgGenMode = false;
+function toggleImgGenMode() {
+  imgGenMode = !imgGenMode;
+  const btn = document.getElementById('btn-img-gen');
+  btn.classList.toggle('img-active', imgGenMode);
+  inputEl.placeholder = imgGenMode
+    ? '🎨 Görsel açıklaması girin… (örn: şehir manzarası gece, sibernetik, 4K)'
+    : 'Mesajınızı yazın… (Enter → gönder, Shift+Enter → yeni satır)';
+  showToast(imgGenMode ? '🎨 Görsel üretme modu aktif' : 'Görsel modu kapatıldı');
+}
+
+function generateImage(prompt) {
+  const encodedPrompt = encodeURIComponent(prompt);
+  const seed = Math.floor(Math.random() * 99999);
+  const url = `https://pollinations.ai/p/${encodedPrompt}?width=768&height=512&seed=${seed}&model=flux`;
+  const bubble = createBotBubble();
+  bubble.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:4px 0">🎨 Görsel oluşturuluyor…</div>`;
+  const wrap = document.createElement('div');
+  wrap.className = 'img-gen-wrap';
+  const img = document.createElement('img');
+  img.alt = prompt;
+  img.loading = 'lazy';
+  img.style.minHeight = '120px';
+  img.style.background = 'var(--surface)';
+  img.onload = () => {
+    bubble.innerHTML = '';
+    wrap.appendChild(img);
+    const bar = document.createElement('div');
+    bar.className = 'img-gen-bar';
+    bar.innerHTML = `
+      <span style="flex:1;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(prompt)}</span>
+      <button class="btn-copy" onclick="downloadGenImg('${url}','${encodeURIComponent(prompt)}')">⬇ İndir</button>
+      <button class="btn-copy" onclick="generateImage('${prompt.replace(/'/g,"\\'")}')">🔄 Yeniden</button>`;
+    wrap.appendChild(bar);
+    bubble.appendChild(wrap);
+    sessionMessages.push({ role:'assistant', content:`[Görsel üretildi: ${prompt}]` });
+    updateHistoryEntry();
+    scrollBottom();
+    notifyDone();
+  };
+  img.onerror = () => {
+    bubble.innerHTML = `<em style="color:var(--red)">Görsel yüklenemedi. Tekrar dene.</em>`;
+  };
+  img.src = url;
+  scrollBottom();
+}
+
+function downloadGenImg(url, encodedName) {
+  const a = document.createElement('a');
+  a.href = url; a.download = decodeURIComponent(encodedName).slice(0,40)+'.jpg';
+  a.target = '_blank'; a.click();
+}
+
+/* ════════════════════════════════════════════════════════
+   MEMORY SYSTEM
+════════════════════════════════════════════════════════ */
+function getMemory() {
+  try { return JSON.parse(localStorage.getItem('artus_memory') || '[]'); } catch(_) { return []; }
+}
+function saveMemory(list) { localStorage.setItem('artus_memory', JSON.stringify(list)); }
+
+function addMemory() {
+  const inp = document.getElementById('mem-input');
+  const val = inp ? inp.value.trim() : '';
+  if (!val) return;
+  const list = getMemory();
+  list.push({ id: Date.now(), text: val });
+  saveMemory(list);
+  if (inp) inp.value = '';
+  renderMemoryList();
+  showToast('🧠 Hatıra eklendi');
+}
+
+function deleteMemory(id) {
+  saveMemory(getMemory().filter(m => m.id !== id));
+  renderMemoryList();
+}
+
+function clearMemory() {
+  localStorage.removeItem('artus_memory');
+  renderMemoryList();
+  showToast('🗑 Bellek temizlendi');
+}
+
+function renderMemoryList() {
+  const el = document.getElementById('memory-list');
+  if (!el) return;
+  const list = getMemory();
+  if (!list.length) { el.innerHTML = '<div style="color:var(--muted);font-size:12.5px;text-align:center;padding:12px">Henüz hatıra yok</div>'; return; }
+  el.innerHTML = list.map(m =>
+    `<div class="mem-item"><span>${escapeHtml(m.text)}</span><button onclick="deleteMemory(${m.id})">×</button></div>`
+  ).join('');
+}
+
+function getMemoryContext() {
+  const list = getMemory();
+  if (!list.length) return '';
+  return '\n\n[Kullanıcı hakkında hatırlanacaklar: ' + list.map(m => m.text).join('; ') + ']';
+}
+
+/* ════════════════════════════════════════════════════════
+   CUSTOM INSTRUCTIONS
+════════════════════════════════════════════════════════ */
+function saveCustomInstructions() {
+  const name  = document.getElementById('ci-name')?.value.trim() || '';
+  const about = document.getElementById('ci-about')?.value.trim() || '';
+  const style = document.getElementById('ci-style')?.value || '';
+  const lang  = document.getElementById('ci-lang')?.value || '';
+  localStorage.setItem('artus_ci', JSON.stringify({ name, about, style, lang }));
+  showToast('💾 Özel talimatlar kaydedildi');
+}
+
+function loadCustomInstructions() {
+  try {
+    const ci = JSON.parse(localStorage.getItem('artus_ci') || '{}');
+    if (document.getElementById('ci-name')) document.getElementById('ci-name').value = ci.name || '';
+    if (document.getElementById('ci-about')) document.getElementById('ci-about').value = ci.about || '';
+    if (document.getElementById('ci-style')) document.getElementById('ci-style').value = ci.style || '';
+    if (document.getElementById('ci-lang')) document.getElementById('ci-lang').value = ci.lang || '';
+  } catch(_) {}
+}
+
+function buildSystemPrompt() {
+  const base = getSystemPrompt() || window.OmniAI.SYSTEM_PROMPT;
+  let extra = '';
+  try {
+    const ci = JSON.parse(localStorage.getItem('artus_ci') || '{}');
+    if (ci.name)  extra += `\nKullanıcının adı: ${ci.name}.`;
+    if (ci.about) extra += `\nKullanıcı hakkında: ${ci.about}`;
+    const styleMap = { concise:'Yanıtlarını kısa ve öz tut.', detailed:'Çok detaylı ve kapsamlı açıkla.', casual:'Samimi, arkadaşça bir dille konuş.', formal:'Resmi ve profesyonel bir dil kullan.', academic:'Akademik bir ton kullan, kaynaklara atıf yap.', bullet:'Her yanıtını madde madde listele.' };
+    if (ci.style && styleMap[ci.style]) extra += `\n${styleMap[ci.style]}`;
+    const langMap = { tr:'Her zaman Türkçe yanıt ver.', en:'Always respond in English.', de:'Antworte immer auf Deutsch.', fr:'Réponds toujours en français.', es:'Responde siempre en español.' };
+    if (ci.lang && langMap[ci.lang]) extra += `\n${langMap[ci.lang]}`;
+  } catch(_) {}
+  // Active project instruction
+  try {
+    const pid = localStorage.getItem('artus_active_project');
+    if (pid) {
+      const projects = JSON.parse(localStorage.getItem('artus_projects') || '[]');
+      const proj = projects.find(p => p.id === pid);
+      if (proj && proj.instructions) extra += `\nAktif Proje: ${proj.name}. ${proj.instructions}`;
+    }
+  } catch(_) {}
+  return base + extra + getMemoryContext();
+}
+
+/* ════════════════════════════════════════════════════════
+   PROJECTS
+════════════════════════════════════════════════════════ */
+function getProjects() {
+  try { return JSON.parse(localStorage.getItem('artus_projects') || '[]'); } catch(_) { return []; }
+}
+function saveProjects(list) { localStorage.setItem('artus_projects', JSON.stringify(list)); }
+
+function addProject() {
+  const inp = document.getElementById('proj-input');
+  const name = inp ? inp.value.trim() : '';
+  if (!name) return;
+  const list = getProjects();
+  list.push({ id: 'proj_'+Date.now(), name, instructions: '', convos: [] });
+  saveProjects(list);
+  if (inp) inp.value = '';
+  renderProjectList();
+  showToast('📁 Proje oluşturuldu');
+}
+
+function deleteProject(id) {
+  saveProjects(getProjects().filter(p => p.id !== id));
+  if (localStorage.getItem('artus_active_project') === id) localStorage.removeItem('artus_active_project');
+  renderProjectList();
+}
+
+function setActiveProject(id) {
+  const prev = localStorage.getItem('artus_active_project');
+  if (prev === id) { localStorage.removeItem('artus_active_project'); showToast('Proje seçimi kaldırıldı'); }
+  else { localStorage.setItem('artus_active_project', id); showToast('📁 Proje aktif edildi'); }
+  renderProjectList();
+}
+
+function renderProjectList() {
+  const el = document.getElementById('project-list');
+  if (!el) return;
+  const list = getProjects();
+  const active = localStorage.getItem('artus_active_project');
+  if (!list.length) { el.innerHTML = '<div style="color:var(--muted);font-size:12.5px;text-align:center;padding:12px">Henüz proje yok</div>'; return; }
+  el.innerHTML = list.map(p => `
+    <div class="proj-item${p.id===active?' active-proj':''}" onclick="setActiveProject('${p.id}')">
+      <span class="proj-item-icon">📁</span>
+      <span class="proj-item-name">${escapeHtml(p.name)}</span>
+      ${p.id===active?'<span style="font-size:10px;color:var(--accent);font-weight:700">AKTİF</span>':''}
+      <button class="proj-item-del" onclick="event.stopPropagation();deleteProject('${p.id}')">×</button>
+    </div>`).join('');
+}
+
+/* ════════════════════════════════════════════════════════
+   SHARE CONVERSATION
+════════════════════════════════════════════════════════ */
+function shareConvo() {
+  const msgs = [...document.querySelectorAll('.msg')].map(m => {
+    const role = m.classList.contains('user') ? '👤 Sen' : '⚡ Omni.Ai';
+    return `## ${role}\n${m.querySelector('.bubble')?.textContent?.trim() || ''}`;
+  }).join('\n\n---\n\n');
+  if (!msgs) { showToast('Paylaşılacak sohbet yok'); return; }
+  const full = `# Omni.Ai Sohbeti\n_${new Date().toLocaleString('tr-TR')}_\n\n---\n\n${msgs}`;
+  navigator.clipboard.writeText(full)
+    .then(() => showToast('🔗 Sohbet panoya kopyalandı!'))
+    .catch(() => {
+      const a = document.createElement('a');
+      a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(full);
+      a.download = 'omni-sohbet.txt'; a.click();
+      showToast('⬇ Sohbet indirildi');
+    });
+}
+
+/* ════════════════════════════════════════════════════════
+   CONTEXT MENU (right-click on messages)
+════════════════════════════════════════════════════════ */
+let _ctxTarget = null;
+
+function initContextMenu() {
+  const menu = document.getElementById('ctx-menu');
+  if (!menu) return;
+
+  chatArea.addEventListener('contextmenu', e => {
+    const msgEl = e.target.closest('.msg');
+    if (!msgEl) return;
+    e.preventDefault();
+    _ctxTarget = msgEl;
+
+    const isUser = msgEl.classList.contains('user');
+    document.getElementById('ctx-edit').style.display = isUser ? 'flex' : 'none';
+    document.getElementById('ctx-regen').style.display = isUser ? 'none' : 'flex';
+    document.getElementById('ctx-speak').style.display = isUser ? 'none' : 'flex';
+
+    menu.style.display = 'block';
+    const x = Math.min(e.clientX, window.innerWidth - menu.offsetWidth - 8);
+    const y = Math.min(e.clientY, window.innerHeight - 250);
+    menu.style.left = x + 'px';
+    menu.style.top  = y + 'px';
+  });
+
+  document.addEventListener('click', () => { menu.style.display = 'none'; });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') menu.style.display = 'none'; });
+
+  document.getElementById('ctx-copy').onclick = () => {
+    const text = _ctxTarget?.querySelector('.bubble')?.textContent || '';
+    navigator.clipboard.writeText(text).then(() => showToast('✓ Kopyalandı'));
+  };
+  document.getElementById('ctx-speak').onclick = () => {
+    const btn = _ctxTarget?.querySelector('.act-speak');
+    if (btn) btn.click();
+    else {
+      const raw = _ctxTarget?.querySelector('.bubble')?.textContent || '';
+      const u = new SpeechSynthesisUtterance(raw); u.lang='tr-TR';
+      speechSynthesis.cancel(); speechSynthesis.speak(u);
+    }
+  };
+  document.getElementById('ctx-quote').onclick = () => {
+    const text = _ctxTarget?.querySelector('.bubble')?.textContent?.trim() || '';
+    inputEl.value = `> ${text.split('\n').join('\n> ')}\n\n`;
+    inputEl.focus(); onInputChange();
+  };
+  document.getElementById('ctx-share').onclick = shareConvo;
+  document.getElementById('ctx-edit').onclick = () => {
+    const btn = _ctxTarget?.querySelector('.msg-act-btn');
+    if (btn) btn.click();
+  };
+  document.getElementById('ctx-regen').onclick = regenerateLast;
+  document.getElementById('ctx-delete').onclick = () => {
+    if (_ctxTarget) { _ctxTarget.remove(); showToast('🗑 Mesaj silindi'); }
+  };
+}
+
+/* ════════════════════════════════════════════════════════
+   PASTE IMAGE (clipboard)
+════════════════════════════════════════════════════════ */
+function initClipboardPaste() {
+  document.addEventListener('paste', e => {
+    const items = [...(e.clipboardData?.items || [])];
+    const imgItem = items.find(i => i.type.startsWith('image/'));
+    if (!imgItem) return;
+    e.preventDefault();
+    const file = imgItem.getAsFile();
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const dataUrl = ev.target.result;
+      attachedFiles.push({ name: 'pasted-image.png', isImage: true, dataUrl });
+      renderAttachChips();
+      showToast('📋 Görsel yapıştırıldı');
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ════════════════════════════════════════════════════════
+   AUTO-RESUME last conversation on load
+════════════════════════════════════════════════════════ */
+function autoResume() {
+  const lastId = localStorage.getItem('artus_last_convo');
+  if (!lastId) return;
+  const history = getHistory();
+  const entry = history.find(h => h.id === lastId);
+  if (!entry || !entry.messages.length) return;
+  // Silently restore without toast
+  chatArea.innerHTML = '';
+  sessionMessages = [...entry.messages];
+  currentHistoryId = entry.id;
+  entry.messages.forEach(msg => {
+    if (msg.role === 'user') appendUserMsg(msg.content);
+    else { const b = createBotBubble(); renderBubble(b, msg.content, currentMode); finalizeBotMessage(b, msg.content); }
+  });
+  updateConvoTitle();
+  renderConvoList();
+  scrollBottom();
+}
+
+/* ════════════════════════════════════════════════════════
+   NOTIFICATION when response done
+════════════════════════════════════════════════════════ */
+function notifyDone() {
+  if (document.hasFocus()) return;
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'granted') {
+    new Notification('⚡ Omni.Ai', { body: 'Yanıt hazır!', icon: '/icon-192.png' });
+  } else if (Notification.permission !== 'denied') {
+    Notification.requestPermission();
+  }
+}
+
+/* ════════════════════════════════════════════════════════
+   TOKEN USAGE BAR
+════════════════════════════════════════════════════════ */
+const MAX_CONTEXT = 32000;
+function updateUsageBar() {
+  const total = sessionMessages.reduce((s, m) => s + (m.content || '').length, 0);
+  const pct = Math.min(100, Math.round(total / (MAX_CONTEXT * 4) * 100));
+  const bar = document.getElementById('usage-bar');
+  if (bar) {
+    bar.style.width = pct + '%';
+    bar.style.background = pct > 80 ? 'var(--red)' : pct > 60 ? 'var(--yellow)' : 'linear-gradient(90deg,var(--accent),var(--accent-2))';
+  }
+}
+
+/* ════════════════════════════════════════════════════════
+   SETTINGS TAB SWITCHING
+════════════════════════════════════════════════════════ */
+function switchSettingsTab(tab) {
+  document.querySelectorAll('.stab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.stab-content').forEach(c => c.style.display = c.id === 'stab-'+tab ? 'flex' : 'none');
+  if (tab === 'memory') renderMemoryList();
+  if (tab === 'projects') renderProjectList();
+  if (tab === 'custom') loadCustomInstructions();
+}
+
+/* ════════════════════════════════════════════════════════
+   WIPE ALL DATA
+════════════════════════════════════════════════════════ */
+function wipeAllData() {
+  if (!confirm('TÜM veriler silinecek (sohbetler, bellek, ayarlar). Emin misin?')) return;
+  const user = localStorage.getItem('artus_user');
+  localStorage.clear();
+  if (user) localStorage.setItem('artus_user', user);
+  location.reload();
 }
 
 /* ── Scroll-to-bottom FAB ── */
