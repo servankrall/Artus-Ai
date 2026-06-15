@@ -943,6 +943,14 @@ body[data-mode="design"] #mode-label::before { content: "🎨 "; }
   .bubble { max-width: 88% !important; }
   .msg-col { max-width: 88%; }
   #chat-area { padding: 14px 12px; }
+  /* shrink input buttons so textarea has room */
+  .input-side-btn { width: 28px; height: 28px; font-size: 15px; }
+  #convo-title { max-width: 34vw; }
+  .msg-actions { flex-wrap: wrap; }
+}
+@media (max-width: 420px) {
+  /* hide secondary input buttons (erişim: / komutları ve ⋯ menüsü) */
+  #btn-img-gen, #btn-voice { display: none; }
 }
 
 /* Welcome grid cards */
@@ -3337,11 +3345,12 @@ async function sendMessage() {
     if (fullText) {
       if (!bubble) bubble = createBotBubble();
       await typewriteText(bubble, fullText, currentMode);
-      sessionMessages.push({ role: 'assistant', content: fullText });
+      const cleanText = extractReasoning(fullText).rest || fullText; // <thinking> hariç
+      sessionMessages.push({ role: 'assistant', content: cleanText });
       updateHistoryEntry();
       updateUsageBar();
-      finalizeBotMessage(bubble, fullText);
-      addSuggestions(fullText);
+      finalizeBotMessage(bubble, cleanText);
+      addSuggestions(cleanText);
       notifyDone();
       // AI akıllı başlık — ilk yanıttan sonra, çakışmayı önlemek için
       const firstUser = sessionMessages.find(m => m.role === 'user');
@@ -3366,20 +3375,20 @@ let _typingAbort = false;
 function typewriteText(bubble, text, mode) {
   return new Promise((resolve) => {
     _typingAbort = false;
-    const step = Math.max(2, Math.ceil(text.length / 600)); // adaptive speed for long text
+    // Animasyon sırasında <thinking> bloğunu gösterme (sadece nihai yanıtı yaz)
+    const anim = extractReasoning(text).rest || text;
+    const step = Math.max(2, Math.ceil(anim.length / 600));
     let i = 0;
     const caret = '<span class="stream-caret"></span>';
     function tick() {
       if (_typingAbort) { renderBubble(bubble, text, mode); return resolve(); }
-      i = Math.min(text.length, i + step * 4);
-      // Render incrementally as plain-ish markdown; keep it cheap by showing raw partial then final markdown
-      const partial = text.slice(0, i);
-      bubble.innerHTML = escapeHtml(partial).replace(/\n/g,'<br>') + caret;
+      i = Math.min(anim.length, i + step * 4);
+      bubble.innerHTML = escapeHtml(anim.slice(0, i)).replace(/\n/g,'<br>') + caret;
       scrollBottom();
-      if (i < text.length) {
+      if (i < anim.length) {
         setTimeout(tick, 8);
       } else {
-        renderBubble(bubble, text, mode); // final pass with full markdown/code highlighting
+        renderBubble(bubble, text, mode); // final pass: full markdown + collapsible reasoning
         resolve();
       }
     }
@@ -3861,7 +3870,7 @@ function showBookmarks() {
   if (!list.length) { listEl.innerHTML = '<div class="history-empty">Henüz yer imi yok.<br>Bir yanıttaki ⭐ butonuna bas.</div>'; }
   else {
     listEl.innerHTML = list.map(b => `
-      <div class="bm-item" onclick="navigator.clipboard.writeText(${JSON.stringify(JSON.stringify(b.text)).replace(/"/g,'&quot;')}).then(()=>showToast('Kopyalandı'))">
+      <div class="bm-item" onclick="copyBookmark(${b.id})">
         <div class="bm-text">${escapeHtml(b.text.slice(0,240))}</div>
         <div class="history-item-date" style="margin-top:4px">${new Date(b.date).toLocaleDateString('tr-TR')} · kopyalamak için tıkla
           <button onclick="event.stopPropagation();removeBookmark(${b.id})" style="background:none;border:none;color:var(--red);cursor:pointer;float:right">×</button>
@@ -3871,6 +3880,10 @@ function showBookmarks() {
   modal.classList.add('open');
 }
 function removeBookmark(id) { saveBookmarks(getBookmarks().filter(b => b.id !== id)); showBookmarks(); }
+function copyBookmark(id) {
+  const b = getBookmarks().find(x => x.id === id);
+  if (b) navigator.clipboard.writeText(b.text).then(() => showToast('✓ Kopyalandı'));
+}
 
 /* ════════════════════════════════════════════════════════
    INLINE TRANSLATE + CONTINUE
@@ -4089,7 +4102,7 @@ function toggleImgGenMode() {
 function generateImage(prompt) {
   const encodedPrompt = encodeURIComponent(prompt);
   const seed = Math.floor(Math.random() * 99999);
-  const url = `https://pollinations.ai/p/${encodedPrompt}?width=768&height=512&seed=${seed}&model=flux`;
+  const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=768&height=512&seed=${seed}&nologo=true`;
   const bubble = createBotBubble();
   bubble.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:4px 0">🎨 Görsel oluşturuluyor…</div>`;
   const wrap = document.createElement('div');
