@@ -958,6 +958,31 @@ body[data-mode="design"] #mode-label::before { content: "🎨 "; }
   #sidebar { padding-top: env(safe-area-inset-top); }
   .sb-convo { padding: 12px 10px; }    /* daha kolay dokunma */
   #btn-send, #btn-stop { width: 46px; height: 46px; }
+
+  /* Mobil sidebar tam genişliğe yakın */
+  #sidebar, #sidebar.collapsed { width: min(86vw, 320px); }
+  #sidebar.collapsed { transform: translateX(-100%); }
+
+  /* Ayar paneli mobilde tam ekran */
+  #settings-panel { width: 100vw; max-width: 100vw; }
+
+  /* Artifacts paneli mobilde tam ekran */
+  #artifacts-panel { width: 100vw !important; min-width: 0 !important; max-width: 100vw !important; top: 0 !important; padding-top: env(safe-area-inset-top); }
+
+  /* Modallar mobilde kenarlardan boşluklu ve kaydırılabilir */
+  #pro-modal-card, #history-modal-card { margin: 0 10px; max-height: 88vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .pro-modal-body { padding: 18px; }
+  .plan-cols { grid-template-columns: 1fr; }
+
+  /* Topbar sadeleştir: ikincil öğeleri gizle, ⋯ menüsüne taşındı */
+  #topbar { gap: 6px; }
+  #mode-label, #tier-badge { display: none; }
+  #topbar-right { gap: 6px; }
+  #convo-title { max-width: 38vw; font-size: 14px; }
+  .topbar-icon-btn { padding: 6px 10px; }
+
+  /* Komut paleti üstten daha yakın */
+  #palette-overlay { padding-top: 8vh !important; }
 }
 @media (max-width: 420px) {
   /* çok dar ekranda ikincil input butonlarını gizle (slash / ve ⋯ menüsünden erişilir) */
@@ -1324,8 +1349,8 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
 
     <!-- Chat Area -->
     <!-- Search bar -->
-    <div id="search-bar" style="display:none;align-items:center;gap:8px;padding:6px 16px;background:#161b22;border-bottom:1px solid #30363d;">
-      <input id="search-input" placeholder="Mesajlarda ara..." oninput="doSearch()" onkeydown="if(event.key==='Escape')toggleSearch()" style="flex:1;background:#1c2128;border:1px solid #30363d;border-radius:6px;padding:5px 10px;color:#e6edf3;outline:none;font-size:13px;">
+    <div id="search-bar" style="display:none;align-items:center;gap:8px;padding:6px 16px;background:var(--surface);border-bottom:1px solid var(--border);">
+      <input id="search-input" placeholder="Mesajlarda ara..." oninput="doSearch()" onkeydown="if(event.key==='Escape')toggleSearch()" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);outline:none;font-size:14px;">
       <button onclick="searchNav(-1)" style="background:transparent;border:none;color:#7d8590;cursor:pointer;font-size:16px;">↑</button>
       <button onclick="searchNav(1)" style="background:transparent;border:none;color:#7d8590;cursor:pointer;font-size:16px;">↓</button>
       <span id="search-count" style="color:#7d8590;font-size:12px;min-width:36px;"></span>
