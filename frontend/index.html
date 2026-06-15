@@ -3299,11 +3299,10 @@ async function sendMessage() {
   const imageFiles = attachedFiles.filter(f => f.isImage);
   const textFiles  = attachedFiles.filter(f => !f.isImage && f.block);
 
-  if (imageFiles.length > 0) {
-    const imgInfo = imageFiles.map(f =>
-      `[Görsel eklendi: "${f.name}" — görseli analiz ederek kullanıcının sorusunu yanıtla]`
-    ).join('\n');
-    messageText = messageText + '\n\n' + imgInfo;
+  // Görselleri gerçek vision modeline gönder (artık taklit değil)
+  const imageUrls = imageFiles.map(f => f.dataUrl).filter(Boolean);
+  if (imageFiles.length > 0 && !messageText) {
+    messageText = 'Bu görseli analiz et ve açıkla.';
   }
   if (textFiles.length > 0) {
     messageText = textFiles.map(f => f.block).join('\n') + messageText;
@@ -3316,6 +3315,15 @@ async function sendMessage() {
 
   resetInput();
   appendUserMsg(messageText);
+  // Yüklenen görsellerin küçük resimlerini kullanıcı balonuna ekle
+  if (imageUrls.length) {
+    const lastUser = [...chatArea.querySelectorAll('.msg.user')].pop();
+    const bub = lastUser && lastUser.querySelector('.bubble');
+    if (bub) {
+      const imgs = imageUrls.map(u => `<img src="${u}" style="max-width:160px;max-height:160px;border-radius:8px;margin-top:8px;display:block;border:1px solid rgba(255,255,255,.2)">`).join('');
+      bub.innerHTML += imgs;
+    }
+  }
   setStreaming(true);
 
   sessionMessages.push({ role: 'user', content: messageText });
@@ -3337,6 +3345,7 @@ async function sendMessage() {
     await OmniAI.streamChat({
       messages: groqMessages,
       model: currentModel,
+      images: imageUrls,
       systemPrompt: buildSystemPrompt() + reasoningInstruction(),
       temperature: getTemperature(),
       maxTokens: getMaxTokens(),

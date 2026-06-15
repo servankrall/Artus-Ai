@@ -39,6 +39,12 @@ Kullanıcının istediği sonucu en kısa sürede, en yüksek doğrulukla üret.
     "llama3-8b-8192",
   ];
 
+  // Görsel anlayan (vision) modeller — görsel ekliyse bunlar kullanılır
+  const VISION_MODELS = [
+    "meta-llama/llama-4-scout-17b-16e-instruct",
+    "meta-llama/llama-4-maverick-17b-128e-instruct",
+  ];
+
   function trimHistory(history, maxChars) {
     maxChars = maxChars || 10000;
     let trimmed = history.slice();
@@ -56,11 +62,31 @@ Kullanıcının istediği sonucu en kısa sürede, en yüksek doğrulukla üret.
     const sysPrompt = (opts.systemPrompt && opts.systemPrompt.trim()) || SYSTEM_PROMPT;
     const temperature = typeof opts.temperature === "number" ? opts.temperature : 0.7;
     const onText = opts.onText || function() {};
-    const safeHistory = trimHistory(opts.messages || []);
+    let safeHistory = trimHistory(opts.messages || []);
 
-    var order = MODELS.slice();
-    if (opts.model && MODELS.includes(opts.model)) {
-      order = [opts.model].concat(MODELS.filter(function(m) { return m !== opts.model; }));
+    // ── Görsel (vision) desteği ──
+    const images = opts.images || [];
+    const hasImages = images.length > 0;
+    if (hasImages && safeHistory.length) {
+      // Son kullanıcı mesajını multimodal içeriğe çevir (metin + görseller)
+      const last = safeHistory[safeHistory.length - 1];
+      if (last && last.role === "user" && typeof last.content === "string") {
+        const content = [{ type: "text", text: last.content }];
+        images.forEach(function(url) {
+          content.push({ type: "image_url", image_url: { url: url } });
+        });
+        safeHistory = safeHistory.slice(0, -1).concat([{ role: "user", content: content }]);
+      }
+    }
+
+    var order;
+    if (hasImages) {
+      order = VISION_MODELS.slice();
+    } else {
+      order = MODELS.slice();
+      if (opts.model && MODELS.includes(opts.model)) {
+        order = [opts.model].concat(MODELS.filter(function(m) { return m !== opts.model; }));
+      }
     }
 
     let lastErr = null;
@@ -110,6 +136,7 @@ Kullanıcının istediği sonucu en kısa sürede, en yüksek doğrulukla üret.
   window.OmniAI = {
     SYSTEM_PROMPT: SYSTEM_PROMPT,
     MODELS: MODELS,
+    VISION_MODELS: VISION_MODELS,
     getKey: function() { return ""; },
     setKey: function() {},
     hasKey: function() { return true; },
