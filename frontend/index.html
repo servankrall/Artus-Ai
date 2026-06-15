@@ -1249,39 +1249,29 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
         <!-- Search -->
         <button class="topbar-icon-btn" onclick="toggleSearch()" title="Ara (Ctrl+F)">🔍</button>
 
-        <!-- Artifacts -->
-        <button class="topbar-icon-btn" id="btn-artifacts" onclick="toggleArtifacts()" title="Artifacts Paneli">🗂</button>
-
-        <!-- Export dropdown -->
+        <!-- Tools dropdown -->
         <div style="position:relative">
-          <button class="topbar-icon-btn" onclick="document.getElementById('export-dropdown').style.display=document.getElementById('export-dropdown').style.display==='block'?'none':'block'" title="İndir">⬇</button>
-          <div id="export-dropdown" style="display:none;position:absolute;right:0;top:calc(100%+4px);background:var(--surface);border:1px solid var(--border);border-radius:8px;min-width:150px;z-index:300;overflow:hidden;">
-            <div class="exp-item" onclick="summarize()">📋 Özetle</div>
-            <div class="exp-item" onclick="exportAs('pdf')">🖨️ PDF</div>
-            <div class="exp-item" onclick="exportAs('md')">📝 Markdown</div>
-            <div class="exp-item" onclick="exportAs('json')">📦 JSON</div>
-            <div class="exp-item" onclick="exportAs('html')">🌐 HTML</div>
-            <div class="exp-item" onclick="exportAs('txt')">📄 TXT</div>
+          <button class="topbar-icon-btn" id="btn-tools" onclick="toggleToolsMenu(event)" title="Araçlar">⋯</button>
+          <div id="tools-dropdown" style="display:none;position:absolute;right:0;top:calc(100%+6px);background:var(--surface);border:1px solid var(--border);border-radius:10px;min-width:210px;z-index:300;overflow:hidden;box-shadow:0 8px 28px rgba(0,0,0,.5);">
+            <div class="exp-item" id="tool-reason" onclick="toggleReasoning();toggleToolsMenu()">🧠 Derin Düşünme</div>
+            <div class="exp-item" id="tool-compare" onclick="toggleCompareMode();toggleToolsMenu()">⚖️ Karşılaştırma Modu</div>
+            <div class="exp-item" onclick="toggleArtifacts();toggleToolsMenu()">🗂 Artifacts Paneli</div>
+            <div class="exp-item" onclick="showBookmarks();toggleToolsMenu()">⭐ Yer İmleri</div>
+            <div class="exp-item" onclick="toggleFocusMode();toggleToolsMenu()">🎯 Odak Modu</div>
+            <div class="exp-item" onclick="openGlobalSearch();toggleToolsMenu()">🔎 Tüm Sohbetlerde Ara</div>
+            <div class="exp-item" onclick="openPalette();toggleToolsMenu()">⌘ Komut Paleti</div>
+            <div class="exp-item" onclick="summarize();toggleToolsMenu()">📋 Özetle</div>
+            <div class="ctx-sep"></div>
+            <div class="exp-item" onclick="shareConvo();toggleToolsMenu()">🔗 Paylaş</div>
+            <div class="exp-item" onclick="exportAs('pdf');toggleToolsMenu()">🖨️ PDF İndir</div>
+            <div class="exp-item" onclick="exportAs('md');toggleToolsMenu()">📝 Markdown</div>
+            <div class="exp-item" onclick="exportAs('json');toggleToolsMenu()">📦 JSON</div>
+            <div class="exp-item" onclick="exportAs('txt');toggleToolsMenu()">📄 TXT</div>
           </div>
         </div>
 
-        <!-- Reasoning / deep think -->
-        <button class="topbar-icon-btn" id="btn-reason" onclick="toggleReasoning()" title="Derin düşünme modu">🧠</button>
-
-        <!-- Compare mode -->
-        <button class="topbar-icon-btn" id="btn-compare" onclick="toggleCompareMode()" title="Karşılaştır: 2 model yan yana">⚖️</button>
-
-        <!-- Bookmarks -->
-        <button class="topbar-icon-btn" onclick="showBookmarks()" title="Yer imleri">⭐</button>
-
-        <!-- Focus mode -->
-        <button class="topbar-icon-btn" onclick="toggleFocusMode()" title="Odak modu (dağınıklığı gizle)">🎯</button>
-
-        <!-- Share -->
-        <button class="topbar-icon-btn" onclick="shareConvo()" title="Sohbeti paylaş">🔗</button>
-
-        <!-- Command palette -->
-        <button class="topbar-icon-btn" onclick="openPalette()" title="Komut Paleti (Ctrl+K)">⌘</button>
+        <!-- hidden export dropdown kept for legacy export button refs -->
+        <div id="export-dropdown" style="display:none;position:absolute;"></div>
 
         <!-- Theme toggle -->
         <button id="btn-theme-toggle" onclick="toggleTheme()" title="Tema değiştir">🌙</button>
@@ -1312,7 +1302,7 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
     <!-- Chat Area -->
     <!-- Search bar -->
     <div id="search-bar" style="display:none;align-items:center;gap:8px;padding:6px 16px;background:#161b22;border-bottom:1px solid #30363d;">
-      <input id="search-input" placeholder="Mesajlarda ara..." oninput="doSearch()" onkeydown="if(e.key==='Escape')toggleSearch()" style="flex:1;background:#1c2128;border:1px solid #30363d;border-radius:6px;padding:5px 10px;color:#e6edf3;outline:none;font-size:13px;">
+      <input id="search-input" placeholder="Mesajlarda ara..." oninput="doSearch()" onkeydown="if(event.key==='Escape')toggleSearch()" style="flex:1;background:#1c2128;border:1px solid #30363d;border-radius:6px;padding:5px 10px;color:#e6edf3;outline:none;font-size:13px;">
       <button onclick="searchNav(-1)" style="background:transparent;border:none;color:#7d8590;cursor:pointer;font-size:16px;">↑</button>
       <button onclick="searchNav(1)" style="background:transparent;border:none;color:#7d8590;cursor:pointer;font-size:16px;">↓</button>
       <span id="search-count" style="color:#7d8590;font-size:12px;min-width:36px;"></span>
@@ -1789,20 +1779,28 @@ const artifacts = [];
 function addArtifact(code, lang) {
   const id = artifacts.length + 1;
   artifacts.push({ id, code, lang, title: `Artifact ${id}` });
+  const panel = document.getElementById('artifacts-panel');
+  panel.dataset.initialized = '1';      // toggleArtifacts'in üzerine yazmasını engelle
+  panel.style.display = 'flex';
   renderArtifactPanel();
-  document.getElementById('btn-artifacts').dataset.count = artifacts.length;
-  document.getElementById('btn-artifacts').classList.add('has-artifacts');
+  const ab = document.getElementById('btn-artifacts');
+  if (ab) { ab.dataset.count = artifacts.length; ab.classList.add('has-artifacts'); }
 }
 function renderArtifactPanel() {
   const panel = document.getElementById('artifacts-panel');
   if (!panel) return;
-  panel.innerHTML = artifacts.map((a, i) => `
-    <div class="artifact-tab" onclick="showArtifact(${i})">
+  const header = `<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border);flex-shrink:0">
+    <strong style="color:var(--text);font-size:14px">🗂 Artifacts (${artifacts.length})</strong>
+    <button onclick="document.getElementById('artifacts-panel').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;line-height:1">×</button>
+  </div>`;
+  const body = artifacts.map((a, i) => `
+    <div class="artifact-tab" onclick="showArtifact(${i})" style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border)">
       <span>⬡ ${a.title}</span>
-      <button onclick="downloadArtifact(${i})" title="İndir">⬇</button>
+      <button onclick="event.stopPropagation();downloadArtifact(${i})" title="İndir" style="background:none;border:none;color:var(--accent);cursor:pointer">⬇</button>
     </div>
-    <iframe id="af-${i}" sandbox="allow-scripts allow-same-origin" class="artifact-frame" srcdoc="${a.code.replace(/"/g,'&quot;')}"></iframe>
+    <iframe id="af-${i}" sandbox="allow-scripts allow-same-origin" class="artifact-frame" srcdoc="${a.code.replace(/"/g,'&quot;')}" style="width:100%;height:60%;border:none;display:${i===artifacts.length-1?'block':'none'};background:#fff"></iframe>
   `).join('');
+  panel.innerHTML = `<div style="display:flex;flex-direction:column;height:100%">${header}<div style="flex:1;overflow-y:auto">${body}</div></div>`;
 }
 function showArtifact(i) {
   document.querySelectorAll('.artifact-frame').forEach((f,j) => f.style.display = j===i?'block':'none');
@@ -2300,10 +2298,10 @@ function init() {
   initClipboardPaste();
   autoResume();
 
-  // Restore advanced params + focus mode
-  const mt = getMaxTokens(); const mtl = document.getElementById('maxtok-label'); if (mtl) mtl.textContent = mt;
-  const tp = getTopP(); const tpl = document.getElementById('topp-label'); if (tpl) tpl.textContent = tp.toFixed(2);
-  const trl = document.getElementById('ttsrate-label'); if (trl) trl.textContent = getTtsRate().toFixed(2);
+  // Restore advanced params + focus mode (label + slider thumb)
+  const mt = getMaxTokens(); const mtl = document.getElementById('maxtok-label'); if (mtl) { mtl.textContent = mt; const s=mtl.closest('.settings-group')?.querySelector('input[type=range]'); if(s) s.value = mt; }
+  const tp = getTopP(); const tpl = document.getElementById('topp-label'); if (tpl) { tpl.textContent = tp.toFixed(2); const s=tpl.closest('.settings-group')?.querySelector('input[type=range]'); if(s) s.value = tp; }
+  const trl = document.getElementById('ttsrate-label'); if (trl) { trl.textContent = getTtsRate().toFixed(2); const s=trl.closest('.settings-group')?.querySelector('input[type=range]'); if(s) s.value = getTtsRate(); }
   if (localStorage.getItem('artus_focus') === '1') document.body.classList.add('focus-mode');
   loadCustomInstructions();
   renderPfpPreview();
@@ -2496,7 +2494,6 @@ function createHistoryEntry(firstMessage) {
   currentHistoryId = id;
   renderConvoList();
   updateConvoTitle();
-  autoTitle(id, firstMessage); // AI ile akıllı başlık üret
   return id;
 }
 
@@ -3346,6 +3343,10 @@ async function sendMessage() {
       finalizeBotMessage(bubble, fullText);
       addSuggestions(fullText);
       notifyDone();
+      // AI akıllı başlık — ilk yanıttan sonra, çakışmayı önlemek için
+      const firstUser = sessionMessages.find(m => m.role === 'user');
+      const hist = getHistory().find(h => h.id === currentHistoryId);
+      if (firstUser && hist && !hist._titled) setTimeout(() => autoTitle(currentHistoryId, firstUser.content), 400);
     } else {
       if (!bubble) bubble = createBotBubble();
       bubble.innerHTML = '<em style="color:var(--yellow)">Boş cevap geldi, tekrar dene.</em>';
@@ -3619,10 +3620,18 @@ function handleShortcuts(e) {
 /* ════════════════════════════════════════════════════════
    REASONING / DEEP THINK MODE
 ════════════════════════════════════════════════════════ */
+function toggleToolsMenu(e) {
+  if (e) e.stopPropagation();
+  const dd = document.getElementById('tools-dropdown');
+  if (!dd) return;
+  dd.style.display = dd.style.display === 'block' ? 'none' : 'block';
+}
+
 let reasoningMode = false;
 function toggleReasoning() {
   reasoningMode = !reasoningMode;
-  document.getElementById('btn-reason').classList.toggle('reason-on', reasoningMode);
+  const item = document.getElementById('tool-reason');
+  if (item) item.style.color = reasoningMode ? 'var(--accent)' : '';
   showToast(reasoningMode ? '🧠 Derin düşünme açık (adım adım akıl yürütme)' : 'Derin düşünme kapalı');
 }
 function reasoningInstruction() {
@@ -3775,7 +3784,8 @@ function setTopP(v) { localStorage.setItem('artus_top_p', v); const l=document.g
 let compareMode = false;
 function toggleCompareMode() {
   compareMode = !compareMode;
-  document.getElementById('btn-compare').classList.toggle('compare-on', compareMode);
+  const item = document.getElementById('tool-compare');
+  if (item) item.style.color = compareMode ? 'var(--accent)' : '';
   showToast(compareMode ? '⚖️ Karşılaştırma modu açık (2 model)' : 'Karşılaştırma kapalı');
 }
 
@@ -4464,10 +4474,10 @@ document.addEventListener('keydown', e => {
   if (e.ctrlKey && e.key === 'f') { e.preventDefault(); toggleSearch(); }
 });
 
-// Close export dropdown on outside click
+// Close tools dropdown on outside click
 document.addEventListener('click', e => {
-  if (!e.target.closest('#export-dropdown') && !e.target.closest('[onclick*="export-dropdown"]')) {
-    const dd = document.getElementById('export-dropdown');
+  if (!e.target.closest('#tools-dropdown') && !e.target.closest('#btn-tools')) {
+    const dd = document.getElementById('tools-dropdown');
     if (dd) dd.style.display = 'none';
   }
 });
