@@ -91,18 +91,77 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 /* ── App Shell ── */
 #app { display: flex; height: 100vh; width: 100vw; overflow: hidden; }
 
-/* ── Sidebar ── */
+/* ── Sidebar (Claude.ai style) ── */
 #sidebar {
-  width: 58px;
+  width: 268px;
   background: var(--sidebar);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 12px 0;
-  gap: 4px;
   flex-shrink: 0;
-  z-index: 10;
+  z-index: 40;
+  transition: width .22s cubic-bezier(.4,0,.2,1), transform .22s cubic-bezier(.4,0,.2,1);
+  overflow: hidden;
+}
+#sidebar.collapsed { width: 0; border-right: none; }
+
+/* Sidebar header */
+.sb-header { display: flex; align-items: center; gap: 10px; padding: 14px 14px 10px; flex-shrink: 0; }
+.sb-logo { width: 34px; height: 34px; background: linear-gradient(135deg, var(--accent), var(--purple)); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; box-shadow: 0 0 16px rgba(99,102,241,0.3); }
+.sb-brand { font-size: 16px; font-weight: 800; letter-spacing: .5px; white-space: nowrap; }
+.sb-collapse { margin-left: auto; background: transparent; border: none; color: var(--muted); font-size: 18px; cursor: pointer; padding: 4px 6px; border-radius: 6px; transition: background .15s, color .15s; }
+.sb-collapse:hover { background: rgba(255,255,255,.06); color: var(--text); }
+
+.sb-newchat { margin: 4px 12px 10px; padding: 10px 14px; display: flex; align-items: center; gap: 8px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); border: none; border-radius: 10px; color: #fff; font-size: 13.5px; font-weight: 600; cursor: pointer; transition: filter .15s, transform .1s; box-shadow: 0 4px 14px rgba(99,102,241,.35); flex-shrink: 0; }
+.sb-newchat:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.sb-newchat:active { transform: translateY(0); }
+
+.sb-search { margin: 0 12px 8px; flex-shrink: 0; }
+.sb-search input { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; color: var(--text); font-size: 13px; outline: none; font-family: var(--font); transition: border-color .15s; }
+.sb-search input:focus { border-color: var(--accent); }
+.sb-search input::placeholder { color: var(--muted); }
+
+/* Conversation list */
+.sb-convos { flex: 1; overflow-y: auto; padding: 4px 8px; min-height: 0; }
+.sb-convos::-webkit-scrollbar { width: 5px; }
+.sb-convos::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+.sb-group-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); padding: 10px 8px 4px; }
+.sb-convo { display: flex; align-items: center; gap: 8px; padding: 9px 10px; border-radius: 8px; cursor: pointer; transition: background .12s; margin-bottom: 1px; position: relative; }
+.sb-convo:hover { background: rgba(255,255,255,.05); }
+.sb-convo.active { background: rgba(99,102,241,.16); }
+.sb-convo-icon { font-size: 13px; flex-shrink: 0; opacity: .7; }
+.sb-convo-title { flex: 1; font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-convo.active .sb-convo-title { color: var(--accent); font-weight: 500; }
+.sb-convo-del { background: transparent; border: none; color: var(--muted); cursor: pointer; font-size: 14px; opacity: 0; transition: opacity .12s, color .12s; flex-shrink: 0; padding: 0 2px; line-height: 1; }
+.sb-convo:hover .sb-convo-del { opacity: 1; }
+.sb-convo-del:hover { color: var(--red); }
+.sb-convos-empty { text-align: center; color: var(--muted); font-size: 12.5px; padding: 28px 16px; line-height: 1.6; }
+
+/* Sidebar footer */
+.sb-footer { border-top: 1px solid var(--border); padding: 8px 10px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; }
+.sb-modes { display: flex; gap: 4px; }
+.sb-modes .mode-btn { flex: 1; height: 36px; }
+.sb-footer-row { display: flex; align-items: center; gap: 8px; }
+.sb-model-pill { flex: 1; }
+.sb-model-pill select { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 12px; padding: 7px 8px; cursor: pointer; outline: none; appearance: none; -webkit-appearance: none; transition: border-color .15s; }
+.sb-model-pill select:focus { border-color: var(--accent); }
+.sb-user { display: flex; align-items: center; gap: 9px; padding: 8px 8px; border-radius: 8px; cursor: pointer; transition: background .12s; }
+.sb-user:hover { background: rgba(255,255,255,.05); }
+.sb-user-avatar { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0; overflow: hidden; }
+.sb-user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.sb-user-info { flex: 1; min-width: 0; }
+.sb-user-name { font-size: 12.5px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-user-tier { font-size: 10.5px; color: var(--muted); }
+
+/* Backdrop for mobile sidebar */
+#sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 35; }
+#sidebar-backdrop.show { display: block; }
+
+/* legacy narrow sidebar (unused, kept for old refs) */
+#sidebar-legacy {
+  width: 58px;
+  background: var(--sidebar);
+  display: none;
 }
 
 .sidebar-logo {
@@ -413,6 +472,31 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   transition: all .15s; white-space: nowrap;
 }
 .bubble-action-btn:hover { border-color: var(--accent); color: var(--text); }
+
+/* Message row hover action bar (below bubble, Claude.ai style) */
+.msg-actions { display: flex; gap: 4px; margin-top: 5px; opacity: 0; transition: opacity .15s; }
+.msg:hover .msg-actions { opacity: 1; }
+.msg.user .msg-actions { justify-content: flex-end; }
+.msg-act-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); font-size: 11px; padding: 3px 9px; border-radius: 6px; cursor: pointer; transition: all .15s; display: inline-flex; align-items: center; gap: 4px; }
+.msg-act-btn:hover { border-color: var(--accent); color: var(--text); background: rgba(99,102,241,.08); }
+.msg-time { font-size: 10.5px; color: var(--muted); align-self: center; opacity: 0; transition: opacity .15s; padding: 0 4px; }
+.msg:hover .msg-time { opacity: .8; }
+.msg-col { display: flex; flex-direction: column; max-width: 76%; }
+.msg.user .msg-col { align-items: flex-end; }
+.msg-col .bubble { max-width: 100%; }
+.msg.user .msg-col .bubble { max-width: 100%; }
+
+/* Inline edit textarea */
+.edit-area { width: 100%; min-width: 280px; background: var(--bg); border: 1.5px solid var(--accent); border-radius: 12px; color: var(--text); font-family: var(--font); font-size: 14.5px; padding: 10px 14px; resize: vertical; outline: none; line-height: 1.5; }
+.edit-actions { display: flex; gap: 8px; margin-top: 8px; justify-content: flex-end; }
+.edit-save { background: var(--accent); border: none; color: #fff; font-size: 12.5px; padding: 6px 14px; border-radius: 7px; cursor: pointer; font-weight: 600; }
+.edit-save:hover { filter: brightness(1.1); }
+.edit-cancel { background: transparent; border: 1px solid var(--border); color: var(--muted); font-size: 12.5px; padding: 6px 14px; border-radius: 7px; cursor: pointer; }
+.edit-cancel:hover { color: var(--text); border-color: var(--accent); }
+
+/* Streaming caret */
+.stream-caret { display: inline-block; width: 7px; height: 15px; background: var(--accent); margin-left: 2px; border-radius: 1px; animation: caret-blink 1s steps(1) infinite; vertical-align: text-bottom; }
+@keyframes caret-blink { 50% { opacity: 0; } }
 
 /* Markdown inside bubbles */
 .bubble p { margin-bottom: 6px; }
@@ -829,9 +913,31 @@ body[data-mode="design"] #mode-label::before { content: "🎨 "; }
   #pro-modal-card { margin: 0 12px; }
 }
 
+@media (max-width: 860px) {
+  #sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 280px; box-shadow: 8px 0 32px rgba(0,0,0,.5); transform: translateX(0); }
+  #sidebar.collapsed { width: 280px; transform: translateX(-100%); box-shadow: none; }
+  .wlc-grid { grid-template-columns: 1fr !important; }
+  #topbar { padding: 10px 12px; }
+  .bubble { max-width: 88% !important; }
+  .msg-col { max-width: 88%; }
+  #chat-area { padding: 14px 12px; }
+}
+
+/* Welcome grid cards */
+.wlc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 560px; margin-top: 12px; }
+.wlc-card { text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; cursor: pointer; transition: border-color .15s, transform .1s, box-shadow .15s; display: flex; flex-direction: column; gap: 4px; }
+.wlc-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(99,102,241,.18); }
+.wlc-card-icon { font-size: 22px; }
+.wlc-card-title { font-size: 13.5px; font-weight: 600; color: var(--text); }
+.wlc-card-desc { font-size: 11.5px; color: var(--muted); line-height: 1.4; }
+body.light-mode .wlc-card { background: #fff; border-color: #d0d4e1; }
+
 /* ── New feature styles ── */
 .topbar-icon-btn { background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 9px;border-radius:6px;cursor:pointer;font-size:13px;transition:border-color .15s,color .15s; }
 .topbar-icon-btn:hover { border-color:var(--accent);color:var(--text); }
+#convo-title { font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40vw; }
+.badge-mode-chip { font-size:11.5px;font-weight:600;color:var(--accent);background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.3);padding:3px 10px;border-radius:20px;cursor:pointer;transition:background .15s;white-space:nowrap; }
+.badge-mode-chip:hover { background:rgba(99,102,241,.22); }
 #btn-artifacts.has-artifacts { color:var(--accent);border-color:var(--accent); }
 .exp-item { padding:9px 14px;cursor:pointer;font-size:13px;color:var(--text);transition:background .1s; }
 .exp-item:hover { background:rgba(255,255,255,.06); }
@@ -934,47 +1040,53 @@ body[data-mode="design"] #mode-label::before { content: "🎨 "; }
 <!-- ── App Shell ── -->
 <div id="app">
 
-  <!-- Sidebar -->
+  <!-- Mobile backdrop -->
+  <div id="sidebar-backdrop" onclick="closeSidebarMobile()"></div>
+
+  <!-- Sidebar (Claude.ai style) -->
   <nav id="sidebar">
-    <div class="sidebar-logo">⚡</div>
-
-    <button class="mode-btn active" data-mode="chat" onclick="setMode('chat')">
-      💬
-      <span class="tooltip">Chat (Ctrl+1)</span>
-    </button>
-    <button class="mode-btn" data-mode="code" onclick="handleModeClick('code')">
-      ⚡
-      <span class="pro-lock" id="code-lock">🔒</span>
-      <span class="tooltip">Omni Code — PRO (Ctrl+2)</span>
-    </button>
-    <button class="mode-btn" data-mode="design" onclick="handleModeClick('design')">
-      🎨
-      <span class="pro-lock" id="design-lock">🔒</span>
-      <span class="tooltip">Omni Design — PRO (Ctrl+3)</span>
-    </button>
-
-    <button class="mode-btn" onclick="showHistory()">
-      📋
-      <span class="tooltip">Geçmiş Sohbetler</span>
-    </button>
-
-    <div class="sidebar-sep"></div>
-    <div class="sidebar-spacer"></div>
-
-    <!-- Model selector -->
-    <div id="model-selector-wrap">
-      <select id="model-select" title="Model seç">
-        <option value="llama-3.3-70b-versatile">70B</option>
-        <option value="llama-3.1-8b-instant">8B ⚡</option>
-        <option value="gemma2-9b-it">Gem</option>
-        <option value="mixtral-8x7b-32768">Mix</option>
-      </select>
+    <div class="sb-header">
+      <div class="sb-logo">⚡</div>
+      <span class="sb-brand">Omni.Ai</span>
+      <button class="sb-collapse" onclick="toggleSidebar()" title="Paneli kapat">⇤</button>
     </div>
 
-    <button class="settings-btn" onclick="toggleSettings()">
-      ⚙️
-      <span class="tooltip">Ayarlar</span>
-    </button>
+    <button class="sb-newchat" onclick="startNewChat()">＋ Yeni Sohbet</button>
+
+    <div class="sb-search">
+      <input id="convo-search" type="text" placeholder="🔍 Sohbetlerde ara…" oninput="renderConvoList()" />
+    </div>
+
+    <div class="sb-convos" id="convo-list"></div>
+
+    <div class="sb-footer">
+      <div class="sb-modes">
+        <button class="mode-btn active" data-mode="chat" onclick="setMode('chat')" title="Chat (Ctrl+1)">💬</button>
+        <button class="mode-btn" data-mode="code" onclick="handleModeClick('code')" title="Omni Code — PRO (Ctrl+2)">⚡<span class="pro-lock" id="code-lock">🔒</span></button>
+        <button class="mode-btn" data-mode="design" onclick="handleModeClick('design')" title="Omni Design — PRO (Ctrl+3)">🎨<span class="pro-lock" id="design-lock">🔒</span></button>
+        <button class="mode-btn" onclick="toggleSettings()" title="Ayarlar">⚙️</button>
+      </div>
+
+      <div class="sb-footer-row">
+        <div class="sb-model-pill">
+          <select id="model-select" title="Model seç">
+            <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+            <option value="llama-3.1-8b-instant">Llama 3.1 8B ⚡</option>
+            <option value="gemma2-9b-it">Gemma 2 9B</option>
+            <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="sb-user" onclick="toggleUserDropdown()">
+        <div class="sb-user-avatar" id="sb-user-avatar"></div>
+        <div class="sb-user-info">
+          <div class="sb-user-name" id="sb-user-name">—</div>
+          <div class="sb-user-tier" id="sb-user-tier">Ücretsiz</div>
+        </div>
+        <span style="color:var(--muted);font-size:13px">⋯</span>
+      </div>
+    </div>
   </nav>
 
   <!-- Main -->
@@ -982,9 +1094,9 @@ body[data-mode="design"] #mode-label::before { content: "🎨 "; }
 
     <!-- Top Bar -->
     <div id="topbar">
-      <span class="brand-name">Omni.Ai</span>
-      <span class="brand-sep">|</span>
-      <span id="mode-label">Chat</span>
+      <button class="topbar-icon-btn" id="btn-hamburger" onclick="toggleSidebar()" title="Paneli aç/kapat" style="font-size:16px">☰</button>
+      <span id="convo-title" title="">Yeni Sohbet</span>
+      <span class="badge-mode-chip" id="mode-label" onclick="cycleMode()" title="Mod değiştir">Chat</span>
 
       <div id="topbar-right">
         <!-- Tier badge -->
@@ -997,15 +1109,13 @@ body[data-mode="design"] #mode-label::before { content: "🎨 "; }
         <button class="topbar-icon-btn" onclick="toggleSearch()" title="Ara (Ctrl+F)">🔍</button>
 
         <!-- Artifacts -->
-        <button class="topbar-icon-btn" id="btn-artifacts" onclick="toggleArtifacts()" title="Artifacts Paneli">🗂 Artifacts</button>
-
-        <!-- Summarize -->
-        <button class="topbar-icon-btn" onclick="summarize()" title="Özetle">📋</button>
+        <button class="topbar-icon-btn" id="btn-artifacts" onclick="toggleArtifacts()" title="Artifacts Paneli">🗂</button>
 
         <!-- Export dropdown -->
         <div style="position:relative">
-          <button class="topbar-icon-btn" onclick="document.getElementById('export-dropdown').style.display=document.getElementById('export-dropdown').style.display==='block'?'none':'block'" title="İndir">⬇▾</button>
-          <div id="export-dropdown" style="display:none;position:absolute;right:0;top:calc(100%+4px);background:#1c2128;border:1px solid #30363d;border-radius:8px;min-width:140px;z-index:300;overflow:hidden;">
+          <button class="topbar-icon-btn" onclick="document.getElementById('export-dropdown').style.display=document.getElementById('export-dropdown').style.display==='block'?'none':'block'" title="İndir">⬇</button>
+          <div id="export-dropdown" style="display:none;position:absolute;right:0;top:calc(100%+4px);background:var(--surface);border:1px solid var(--border);border-radius:8px;min-width:150px;z-index:300;overflow:hidden;">
+            <div class="exp-item" onclick="summarize()">📋 Özetle</div>
             <div class="exp-item" onclick="exportAs('pdf')">🖨️ PDF</div>
             <div class="exp-item" onclick="exportAs('md')">📝 Markdown</div>
             <div class="exp-item" onclick="exportAs('json')">📦 JSON</div>
@@ -1016,9 +1126,6 @@ body[data-mode="design"] #mode-label::before { content: "🎨 "; }
 
         <!-- Command palette -->
         <button class="topbar-icon-btn" onclick="openPalette()" title="Komut Paleti (Ctrl+K)">⌘</button>
-
-        <!-- Clear chat -->
-        <button id="btn-clear-top" onclick="clearChat()" title="Ctrl+L">Temizle</button>
 
         <!-- Theme toggle -->
         <button id="btn-theme-toggle" onclick="toggleTheme()" title="Tema değiştir">🌙</button>
@@ -1033,6 +1140,7 @@ body[data-mode="design"] #mode-label::before { content: "🎨 "; }
             </div>
             <button class="ud-item" onclick="openProModal(); closeUserDropdown();">⚡ Pro'ya Yükselt</button>
             <button class="ud-item" onclick="toggleSettings(); closeUserDropdown();">⚙️ Ayarlar</button>
+            <button class="ud-item" onclick="startNewChat(); closeUserDropdown();">✨ Yeni Sohbet</button>
             <button class="ud-item danger" onclick="signOut()">↩ Çıkış Yap</button>
           </div>
         </div>
@@ -1050,20 +1158,7 @@ body[data-mode="design"] #mode-label::before { content: "🎨 "; }
     </div>
 
     <div id="chat-area">
-      <div id="welcome">
-        <div class="wlc-icon">⚡</div>
-        <h2 id="wlc-greeting">Merhaba!</h2>
-        <p class="wlc-greeting">Omni.Ai'ye hoş geldin</p>
-        <p>Yazılım, tasarım, araştırma ve daha fazlası için AI asistanın</p>
-        <div class="wlc-chips">
-          <span class="wlc-chip" onclick="useChip(this)">💻 Kod yaz</span>
-          <span class="wlc-chip" onclick="useChip(this)">🐛 Hata düzelt</span>
-          <span class="wlc-chip" onclick="useChip(this)">🎨 Tasarım öner</span>
-          <span class="wlc-chip" onclick="useChip(this)">🔍 Araştır</span>
-          <span class="wlc-chip" onclick="useChip(this)">📋 Proje planla</span>
-          <span class="wlc-chip" onclick="useChip(this)">📖 Açıkla</span>
-        </div>
-      </div>
+      <div id="welcome"></div>
     </div>
 
     <!-- Typing indicator -->
@@ -1719,6 +1814,98 @@ function toggleTheme() {
 }
 
 /* ═══════════════════════════════════════════════
+   SIDEBAR + CONVERSATION LIST
+═══════════════════════════════════════════════ */
+function isMobile() { return window.innerWidth <= 860; }
+
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  sb.classList.toggle('collapsed');
+  const bd = document.getElementById('sidebar-backdrop');
+  if (isMobile() && !sb.classList.contains('collapsed')) bd.classList.add('show');
+  else bd.classList.remove('show');
+}
+function closeSidebarMobile() {
+  if (isMobile()) {
+    document.getElementById('sidebar').classList.add('collapsed');
+    document.getElementById('sidebar-backdrop').classList.remove('show');
+  }
+}
+
+function dateGroup(iso) {
+  const d = new Date(iso); const now = new Date();
+  const startOfDay = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diffDays = Math.floor((startOfDay(now) - startOfDay(d)) / 86400000);
+  if (diffDays <= 0) return 'Bugün';
+  if (diffDays === 1) return 'Dün';
+  if (diffDays <= 7) return 'Bu Hafta';
+  return 'Daha Önce';
+}
+
+function renderConvoList() {
+  const listEl = document.getElementById('convo-list');
+  if (!listEl) return;
+  const q = (document.getElementById('convo-search')?.value || '').trim().toLowerCase();
+  let history = getHistory();
+  if (q) history = history.filter(h => (h.title || '').toLowerCase().includes(q));
+
+  if (!history.length) {
+    listEl.innerHTML = '<div class="sb-convos-empty">Henüz sohbet yok.<br>＋ Yeni Sohbet ile başla.</div>';
+    return;
+  }
+
+  const groups = { 'Bugün': [], 'Dün': [], 'Bu Hafta': [], 'Daha Önce': [] };
+  history.forEach(h => { (groups[dateGroup(h.date)] || groups['Daha Önce']).push(h); });
+
+  let html = '';
+  ['Bugün','Dün','Bu Hafta','Daha Önce'].forEach(g => {
+    if (!groups[g].length) return;
+    html += `<div class="sb-group-label">${g}</div>`;
+    groups[g].forEach(h => {
+      const active = h.id === currentHistoryId ? ' active' : '';
+      html += `
+        <div class="sb-convo${active}" onclick="openConvo('${h.id}')">
+          <span class="sb-convo-icon">💬</span>
+          <span class="sb-convo-title">${escapeHtml(h.title || 'Sohbet')}</span>
+          <button class="sb-convo-del" title="Sil" onclick="event.stopPropagation();deleteConvo('${h.id}')">×</button>
+        </div>`;
+    });
+  });
+  listEl.innerHTML = html;
+}
+
+function openConvo(id) {
+  const history = getHistory();
+  const entry = history.find(h => h.id === id);
+  if (!entry) return;
+  restoreConversation(entry);
+}
+
+function deleteConvo(id) {
+  let history = getHistory();
+  history = history.filter(h => h.id !== id);
+  saveHistory(history);
+  if (currentHistoryId === id) { clearChat(); }
+  renderConvoList();
+  showToast('🗑 Sohbet silindi');
+}
+
+function updateConvoTitle() {
+  const el = document.getElementById('convo-title');
+  if (!el) return;
+  if (!currentHistoryId) { el.textContent = 'Yeni Sohbet'; el.title = ''; return; }
+  const entry = getHistory().find(h => h.id === currentHistoryId);
+  el.textContent = entry ? (entry.title || 'Sohbet') : 'Sohbet';
+  el.title = el.textContent;
+}
+
+function cycleMode() {
+  const order = ['chat','code','design'];
+  const next = order[(order.indexOf(currentMode) + 1) % order.length];
+  handleModeClick(next);
+}
+
+/* ═══════════════════════════════════════════════
    INIT
 ═══════════════════════════════════════════════ */
 function init() {
@@ -1732,6 +1919,13 @@ function init() {
   applyModel(currentModel, false);
   loadGroqKey();
   checkHealth();
+
+  // Render welcome + conversation list
+  const w = document.getElementById('welcome');
+  if (w) w.innerHTML = renderWelcome();
+  renderConvoList();
+  updateConvoTitle();
+  if (isMobile()) document.getElementById('sidebar').classList.add('collapsed');
 
   // Kayıtlı sistem promptu + yaratıcılık değerlerini yükle
   const sp = document.getElementById('sys-prompt-input');
@@ -1795,6 +1989,15 @@ function renderUserUI() {
   document.getElementById('ud-name').textContent = CURRENT_USER.name || '';
   document.getElementById('ud-email').textContent = CURRENT_USER.email || '';
 
+  // Sidebar user
+  const sbAv = document.getElementById('sb-user-avatar');
+  if (sbAv) {
+    if (CURRENT_USER.picture) sbAv.innerHTML = `<img src="${CURRENT_USER.picture}" referrerpolicy="no-referrer" />`;
+    else sbAv.textContent = getInitials(CURRENT_USER.name);
+  }
+  const sbName = document.getElementById('sb-user-name');
+  if (sbName) sbName.textContent = CURRENT_USER.name || '';
+
   updateTierBadge();
 }
 
@@ -1806,6 +2009,8 @@ function updateTierBadge() {
 
   document.getElementById('code-lock').style.display = isPro ? 'none' : '';
   document.getElementById('design-lock').style.display = isPro ? 'none' : '';
+  const sbTier = document.getElementById('sb-user-tier');
+  if (sbTier) sbTier.textContent = isPro ? '⚡ Pro üye' : 'Ücretsiz';
 }
 
 function getInitials(name) {
@@ -1897,6 +2102,8 @@ function createHistoryEntry(firstMessage) {
   history.unshift(entry);
   saveHistory(history);
   currentHistoryId = id;
+  renderConvoList();
+  updateConvoTitle();
   return id;
 }
 
@@ -1908,6 +2115,9 @@ function updateHistoryEntry() {
   history[idx].messages = [...sessionMessages];
   saveHistory(history);
 }
+
+/* showHistory() kept for command palette / legacy: open sidebar instead */
+function _legacyShowHistory() {}
 
 function showHistory() {
   const modal = document.getElementById('history-modal');
@@ -1949,27 +2159,21 @@ function restoreConversation(entry) {
   // Re-render messages
   entry.messages.forEach(msg => {
     if (msg.role === 'user') {
-      appendUserMsgRestore(msg.content);
+      appendUserMsg(msg.content);
     } else if (msg.role === 'assistant') {
       const bubble = createBotBubble();
       renderBubble(bubble, msg.content, currentMode);
+      finalizeBotMessage(bubble, msg.content);
     }
   });
 
+  updateConvoTitle();
+  renderConvoList();
+  closeSidebarMobile();
   showToast('📋 Sohbet yüklendi');
 }
 
-function appendUserMsgRestore(text) {
-  const div = document.createElement('div');
-  div.className = 'msg user';
-  const avatarContent = CURRENT_USER && CURRENT_USER.picture
-    ? `<img src="${CURRENT_USER.picture}" alt="" referrerpolicy="no-referrer" />`
-    : getInitials(CURRENT_USER ? CURRENT_USER.name : '?');
-  div.innerHTML = `
-    <div class="avatar">${avatarContent}</div>
-    <div class="bubble">${escapeHtml(text)}</div>`;
-  chatArea.appendChild(div);
-}
+function appendUserMsgRestore(text) { appendUserMsg(text); }
 
 function startNewChat() {
   closeHistoryModal();
@@ -1980,6 +2184,7 @@ function startNewChat() {
   attachedFiles = [];
   renderAttachChips();
   clearChat();
+  closeSidebarMobile();
   showToast('✨ Yeni sohbet başlatıldı');
 }
 
@@ -2190,25 +2395,46 @@ function useChip(el) {
 /* ═══════════════════════════════════════════════
    CLEAR
 ═══════════════════════════════════════════════ */
+const WELCOME_CARDS = [
+  { icon:'💻', title:'Kod yaz', desc:'Üretim kalitesinde kod üret', prompt:'Şu işlevi yapan bir kod yaz: ' },
+  { icon:'🐛', title:'Hata düzelt', desc:'Kodundaki hatayı bul ve çöz', prompt:'Bu kodda bir hata var, bul ve düzelt:\n```\n\n```' },
+  { icon:'🎨', title:'Tasarım öner', desc:'Modern UI/UX fikirleri', prompt:'Şunun için modern bir UI/UX tasarımı öner: ' },
+  { icon:'🔍', title:'Araştır & Açıkla', desc:'Bir konuyu derinlemesine öğren', prompt:'Şu konuyu detaylıca açıkla: ' },
+  { icon:'📋', title:'Proje planla', desc:'Adım adım yol haritası', prompt:'Şu proje için detaylı bir plan çıkar: ' },
+  { icon:'✍️', title:'Yazı yaz', desc:'Metin, e-posta, içerik üret', prompt:'Şu konuda profesyonel bir metin yaz: ' },
+];
+
+function renderWelcome() {
+  const firstName = (CURRENT_USER && CURRENT_USER.name) ? CURRENT_USER.name.split(' ')[0] : 'Hoş geldin';
+  const cards = WELCOME_CARDS.map(c =>
+    `<div class="wlc-card" onclick="useCard('${c.prompt.replace(/'/g,"\\'").replace(/\n/g,'\\n')}')">
+      <span class="wlc-card-icon">${c.icon}</span>
+      <span class="wlc-card-title">${c.title}</span>
+      <span class="wlc-card-desc">${c.desc}</span>
+    </div>`).join('');
+  return `
+    <div class="wlc-icon">⚡</div>
+    <h2 id="wlc-greeting">Merhaba, ${firstName}!</h2>
+    <p class="wlc-greeting">Bugün sana nasıl yardımcı olabilirim?</p>
+    <div class="wlc-grid">${cards}</div>`;
+}
+
+function useCard(prompt) {
+  inputEl.value = prompt.replace(/\\n/g,'\n');
+  inputEl.focus();
+  // Place cursor at a sensible spot
+  if (inputEl.value.endsWith(': ')) {
+    inputEl.selectionStart = inputEl.selectionEnd = inputEl.value.length;
+  }
+  onInputChange();
+}
+
 function clearChat() {
-  const firstName = CURRENT_USER ? CURRENT_USER.name.split(' ')[0] : 'Hoş geldin';
-  chatArea.innerHTML = `
-    <div id="welcome">
-      <div class="wlc-icon">⚡</div>
-      <h2 id="wlc-greeting">Merhaba, ${firstName}!</h2>
-      <p class="wlc-greeting">Omni.Ai'ye hoş geldin</p>
-      <p>Yazılım, tasarım, araştırma ve daha fazlası için AI asistanın</p>
-      <div class="wlc-chips">
-        <span class="wlc-chip" onclick="useChip(this)">💻 Kod yaz</span>
-        <span class="wlc-chip" onclick="useChip(this)">🐛 Hata düzelt</span>
-        <span class="wlc-chip" onclick="useChip(this)">🎨 Tasarım öner</span>
-        <span class="wlc-chip" onclick="useChip(this)">🔍 Araştır</span>
-        <span class="wlc-chip" onclick="useChip(this)">📋 Proje planla</span>
-        <span class="wlc-chip" onclick="useChip(this)">📖 Açıkla</span>
-      </div>
-    </div>`;
+  chatArea.innerHTML = `<div id="welcome">${renderWelcome()}</div>`;
   sessionMessages = [];
   currentHistoryId = null;
+  updateConvoTitle();
+  renderConvoList();
   showToast('Sohbet temizlendi');
 }
 
@@ -2219,16 +2445,25 @@ function scrollBottom() {
   chatArea.scrollTop = chatArea.scrollHeight;
 }
 
+function userAvatarHtml() {
+  return CURRENT_USER && CURRENT_USER.picture
+    ? `<img src="${CURRENT_USER.picture}" alt="" referrerpolicy="no-referrer" />`
+    : getInitials(CURRENT_USER ? CURRENT_USER.name : '?');
+}
+
 function appendUserMsg(text) {
   removeWelcome();
   const div = document.createElement('div');
   div.className = 'msg user';
-  const avatarContent = CURRENT_USER && CURRENT_USER.picture
-    ? `<img src="${CURRENT_USER.picture}" alt="" referrerpolicy="no-referrer" />`
-    : getInitials(CURRENT_USER ? CURRENT_USER.name : '?');
   div.innerHTML = `
-    <div class="avatar">${avatarContent}</div>
-    <div class="bubble">${escapeHtml(text)}</div>`;
+    <div class="avatar">${userAvatarHtml()}</div>
+    <div class="msg-col">
+      <div class="bubble">${escapeHtml(text)}</div>
+      <div class="msg-actions">
+        <button class="msg-act-btn" onclick="editUserMsg(this)">✏️ Düzenle</button>
+        <span class="msg-time">${nowTime()}</span>
+      </div>
+    </div>`;
   chatArea.appendChild(div);
   scrollBottom();
 }
@@ -2237,10 +2472,91 @@ function createBotBubble() {
   removeWelcome();
   const div = document.createElement('div');
   div.className = 'msg bot';
-  div.innerHTML = `<div class="avatar">⚡</div><div class="bubble"></div>`;
+  div.innerHTML = `<div class="avatar">⚡</div><div class="msg-col"><div class="bubble"></div></div>`;
   chatArea.appendChild(div);
   scrollBottom();
   return div.querySelector('.bubble');
+}
+
+/* ── Edit a user message → re-send and regenerate from that point ── */
+function editUserMsg(btn) {
+  if (streaming) return;
+  const msgEl = btn.closest('.msg');
+  const bubble = msgEl.querySelector('.bubble');
+  const original = bubble.textContent;
+  const col = msgEl.querySelector('.msg-col');
+  col.innerHTML = `
+    <textarea class="edit-area" rows="3">${escapeHtml(original)}</textarea>
+    <div class="edit-actions">
+      <button class="edit-cancel" onclick="cancelEdit(this,'${encodeURIComponent(original)}')">İptal</button>
+      <button class="edit-save" onclick="saveEdit(this)">Gönder</button>
+    </div>`;
+  const ta = col.querySelector('.edit-area');
+  ta.focus();
+  ta.selectionStart = ta.selectionEnd = ta.value.length;
+}
+
+function cancelEdit(btn, encoded) {
+  const text = decodeURIComponent(encoded);
+  const col = btn.closest('.msg-col');
+  col.innerHTML = `
+    <div class="bubble">${escapeHtml(text)}</div>
+    <div class="msg-actions">
+      <button class="msg-act-btn" onclick="editUserMsg(this)">✏️ Düzenle</button>
+      <span class="msg-time">${nowTime()}</span>
+    </div>`;
+}
+
+async function saveEdit(btn) {
+  const col = btn.closest('.msg-col');
+  const msgEl = btn.closest('.msg');
+  const newText = col.querySelector('.edit-area').value.trim();
+  if (!newText) return;
+
+  // Find index of this user message in DOM among all messages
+  const allMsgs = [...chatArea.querySelectorAll('.msg')];
+  const domIdx = allMsgs.indexOf(msgEl);
+
+  // Map to sessionMessages: count user/assistant in order up to this msg
+  let countToHere = 0;
+  for (let i = 0; i <= domIdx; i++) countToHere++;
+  // Simpler: rebuild — find this user message's position by counting messages before it
+  // Remove all DOM messages from this one onward
+  for (let i = allMsgs.length - 1; i >= domIdx; i--) allMsgs[i].remove();
+  chatArea.querySelectorAll('.suggestion-chips').forEach(e => e.remove());
+
+  // Trim sessionMessages to before this user msg (domIdx-th message)
+  sessionMessages = sessionMessages.slice(0, domIdx);
+
+  // Re-append edited user message and send
+  appendUserMsg(newText);
+  sessionMessages.push({ role: 'user', content: newText });
+  updateHistoryEntry();
+
+  setStreaming(true);
+  const groqMessages = sessionMessages.map(m => ({ role: m.role, content: m.content }));
+  let bubble = null, fullText = '';
+  try {
+    await OmniAI.streamChat({
+      messages: groqMessages, model: currentModel,
+      systemPrompt: getSystemPrompt(), temperature: getTemperature(),
+      onText: (chunk) => { fullText += chunk; },
+    });
+    if (fullText) {
+      bubble = createBotBubble();
+      await typewriteText(bubble, fullText, currentMode);
+      sessionMessages.push({ role: 'assistant', content: fullText });
+      updateHistoryEntry();
+      finalizeBotMessage(bubble, fullText);
+      addSuggestions(fullText);
+    }
+  } catch(err) {
+    bubble = createBotBubble();
+    bubble.innerHTML = `<em style="color:var(--yellow)">⏳ Hata: ${err.message}</em>`;
+  } finally {
+    setStreaming(false);
+    scrollBottom();
+  }
 }
 
 function escapeHtml(s) {
@@ -2516,18 +2832,16 @@ async function sendMessage() {
       model: currentModel,
       systemPrompt: getSystemPrompt(),
       temperature: getTemperature(),
-      onText: (chunk) => {
-        if (!bubble) bubble = createBotBubble();  // baloncuğu ilk metin gelince oluştur
-        fullText += chunk;
-        renderBubble(bubble, fullText, currentMode);
-        scrollBottom();
-      },
+      onText: (chunk) => { fullText += chunk; },
     });
 
     // Save assistant response to session messages and update history
     if (fullText) {
+      if (!bubble) bubble = createBotBubble();
+      await typewriteText(bubble, fullText, currentMode);
       sessionMessages.push({ role: 'assistant', content: fullText });
       updateHistoryEntry();
+      finalizeBotMessage(bubble, fullText);
       addSuggestions(fullText);
     } else {
       if (!bubble) bubble = createBotBubble();
@@ -2537,6 +2851,104 @@ async function sendMessage() {
   } catch(err) {
     if (!bubble) bubble = createBotBubble();
     bubble.innerHTML = `<em style="color:var(--yellow)">⏳ Bağlantı hatası: ${err.message}. Tekrar dene.</em>`;
+  } finally {
+    setStreaming(false);
+    scrollBottom();
+  }
+}
+
+/* ── Typewriter streaming simulation ── */
+let _typingAbort = false;
+function typewriteText(bubble, text, mode) {
+  return new Promise((resolve) => {
+    _typingAbort = false;
+    const step = Math.max(2, Math.ceil(text.length / 600)); // adaptive speed for long text
+    let i = 0;
+    const caret = '<span class="stream-caret"></span>';
+    function tick() {
+      if (_typingAbort) { renderBubble(bubble, text, mode); return resolve(); }
+      i = Math.min(text.length, i + step * 4);
+      // Render incrementally as plain-ish markdown; keep it cheap by showing raw partial then final markdown
+      const partial = text.slice(0, i);
+      bubble.innerHTML = escapeHtml(partial).replace(/\n/g,'<br>') + caret;
+      scrollBottom();
+      if (i < text.length) {
+        setTimeout(tick, 8);
+      } else {
+        renderBubble(bubble, text, mode); // final pass with full markdown/code highlighting
+        resolve();
+      }
+    }
+    tick();
+  });
+}
+
+/* ── Finalize bot message: attach action bar (copy / regenerate) + timestamp ── */
+function finalizeBotMessage(bubble, rawText) {
+  const msgEl = bubble.closest('.msg');
+  if (!msgEl || msgEl.querySelector('.msg-actions')) return;
+  const col = bubble.parentElement; // .msg-col
+  const bar = document.createElement('div');
+  bar.className = 'msg-actions';
+  bar.innerHTML = `
+    <span class="msg-time">${nowTime()}</span>
+    <button class="msg-act-btn" onclick="copyRawFromMsg(this)">📋 Kopyala</button>
+    <button class="msg-act-btn" onclick="regenerateLast()">🔄 Yenile</button>`;
+  bar.querySelector('button').dataset.raw = rawText;
+  (col || msgEl).appendChild(bar);
+}
+
+function nowTime() {
+  const d = new Date();
+  return d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+}
+
+function copyRawFromMsg(btn) {
+  const raw = btn.dataset.raw || '';
+  navigator.clipboard.writeText(raw).then(() => showToast('✓ Kopyalandı!')).catch(() => showToast('Kopyalanamadı'));
+}
+
+/* ── Regenerate last assistant response ── */
+async function regenerateLast() {
+  if (streaming) return;
+  // Find last user message
+  let lastUserIdx = -1;
+  for (let i = sessionMessages.length - 1; i >= 0; i--) {
+    if (sessionMessages[i].role === 'user') { lastUserIdx = i; break; }
+  }
+  if (lastUserIdx === -1) return;
+  // Drop everything after last user message
+  sessionMessages = sessionMessages.slice(0, lastUserIdx + 1);
+  // Remove DOM bot messages after the last user bubble
+  const msgs = [...chatArea.querySelectorAll('.msg')];
+  let removing = false;
+  for (let i = msgs.length - 1; i >= 0; i--) {
+    if (msgs[i].classList.contains('bot')) msgs[i].remove();
+    else break;
+  }
+  // Remove trailing suggestion chips
+  chatArea.querySelectorAll('.suggestion-chips').forEach(e => e.remove());
+
+  setStreaming(true);
+  const groqMessages = sessionMessages.map(m => ({ role: m.role, content: m.content }));
+  let bubble = null, fullText = '';
+  try {
+    await OmniAI.streamChat({
+      messages: groqMessages, model: currentModel,
+      systemPrompt: getSystemPrompt(), temperature: getTemperature(),
+      onText: (chunk) => { fullText += chunk; },
+    });
+    if (fullText) {
+      bubble = createBotBubble();
+      await typewriteText(bubble, fullText, currentMode);
+      sessionMessages.push({ role: 'assistant', content: fullText });
+      updateHistoryEntry();
+      finalizeBotMessage(bubble, fullText);
+      addSuggestions(fullText);
+    }
+  } catch(err) {
+    bubble = createBotBubble();
+    bubble.innerHTML = `<em style="color:var(--yellow)">⏳ Hata: ${err.message}</em>`;
   } finally {
     setStreaming(false);
     scrollBottom();
