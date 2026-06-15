@@ -1,5 +1,5 @@
 // Omni.Ai Service Worker — otomatik güncellenir
-const CACHE = 'omni-ai-v5';
+const CACHE = 'omni-ai-v6';
 const ASSETS = [
   '/loading.html',
   '/login.html',

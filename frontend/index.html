@@ -2,8 +2,11 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#6366f1" media="(prefers-color-scheme: dark)" />
 <meta name="theme-color" content="#6366f1" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <link rel="manifest" href="/manifest.json" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%E2%9A%A1%3C/text%3E%3C/svg%3E" />
 <link rel="apple-touch-icon" href="/icon-192.png" />
@@ -104,10 +107,10 @@ body.light-mode #convo-title { color: #111827; }
 body.light-mode .badge-mode-chip { background: rgba(99,102,241,.1); }
 body.light-mode .edit-area { background: #fff; border-color: var(--accent); color: #111827; }
 
-html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.6; overflow: hidden; }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.6; overflow: hidden; -webkit-text-size-adjust: 100%; overscroll-behavior: none; }
 
 /* ── App Shell ── */
-#app { display: flex; height: 100vh; width: 100vw; overflow: hidden; }
+#app { display: flex; height: 100vh; height: 100dvh; width: 100vw; overflow: hidden; }
 
 /* ── Sidebar (Claude.ai style) ── */
 #sidebar {
@@ -939,18 +942,30 @@ body[data-mode="design"] #mode-label::before { content: "🎨 "; }
   #sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 280px; box-shadow: 8px 0 32px rgba(0,0,0,.5); transform: translateX(0); }
   #sidebar.collapsed { width: 280px; transform: translateX(-100%); box-shadow: none; }
   .wlc-grid { grid-template-columns: 1fr !important; }
-  #topbar { padding: 10px 12px; }
-  .bubble { max-width: 88% !important; }
-  .msg-col { max-width: 88%; }
-  #chat-area { padding: 14px 12px; }
+  #topbar { padding: 10px 12px; padding-top: calc(10px + env(safe-area-inset-top)); height: auto; min-height: 52px; }
+  .bubble { max-width: 90% !important; }
+  .msg-col { max-width: 90%; }
+  #chat-area { padding: 14px 12px; -webkit-overflow-scrolling: touch; }
   /* shrink input buttons so textarea has room */
-  .input-side-btn { width: 28px; height: 28px; font-size: 15px; }
+  .input-side-btn { width: 34px; height: 34px; font-size: 16px; }
   #convo-title { max-width: 34vw; }
   .msg-actions { flex-wrap: wrap; }
+  .msg-act-btn { padding: 5px 11px; font-size: 12px; }   /* daha büyük dokunma hedefi */
+  /* iOS otomatik zoom'u engelle: input font-size >= 16px */
+  #user-input, .form-input, .sb-search input, input, textarea, select { font-size: 16px !important; }
+  /* alt güvenli alan (iPhone home çubuğu) */
+  #input-bar { padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
+  #sidebar { padding-top: env(safe-area-inset-top); }
+  .sb-convo { padding: 12px 10px; }    /* daha kolay dokunma */
+  #btn-send, #btn-stop { width: 46px; height: 46px; }
 }
 @media (max-width: 420px) {
-  /* hide secondary input buttons (erişim: / komutları ve ⋯ menüsü) */
+  /* çok dar ekranda ikincil input butonlarını gizle (slash / ve ⋯ menüsünden erişilir) */
   #btn-img-gen, #btn-voice { display: none; }
+}
+/* Sohbet aşağı FAB'ı güvenli alanın üstünde dursun */
+@supports (padding: env(safe-area-inset-bottom)) {
+  #btn-scroll-down { bottom: calc(88px + env(safe-area-inset-bottom)); }
 }
 
 /* Welcome grid cards */
@@ -2317,6 +2332,15 @@ function init() {
     populateVoices();
     speechSynthesis.onvoiceschanged = populateVoices;
   }
+
+  // PWA kısayol aksiyonları (?action=new/image/voice)
+  try {
+    const action = new URLSearchParams(location.search).get('action');
+    if (action === 'new') startNewChat();
+    else if (action === 'image') { if (!imgGenMode) toggleImgGenMode(); }
+    else if (action === 'voice') setTimeout(startVoiceMode, 300);
+    if (action) history.replaceState(null, '', location.pathname);
+  } catch(_) {}
 
   // Kayıtlı sistem promptu + yaratıcılık değerlerini yükle
   const sp = document.getElementById('sys-prompt-input');
@@ -4464,6 +4488,50 @@ function wipeAllData() {
   if (user) localStorage.setItem('artus_user', user);
   location.reload();
 }
+
+/* ── Çevrimiçi/çevrimdışı göstergesi ── */
+(function() {
+  function update(on) {
+    if (on) showToast('🟢 Yeniden çevrimiçi');
+    else showToast('🔴 Çevrimdışısınız — internet yok');
+  }
+  window.addEventListener('online',  () => update(true));
+  window.addEventListener('offline', () => update(false));
+})();
+
+/* ── Mobil: kenardan kaydırarak paneli aç/kapat ── */
+(function() {
+  let tsx = 0, tsy = 0, tracking = false;
+  document.addEventListener('touchstart', e => {
+    if (!isMobile()) return;
+    const t = e.touches[0];
+    tsx = t.clientX; tsy = t.clientY;
+    // sadece sol kenardan başlayan ya da panel açıkken olan kaydırmaları izle
+    const sbOpen = !document.getElementById('sidebar').classList.contains('collapsed');
+    tracking = tsx < 28 || sbOpen;
+  }, { passive: true });
+  document.addEventListener('touchend', e => {
+    if (!tracking || !isMobile()) return;
+    tracking = false;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - tsx, dy = t.clientY - tsy;
+    if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx)) return; // yatay kaydırma değil
+    const sb = document.getElementById('sidebar');
+    const collapsed = sb.classList.contains('collapsed');
+    if (dx > 0 && collapsed) toggleSidebar();       // sağa kaydır → aç
+    else if (dx < 0 && !collapsed) toggleSidebar();  // sola kaydır → kapat
+  }, { passive: true });
+})();
+
+/* ── Mobil klavye: açılınca en alta kaydır ── */
+(function() {
+  if (!window.visualViewport) return;
+  window.visualViewport.addEventListener('resize', () => {
+    if (document.activeElement === inputEl) {
+      setTimeout(() => { try { scrollBottom(); } catch(_) {} }, 50);
+    }
+  });
+})();
 
 /* ── Scroll-to-bottom FAB ── */
 (function() {
