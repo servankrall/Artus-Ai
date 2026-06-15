@@ -1240,12 +1240,14 @@ body.light-mode .wlc-card { background: #fff; border-color: #d0d4e1; }
 
     <div class="settings-info">
       <strong>Klavye Kısayolları</strong>
+      <div class="shortcut-row">Ctrl+Shift+O <span class="shortcut-key">Yeni sohbet</span></div>
+      <div class="shortcut-row">Ctrl+B <span class="shortcut-key">Paneli aç/kapat</span></div>
+      <div class="shortcut-row">Ctrl+K <span class="shortcut-key">Komut paleti</span></div>
+      <div class="shortcut-row">Ctrl+F <span class="shortcut-key">Ara</span></div>
       <div class="shortcut-row">Ctrl+L <span class="shortcut-key">Temizle</span></div>
       <div class="shortcut-row">Ctrl+M <span class="shortcut-key">Mikrofon</span></div>
-      <div class="shortcut-row">Ctrl+1 <span class="shortcut-key">Chat modu</span></div>
-      <div class="shortcut-row">Ctrl+2 <span class="shortcut-key">Code modu</span></div>
-      <div class="shortcut-row">Ctrl+3 <span class="shortcut-key">Design modu</span></div>
-      <div class="shortcut-row">Esc <span class="shortcut-key">Kapat</span></div>
+      <div class="shortcut-row">Ctrl+1/2/3 <span class="shortcut-key">Mod değiştir</span></div>
+      <div class="shortcut-row">Esc <span class="shortcut-key">Durdur / Kapat</span></div>
     </div>
 
     <div class="settings-info" id="api-status-info">
@@ -1255,6 +1257,12 @@ body.light-mode .wlc-card { background: #fff; border-color: #d0d4e1; }
 
     <div class="settings-info" style="font-size:11.5px;">
       Session: <span id="debug-session" style="font-family:monospace;font-size:10.5px;word-break:break-all;color:var(--muted);"></span>
+    </div>
+
+    <!-- Personas -->
+    <div class="settings-group">
+      <label>Kişilik (Persona)</label>
+      <div id="persona-list" style="display:flex;flex-wrap:wrap;gap:6px"></div>
     </div>
 
     <!-- System Prompt -->
@@ -1427,7 +1435,39 @@ function resetSystemPrompt() {
   localStorage.removeItem('artus_system_prompt');
   const el = document.getElementById('sys-prompt-input');
   if (el) el.value = '';
+  renderPersonas();
   showToast('Sistem promptu sıfırlandı');
+}
+
+/* ── Personas (quick system-prompt presets) ── */
+const PERSONAS = [
+  { icon:'🧑‍💻', name:'Yazılımcı', prompt:'Sen kıdemli bir yazılım mühendisisin. Üretim kalitesinde, temiz ve iyi belgelenmiş kod üret. SOLID/DRY/KISS ilkelerini uygula. Kısa ve net açıkla.' },
+  { icon:'🎓', name:'Öğretmen', prompt:'Sen sabırlı bir öğretmensin. Konuları basit, adım adım ve örneklerle açıkla. Karmaşık terimleri sadeleştir. Anladığını kontrol eden sorular sor.' },
+  { icon:'✍️', name:'Editör', prompt:'Sen profesyonel bir metin editörüsün. Yazıları akıcı, dilbilgisi açısından doğru ve etkileyici hale getir. Ton ve üslubu koru.' },
+  { icon:'💼', name:'Danışman', prompt:'Sen deneyimli bir iş danışmanısın. Stratejik, veriye dayalı ve uygulanabilir öneriler sun. Artıları/eksileri karşılaştır.' },
+  { icon:'🔬', name:'Araştırmacı', prompt:'Sen titiz bir araştırmacısın. Kaynaklara dayalı, dengeli ve eleştirel analiz yap. Belirsizlikleri açıkça belirt.' },
+  { icon:'⚡', name:'Varsayılan', prompt:'' },
+];
+
+function renderPersonas() {
+  const el = document.getElementById('persona-list');
+  if (!el) return;
+  const current = getSystemPrompt();
+  el.innerHTML = PERSONAS.map((p, i) => {
+    const active = (p.prompt === current) || (!current && p.prompt === '') ? ' style="border-color:var(--accent);color:var(--text);background:rgba(99,102,241,.12)"' : '';
+    return `<button class="topbar-icon-btn"${active} onclick="applyPersona(${i})">${p.icon} ${p.name}</button>`;
+  }).join('');
+}
+
+function applyPersona(i) {
+  const p = PERSONAS[i];
+  if (!p) return;
+  if (p.prompt) localStorage.setItem('artus_system_prompt', p.prompt);
+  else localStorage.removeItem('artus_system_prompt');
+  const ta = document.getElementById('sys-prompt-input');
+  if (ta) ta.value = p.prompt;
+  renderPersonas();
+  showToast(`${p.icon} ${p.name} kişiliği aktif`);
 }
 function getTemperature() { return parseFloat(localStorage.getItem('artus_temperature') || '0.7'); }
 function setTemperature(v) {
@@ -1874,24 +1914,59 @@ function renderConvoList() {
     return;
   }
 
-  const groups = { 'Bugün': [], 'Dün': [], 'Bu Hafta': [], 'Daha Önce': [] };
-  history.forEach(h => { (groups[dateGroup(h.date)] || groups['Daha Önce']).push(h); });
+  const convoRow = (h) => {
+    const active = h.id === currentHistoryId ? ' active' : '';
+    return `
+      <div class="sb-convo${active}" onclick="openConvo('${h.id}')">
+        <span class="sb-convo-icon">${h.pinned ? '📌' : '💬'}</span>
+        <span class="sb-convo-title">${escapeHtml(h.title || 'Sohbet')}</span>
+        <button class="sb-convo-del" title="Sabitle" onclick="event.stopPropagation();pinConvo('${h.id}')">${h.pinned ? '📍' : '📌'}</button>
+        <button class="sb-convo-del" title="Yeniden adlandır" onclick="event.stopPropagation();renameConvo('${h.id}')">✎</button>
+        <button class="sb-convo-del" title="Sil" onclick="event.stopPropagation();deleteConvo('${h.id}')">×</button>
+      </div>`;
+  };
 
   let html = '';
+
+  // Pinned section first
+  const pinned = history.filter(h => h.pinned);
+  if (pinned.length) {
+    html += `<div class="sb-group-label">📌 Sabitlenenler</div>`;
+    pinned.forEach(h => { html += convoRow(h); });
+  }
+
+  const groups = { 'Bugün': [], 'Dün': [], 'Bu Hafta': [], 'Daha Önce': [] };
+  history.filter(h => !h.pinned).forEach(h => { (groups[dateGroup(h.date)] || groups['Daha Önce']).push(h); });
+
   ['Bugün','Dün','Bu Hafta','Daha Önce'].forEach(g => {
     if (!groups[g].length) return;
     html += `<div class="sb-group-label">${g}</div>`;
-    groups[g].forEach(h => {
-      const active = h.id === currentHistoryId ? ' active' : '';
-      html += `
-        <div class="sb-convo${active}" onclick="openConvo('${h.id}')">
-          <span class="sb-convo-icon">💬</span>
-          <span class="sb-convo-title">${escapeHtml(h.title || 'Sohbet')}</span>
-          <button class="sb-convo-del" title="Sil" onclick="event.stopPropagation();deleteConvo('${h.id}')">×</button>
-        </div>`;
-    });
+    groups[g].forEach(h => { html += convoRow(h); });
   });
   listEl.innerHTML = html;
+}
+
+function pinConvo(id) {
+  const history = getHistory();
+  const e = history.find(h => h.id === id);
+  if (!e) return;
+  e.pinned = !e.pinned;
+  saveHistory(history);
+  renderConvoList();
+  showToast(e.pinned ? '📌 Sabitlendi' : 'Sabit kaldırıldı');
+}
+
+function renameConvo(id) {
+  const history = getHistory();
+  const e = history.find(h => h.id === id);
+  if (!e) return;
+  const name = prompt('Sohbet adı:', e.title || 'Sohbet');
+  if (name === null) return;
+  e.title = name.trim() || e.title;
+  saveHistory(history);
+  renderConvoList();
+  updateConvoTitle();
+  showToast('✏️ Yeniden adlandırıldı');
 }
 
 function openConvo(id) {
@@ -2455,6 +2530,8 @@ function useCard(prompt) {
 }
 
 function clearChat() {
+  try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch(_) {}
+  _speaking = false;
   chatArea.innerHTML = `<div id="welcome">${renderWelcome()}</div>`;
   sessionMessages = [];
   currentHistoryId = null;
@@ -2918,7 +2995,7 @@ function typewriteText(bubble, text, mode) {
   });
 }
 
-/* ── Finalize bot message: attach action bar (copy / regenerate) + timestamp ── */
+/* ── Finalize bot message: attach action bar (copy / regenerate / speak / feedback) + timestamp ── */
 function finalizeBotMessage(bubble, rawText) {
   const msgEl = bubble.closest('.msg');
   if (!msgEl || msgEl.querySelector('.msg-actions')) return;
@@ -2927,10 +3004,36 @@ function finalizeBotMessage(bubble, rawText) {
   bar.className = 'msg-actions';
   bar.innerHTML = `
     <span class="msg-time">${nowTime()}</span>
-    <button class="msg-act-btn" onclick="copyRawFromMsg(this)">📋 Kopyala</button>
-    <button class="msg-act-btn" onclick="regenerateLast()">🔄 Yenile</button>`;
-  bar.querySelector('button').dataset.raw = rawText;
+    <button class="msg-act-btn act-copy" onclick="copyRawFromMsg(this)">📋 Kopyala</button>
+    <button class="msg-act-btn" onclick="speakMsg(this)">🔊 Seslendir</button>
+    <button class="msg-act-btn" onclick="regenerateLast()">🔄 Yenile</button>
+    <button class="msg-act-btn act-fb" onclick="rateMsg(this,'up')" title="İyi yanıt">👍</button>
+    <button class="msg-act-btn act-fb" onclick="rateMsg(this,'down')" title="Kötü yanıt">👎</button>`;
+  bar.querySelectorAll('button').forEach(b => b.dataset.raw = rawText);
   (col || msgEl).appendChild(bar);
+}
+
+/* ── Text-to-speech (read aloud) ── */
+let _speaking = false;
+function speakMsg(btn) {
+  if (!('speechSynthesis' in window)) { showToast('Tarayıcı seslendirmeyi desteklemiyor'); return; }
+  if (_speaking) { speechSynthesis.cancel(); _speaking = false; btn.textContent = '🔊 Seslendir'; return; }
+  // strip markdown/code for cleaner speech
+  const raw = (btn.dataset.raw || '').replace(/```[\s\S]*?```/g, ' kod bloğu ').replace(/[#*`_>]/g, '');
+  const u = new SpeechSynthesisUtterance(raw);
+  u.lang = 'tr-TR'; u.rate = 1.05;
+  u.onend = () => { _speaking = false; btn.textContent = '🔊 Seslendir'; };
+  speechSynthesis.cancel();
+  speechSynthesis.speak(u);
+  _speaking = true;
+  btn.textContent = '⏹ Durdur';
+}
+
+/* ── Thumbs up/down feedback (local only) ── */
+function rateMsg(btn, dir) {
+  btn.closest('.msg-actions').querySelectorAll('.act-fb').forEach(b => b.style.color = '');
+  btn.style.color = dir === 'up' ? 'var(--green)' : 'var(--red)';
+  showToast(dir === 'up' ? '👍 Teşekkürler!' : '👎 Geri bildirim alındı');
 }
 
 function nowTime() {
@@ -3037,6 +3140,7 @@ function toggleSettings() {
   checkHealth();
   renderStats();
   renderTemplates();
+  renderPersonas();
 }
 
 /* ═══════════════════════════════════════════════
@@ -3055,6 +3159,8 @@ function showToast(msg) {
 ═══════════════════════════════════════════════ */
 function handleShortcuts(e) {
   if (e.ctrlKey || e.metaKey) {
+    if (e.shiftKey && (e.key === 'o' || e.key === 'O')) { e.preventDefault(); startNewChat(); return; }
+    if (e.key === 'b' || e.key === 'B') { e.preventDefault(); toggleSidebar(); return; }
     if (e.key === 'l' || e.key === 'L') { e.preventDefault(); clearChat(); }
     if (e.key === 'm' || e.key === 'M') { e.preventDefault(); toggleMic(); }
     if (e.key === '1') { e.preventDefault(); setMode('chat'); }
