@@ -17,6 +17,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script>if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';}</script>
 <script src="/omni-config.js"></script>
@@ -986,6 +987,30 @@ body.light-mode .wlc-card { background: #fff; border-color: #d0d4e1; }
   .bubble { background:#f5f5f5!important;color:#000!important;max-width:100%!important; }
 }
 
+/* ── Compare mode (2 models side by side) ── */
+#btn-compare.compare-on { color:var(--accent)!important;background:rgba(99,102,241,.15)!important; }
+.compare-row { display:flex;gap:12px;width:100%; }
+.compare-col { flex:1;min-width:0;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden; }
+.compare-head { padding:8px 12px;font-size:12px;font-weight:600;color:var(--accent);border-bottom:1px solid var(--border);background:rgba(99,102,241,.06);display:flex;align-items:center;gap:6px; }
+.compare-body { padding:12px;font-size:14px;max-height:500px;overflow-y:auto; }
+@media (max-width:700px){ .compare-row{flex-direction:column;} }
+
+/* ── Charts ── */
+.chart-wrap { background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin:8px 0; }
+
+/* ── Focus / zen mode ── */
+body.focus-mode #sidebar { display:none; }
+body.focus-mode #topbar > *:not(#topbar-right):not(#convo-title) { }
+body.focus-mode #topbar-right > button:not(#btn-theme-toggle) { display:none; }
+body.focus-mode #chat-area { max-width:760px;margin:0 auto;width:100%; }
+body.focus-mode .badge-mode-chip, body.focus-mode #tier-badge { display:none; }
+
+/* ── Bookmarks modal reuse history modal styles ── */
+.bm-item { padding:10px 12px;border-radius:8px;cursor:pointer;border:1px solid transparent;margin-bottom:4px;transition:background .12s; }
+.bm-item:hover { background:rgba(255,255,255,.05);border-color:var(--border); }
+.bm-text { font-size:13px;color:var(--text);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden; }
+.msg-act-btn.bookmarked { color:var(--yellow);border-color:var(--yellow); }
+
 /* ── Slash command menu ── */
 #slash-menu { position:absolute;bottom:100%;left:0;right:0;margin-bottom:8px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.5);overflow:hidden;display:none;max-height:280px;overflow-y:auto;z-index:300; }
 .slash-item { display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;transition:background .1s; }
@@ -1218,6 +1243,15 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
           </div>
         </div>
 
+        <!-- Compare mode -->
+        <button class="topbar-icon-btn" id="btn-compare" onclick="toggleCompareMode()" title="Karşılaştır: 2 model yan yana">⚖️</button>
+
+        <!-- Bookmarks -->
+        <button class="topbar-icon-btn" onclick="showBookmarks()" title="Yer imleri">⭐</button>
+
+        <!-- Focus mode -->
+        <button class="topbar-icon-btn" onclick="toggleFocusMode()" title="Odak modu (dağınıklığı gizle)">🎯</button>
+
         <!-- Share -->
         <button class="topbar-icon-btn" onclick="shareConvo()" title="Sohbeti paylaş">🔗</button>
 
@@ -1378,6 +1412,17 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
       <label>Yaratıcılık (<span id="temp-label">0.7</span>)</label>
       <input type="range" min="0.1" max="1.5" step="0.1" value="0.7" oninput="setTemperature(this.value)" style="width:100%;accent-color:var(--accent)">
       <span style="font-size:11px;color:var(--muted)">Düşük = kesin · Yüksek = yaratıcı</span>
+    </div>
+
+    <!-- Advanced params -->
+    <div class="settings-group">
+      <label>Maks. Yanıt Uzunluğu (<span id="maxtok-label">4096</span> token)</label>
+      <input type="range" min="512" max="8192" step="256" value="4096" oninput="setMaxTokens(this.value)" style="width:100%;accent-color:var(--accent)">
+    </div>
+    <div class="settings-group">
+      <label>Çeşitlilik / Top-P (<span id="topp-label">1.0</span>)</label>
+      <input type="range" min="0.1" max="1.0" step="0.05" value="1.0" oninput="setTopP(this.value)" style="width:100%;accent-color:var(--accent)">
+      <span style="font-size:11px;color:var(--muted)">Düşük = odaklı · Yüksek = çeşitli</span>
     </div>
 
     <!-- Appearance -->
@@ -2214,6 +2259,12 @@ function init() {
   initClipboardPaste();
   autoResume();
 
+  // Restore advanced params + focus mode
+  const mt = getMaxTokens(); const mtl = document.getElementById('maxtok-label'); if (mtl) mtl.textContent = mt;
+  const tp = getTopP(); const tpl = document.getElementById('topp-label'); if (tpl) tpl.textContent = tp.toFixed(2);
+  if (localStorage.getItem('artus_focus') === '1') document.body.classList.add('focus-mode');
+  loadCustomInstructions();
+
   // Kayıtlı sistem promptu + yaratıcılık değerlerini yükle
   const sp = document.getElementById('sys-prompt-input');
   if (sp) sp.value = getSystemPrompt();
@@ -2903,6 +2954,23 @@ function renderBubble(bubble, rawText, mode) {
       return `<div id="${mid}" class="mermaid-block" style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px;margin:8px 0;overflow:auto;">${escapeHtml(code)}</div>`;
     }
 
+    // Chart.js — ```chart with JSON config
+    if (language === 'chart') {
+      const cid = 'chart_' + Math.random().toString(36).slice(2);
+      setTimeout(() => {
+        const cv = document.getElementById(cid);
+        if (cv && window.Chart) {
+          try {
+            const cfg = JSON.parse(code);
+            if (!cfg.options) cfg.options = {};
+            cfg.options.responsive = true;
+            new Chart(cv.getContext('2d'), cfg);
+          } catch(e) { cv.parentElement.innerHTML = '<em style="color:var(--red)">Grafik verisi hatalı (JSON)</em>'; }
+        }
+      }, 120);
+      return `<div class="chart-wrap"><canvas id="${cid}" height="220"></canvas></div>`;
+    }
+
     // JSON pretty viewer
     if (language === 'json') {
       const jid = 'jv_' + Math.random().toString(36).slice(2);
@@ -3124,6 +3192,13 @@ async function sendMessage() {
     return;
   }
 
+  // Compare mode (2 models side by side)
+  if (compareMode) {
+    resetInput();
+    runCompare(rawText);
+    return;
+  }
+
   // Build final message text
   let messageText = rawText;
   const imageFiles = attachedFiles.filter(f => f.isImage);
@@ -3169,6 +3244,8 @@ async function sendMessage() {
       model: currentModel,
       systemPrompt: buildSystemPrompt(),
       temperature: getTemperature(),
+      maxTokens: getMaxTokens(),
+      topP: getTopP(),
       onText: (chunk) => { fullText += chunk; },
     });
 
@@ -3245,9 +3322,14 @@ function finalizeBotMessage(bubble, rawText) {
     <button class="msg-act-btn act-speak" onclick="speakMsg(this)">🔊 Seslendir</button>
     <button class="msg-act-btn" onclick="regenerateLast()">🔄 Yenile</button>
     <button class="msg-act-btn" onclick="regenWithModel(this)" title="Başka modelle yenile">🔀</button>
+    <button class="msg-act-btn" onclick="translateMsg(this)" title="Çevir">🌍</button>
+    <button class="msg-act-btn" onclick="continueMsg(this)" title="Devam et">↪️</button>
+    <button class="msg-act-btn act-bm" onclick="toggleBookmark(this)" title="Yer imi">⭐</button>
     <button class="msg-act-btn act-fb" onclick="rateMsg(this,'up')" title="İyi yanıt">👍</button>
     <button class="msg-act-btn act-fb" onclick="rateMsg(this,'down')" title="Kötü yanıt">👎</button>`;
   bar.querySelectorAll('.msg-act-btn').forEach(b => b.dataset.raw = rawText);
+  // mark bookmarked state
+  if (getBookmarks().some(b => b.text === rawText)) bar.querySelector('.act-bm')?.classList.add('bookmarked');
   (col || msgEl).appendChild(bar);
 }
 
@@ -3443,6 +3525,140 @@ function handleShortcuts(e) {
     if (e.key === '2') { e.preventDefault(); handleModeClick('code'); }
     if (e.key === '3') { e.preventDefault(); handleModeClick('design'); }
   }
+}
+
+/* ════════════════════════════════════════════════════════
+   ADVANCED GENERATION PARAMS
+════════════════════════════════════════════════════════ */
+function getMaxTokens() { return parseInt(localStorage.getItem('artus_max_tokens') || '4096'); }
+function setMaxTokens(v) { localStorage.setItem('artus_max_tokens', v); const l=document.getElementById('maxtok-label'); if(l) l.textContent=v; }
+function getTopP() { return parseFloat(localStorage.getItem('artus_top_p') || '1.0'); }
+function setTopP(v) { localStorage.setItem('artus_top_p', v); const l=document.getElementById('topp-label'); if(l) l.textContent=parseFloat(v).toFixed(2); }
+
+/* ════════════════════════════════════════════════════════
+   COMPARE MODE (2 models side by side)
+════════════════════════════════════════════════════════ */
+let compareMode = false;
+function toggleCompareMode() {
+  compareMode = !compareMode;
+  document.getElementById('btn-compare').classList.toggle('compare-on', compareMode);
+  showToast(compareMode ? '⚖️ Karşılaştırma modu açık (2 model)' : 'Karşılaştırma kapalı');
+}
+
+async function runCompare(userText) {
+  removeWelcome();
+  appendUserMsg(userText);
+  sessionMessages.push({ role:'user', content:userText });
+  if (!currentHistoryId) createHistoryEntry(userText);
+  setStreaming(true);
+
+  const models = window.OmniAI.MODELS;
+  const mA = currentModel;
+  const mB = models.find(m => m !== mA) || models[1];
+  const labels = { 'llama-3.3-70b-versatile':'Llama 3.3 70B','llama-3.1-8b-instant':'Llama 3.1 8B','gemma2-9b-it':'Gemma 2 9B','llama3-8b-8192':'Llama3 8B' };
+
+  const row = document.createElement('div');
+  row.className = 'msg bot';
+  row.innerHTML = `<div class="avatar">⚖️</div><div class="msg-col" style="max-width:100%;width:100%">
+    <div class="compare-row">
+      <div class="compare-col"><div class="compare-head">🅰 ${labels[mA]||mA}</div><div class="compare-body" id="cmp-a">⏳…</div></div>
+      <div class="compare-col"><div class="compare-head">🅱 ${labels[mB]||mB}</div><div class="compare-body" id="cmp-b">⏳…</div></div>
+    </div></div>`;
+  chatArea.appendChild(row);
+  scrollBottom();
+
+  const msgs = sessionMessages.map(m => ({ role:m.role, content:m.content }));
+  const sys = buildSystemPrompt();
+  const run = async (model, elId) => {
+    let txt = '';
+    try {
+      await OmniAI.streamChat({ messages: msgs, model, systemPrompt: sys, temperature: getTemperature(), maxTokens: getMaxTokens(), topP: getTopP(), onText: c => { txt += c; } });
+    } catch(e) { txt = 'Hata: ' + e.message; }
+    const el = document.getElementById(elId);
+    if (el) renderBubble(el, txt || '(boş)', 'chat');
+    return txt;
+  };
+  const [ra, rb] = await Promise.all([run(mA,'cmp-a'), run(mB,'cmp-b')]);
+  // store A as canonical answer
+  sessionMessages.push({ role:'assistant', content: `**${labels[mA]||mA}:**\n${ra}\n\n**${labels[mB]||mB}:**\n${rb}` });
+  updateHistoryEntry();
+  setStreaming(false);
+  scrollBottom();
+}
+
+/* ════════════════════════════════════════════════════════
+   FOCUS / ZEN MODE
+════════════════════════════════════════════════════════ */
+function toggleFocusMode() {
+  document.body.classList.toggle('focus-mode');
+  const on = document.body.classList.contains('focus-mode');
+  localStorage.setItem('artus_focus', on ? '1' : '');
+  showToast(on ? '🎯 Odak modu açık' : 'Odak modu kapalı');
+}
+
+/* ════════════════════════════════════════════════════════
+   BOOKMARKS (starred messages)
+════════════════════════════════════════════════════════ */
+function getBookmarks() { try { return JSON.parse(localStorage.getItem('artus_bookmarks')||'[]'); } catch(_) { return []; } }
+function saveBookmarks(l) { localStorage.setItem('artus_bookmarks', JSON.stringify(l)); }
+function toggleBookmark(btn) {
+  const raw = btn.dataset.raw || '';
+  let list = getBookmarks();
+  const exists = list.find(b => b.text === raw);
+  if (exists) { list = list.filter(b => b.text !== raw); btn.classList.remove('bookmarked'); showToast('Yer imi kaldırıldı'); }
+  else { list.unshift({ id: Date.now(), text: raw, date: new Date().toISOString() }); btn.classList.add('bookmarked'); showToast('⭐ Yer imine eklendi'); }
+  saveBookmarks(list);
+}
+function showBookmarks() {
+  const list = getBookmarks();
+  const modal = document.getElementById('history-modal');
+  const listEl = document.getElementById('history-list');
+  document.querySelector('#history-modal-card .history-header h3').textContent = '⭐ Yer İmleri';
+  if (!list.length) { listEl.innerHTML = '<div class="history-empty">Henüz yer imi yok.<br>Bir yanıttaki ⭐ butonuna bas.</div>'; }
+  else {
+    listEl.innerHTML = list.map(b => `
+      <div class="bm-item" onclick="navigator.clipboard.writeText(${JSON.stringify(JSON.stringify(b.text)).replace(/"/g,'&quot;')}).then(()=>showToast('Kopyalandı'))">
+        <div class="bm-text">${escapeHtml(b.text.slice(0,240))}</div>
+        <div class="history-item-date" style="margin-top:4px">${new Date(b.date).toLocaleDateString('tr-TR')} · kopyalamak için tıkla
+          <button onclick="event.stopPropagation();removeBookmark(${b.id})" style="background:none;border:none;color:var(--red);cursor:pointer;float:right">×</button>
+        </div>
+      </div>`).join('');
+  }
+  modal.classList.add('open');
+}
+function removeBookmark(id) { saveBookmarks(getBookmarks().filter(b => b.id !== id)); showBookmarks(); }
+
+/* ════════════════════════════════════════════════════════
+   INLINE TRANSLATE + CONTINUE
+════════════════════════════════════════════════════════ */
+async function translateMsg(btn) {
+  const raw = btn.dataset.raw || '';
+  if (!raw || streaming) return;
+  const lang = prompt('Hangi dile çevrilsin? (örn: İngilizce, Almanca, Arapça)', 'İngilizce');
+  if (!lang) return;
+  setStreaming(true);
+  let out = '';
+  try {
+    await OmniAI.streamChat({
+      messages: [{ role:'user', content:`Aşağıdaki metni ${lang} diline çevir. Sadece çeviriyi ver:\n\n${raw}` }],
+      model: currentModel, systemPrompt: 'Sen profesyonel bir çevirmensin.', temperature: 0.3,
+      onText: c => { out += c; },
+    });
+    if (out) {
+      const b = createBotBubble();
+      renderBubble(b, `🌍 **${lang} çeviri:**\n\n${out}`, 'chat');
+      finalizeBotMessage(b, out);
+      sessionMessages.push({ role:'assistant', content: out });
+      updateHistoryEntry();
+    }
+  } catch(e) { showToast('Çeviri hatası'); }
+  finally { setStreaming(false); scrollBottom(); }
+}
+
+async function continueMsg(btn) {
+  if (streaming) return;
+  inputEl.value = 'Devam et';
+  sendMessage();
 }
 
 /* ════════════════════════════════════════════════════════
@@ -3739,7 +3955,7 @@ function loadCustomInstructions() {
 
 function buildSystemPrompt() {
   const base = getSystemPrompt() || window.OmniAI.SYSTEM_PROMPT;
-  let extra = '';
+  let extra = '\n\n## Yetenekler\n- Grafik için ```chart bloğu içinde Chart.js JSON config döndürebilirsin (type, data, options).\n- Diyagram için ```mermaid kullanabilirsin. Matematik için $...$ / $$...$$.\n- HTML/CSS/JS kod bloklarını önizleyebilirim, Python çalıştırabilirim.';
   try {
     const ci = JSON.parse(localStorage.getItem('artus_ci') || '{}');
     if (ci.name)  extra += `\nKullanıcının adı: ${ci.name}.`;

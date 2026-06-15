@@ -70,8 +70,9 @@ Kullanıcının istediği sonucu en kısa sürede, en yüksek doğrulukla üret.
         model: model,
         messages: [{ role: "system", content: sysPrompt }].concat(safeHistory),
         stream: false,
-        max_tokens: 4096,
+        max_tokens: typeof opts.maxTokens === "number" ? opts.maxTokens : 4096,
         temperature: temperature,
+        top_p: typeof opts.topP === "number" ? opts.topP : 1,
       };
 
       try {
