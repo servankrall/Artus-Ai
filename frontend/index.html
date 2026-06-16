@@ -2328,6 +2328,7 @@ function init() {
   applyTheme(savedTheme);
 
   renderUserUI();
+  syncProStatus();
   debugSession.textContent = SESSION_ID;
   applyMode(currentMode, false);
   applyModel(currentModel, false);
@@ -2511,6 +2512,7 @@ function activateProCode() {
     updateTierBadge();
     closeProModal();
     showToast('🎉 Pro aktif edildi! Hoş geldiniz.');
+    syncProStatus({ activate: true });
   } else {
     showToast('❌ Geçersiz aktivasyon kodu');
     if (inp) {
@@ -2518,6 +2520,27 @@ function activateProCode() {
       setTimeout(() => { inp.style.borderColor = ''; }, 1500);
     }
   }
+}
+
+// Pro durumunu e-posta bazlı sunucuda senkronlar — böylece başka bir
+// cihazda aynı e-postayla girince Pro durumu otomatik geri yüklenir.
+async function syncProStatus(opts) {
+  if (!CURRENT_USER || !CURRENT_USER.email) return;
+  try {
+    const resp = await fetch('/api/pro-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: CURRENT_USER.email, activate: !!(opts && opts.activate) }),
+    });
+    if (!resp.ok) return;
+    const data = await resp.json();
+    if (data.pro && !CURRENT_USER.pro) {
+      CURRENT_USER.pro = true;
+      localStorage.setItem('artus_user', JSON.stringify(CURRENT_USER));
+      updateTierBadge();
+      showToast('🎉 Pro üyeliğin bu cihazda da etkinleştirildi.');
+    }
+  } catch (_) { /* offline veya fonksiyon erişilemez — sessizce geç */ }
 }
 
 /* ═══════════════════════════════════════════════
