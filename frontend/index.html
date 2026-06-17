@@ -1892,7 +1892,13 @@ function setAccent(name) {
 (function(){ const a = localStorage.getItem('artus_accent'); if(a) setAccent(a); })();
 
 // ── Font size ──
-function setFontSize(px) { document.getElementById('chat-area').style.fontSize = px + 'px'; localStorage.setItem('artus_font_size', px); }
+function setFontSize(px) {
+  document.getElementById('chat-area').style.fontSize = px + 'px';
+  localStorage.setItem('artus_font_size', px);
+  // Slider ve label'ı da güncelle
+  const slider = document.querySelector('input[oninput*="setFontSize"]');
+  if (slider) { slider.value = px; const lbl = slider.nextElementSibling; if (lbl) lbl.textContent = px + 'px'; }
+}
 (function(){ const f = localStorage.getItem('artus_font_size'); if(f) setFontSize(f); })();
 
 // ── Density ──
@@ -2120,7 +2126,10 @@ function exportAs(fmt) {
   document.getElementById('export-dropdown').style.display = 'none';
 }
 function dlBlob(blob, name) {
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
 
 function importHistory() {
@@ -2720,7 +2729,9 @@ async function syncProStatus() {
 ═══════════════════════════════════════════════ */
 function getHistory() {
   try {
-    return JSON.parse(localStorage.getItem('artus_history') || '[]');
+    const raw = JSON.parse(localStorage.getItem('artus_history') || '[]');
+    // Bozuk girdileri filtrele — id ve messages zorunlu
+    return Array.isArray(raw) ? raw.filter(h => h && h.id && Array.isArray(h.messages)) : [];
   } catch(_) { return []; }
 }
 
@@ -2792,7 +2803,7 @@ function showHistory() {
       const dateStr = d.toLocaleDateString('tr-TR', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
       item.innerHTML = `
         <div class="history-item-title">${escapeHtml(entry.title)}</div>
-        <div class="history-item-date">${dateStr} · ${entry.messages.length} mesaj</div>`;
+        <div class="history-item-date">${dateStr} · ${(entry.messages || []).length} mesaj</div>`;
       item.addEventListener('click', () => restoreConversation(entry));
       listEl.appendChild(item);
     });
@@ -3163,6 +3174,7 @@ function appendUserMsg(text) {
       <div class="bubble">${escapeHtml(text)}</div>
       <div class="msg-actions">
         <button class="msg-act-btn" onclick="editUserMsg(this)">✏️ Düzenle</button>
+        <button class="msg-act-btn act-copy" onclick="navigator.clipboard.writeText(this.closest('.msg').querySelector('.bubble').innerText).then(()=>showToast('Kopyalandı'))">📋 Kopyala</button>
         <span class="msg-time">${nowTime()}</span>
       </div>
     </div>`;
@@ -3600,8 +3612,12 @@ async function sendMessage() {
     const lastUser = [...chatArea.querySelectorAll('.msg.user')].pop();
     const bub = lastUser && lastUser.querySelector('.bubble');
     if (bub) {
-      const imgs = imageUrls.map(u => `<img src="${u}" style="max-width:160px;max-height:160px;border-radius:8px;margin-top:8px;display:block;border:1px solid rgba(255,255,255,.2)">`).join('');
-      bub.innerHTML += imgs;
+      imageUrls.forEach(u => {
+        const img = document.createElement('img');
+        img.src = u; // URL DOM'a atanıyor — XSS riski yok
+        img.style.cssText = 'max-width:160px;max-height:160px;border-radius:8px;margin-top:8px;display:block;border:1px solid rgba(255,255,255,.2)';
+        bub.appendChild(img);
+      });
     }
   }
   // ── Gerçek web araması (streaming başlamadan önce; timeout korumalı) ──
@@ -3850,7 +3866,8 @@ async function regenerateLast() {
     if (fullText) {
       bubble = createBotBubble();
       await typewriteText(bubble, fullText, currentMode);
-      sessionMessages.push({ role: 'assistant', content: fullText });
+      const storedText = extractReasoning(fullText).rest || fullText;
+      sessionMessages.push({ role: 'assistant', content: storedText });
       updateHistoryEntry();
       // attach alternatives
       const msgEl = bubble.closest('.msg');
@@ -3858,7 +3875,7 @@ async function regenerateLast() {
       msgEl._alts = prevAlts;
       msgEl._altIdx = prevAlts.length - 1;
       finalizeBotMessage(bubble, fullText);
-      addSuggestions(fullText);
+      addSuggestions(storedText);
     }
   } catch(err) {
     bubble = createBotBubble();
