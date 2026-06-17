@@ -1,19 +1,21 @@
-// Omni.Ai Service Worker — otomatik güncellenir
-const CACHE = 'omni-ai-v10';
-const ASSETS = [
-  '/loading.html',
-  '/login.html',
-  '/index.html',
-  '/omni-config.js',
+// Omni.Ai Service Worker — v11
+const CACHE = 'omni-ai-v11';
+
+// HTML ve JS config dosyaları ASLA önbelleğe alınmaz — her zaman ağdan gelir
+const NEVER_CACHE = ['.html', '/sw.js', '/omni-config.js'];
+
+// Sadece statik varlıklar önbelleğe alınır
+const STATIC_ASSETS = [
   '/icon-192.png',
   '/icon-512.png',
   '/manifest.json',
 ];
 
 self.addEventListener('install', (e) => {
-  // Yeni sürüm hazır olur olmaz devral — bekleme yok
   self.skipWaiting();
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS).catch(() => {})));
+  e.waitUntil(
+    caches.open(CACHE).then((c) => c.addAll(STATIC_ASSETS).catch(() => {}))
+  );
 });
 
 self.addEventListener('activate', (e) => {
@@ -26,16 +28,28 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
-  // API ve GET olmayan istekleri asla yakalama
-  if (url.pathname.startsWith('/api/') || e.request.method !== 'GET') {
+
+  if (url.pathname.startsWith('/api/') || e.request.method !== 'GET') return;
+
+  // HTML, SW ve config: her zaman ağdan al, önbelleğe yazma
+  const neverCache = NEVER_CACHE.some((s) => url.pathname.endsWith(s) || url.pathname === '/');
+  if (neverCache) {
+    e.respondWith(
+      fetch(e.request, { cache: 'no-store' }).catch(() =>
+        caches.match(e.request)
+      )
+    );
     return;
   }
-  // HER ZAMAN önce ağ; başarısızsa (offline) cache'e düş
+
+  // Diğerleri: ağ-önce, başarısız olursa önbellek
   e.respondWith(
     fetch(e.request)
       .then((resp) => {
-        const copy = resp.clone();
-        caches.open(CACHE).then((c) => c.put(e.request, copy)).catch(() => {});
+        if (resp.ok) {
+          const copy = resp.clone();
+          caches.open(CACHE).then((c) => c.put(e.request, copy)).catch(() => {});
+        }
         return resp;
       })
       .catch(() => caches.match(e.request).then((r) => r || caches.match('/index.html')))

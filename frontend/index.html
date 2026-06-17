@@ -1365,6 +1365,7 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
         <div style="position:relative">
           <button class="topbar-icon-btn" id="btn-tools" onclick="toggleToolsMenu(event)" title="Araçlar">⋯</button>
           <div id="tools-dropdown" style="display:none;position:absolute;right:0;top:calc(100%+6px);background:var(--surface);border:1px solid var(--border);border-radius:10px;min-width:210px;z-index:300;overflow:hidden;box-shadow:0 8px 28px rgba(0,0,0,.5);">
+            <div class="exp-item" onclick="forceUpdate();toggleToolsMenu()">🔄 Zorunlu Yenile (Önbellek Temizle)</div>
             <div class="exp-item" onclick="openUpdateLog();toggleToolsMenu()">📋 Sürüm Güncellemeleri</div>
             <div class="exp-item" onclick="openGallery();toggleToolsMenu()">🖼 Görüntü Galerisi</div>
             <div class="exp-item" id="tool-reason" onclick="toggleReasoning();toggleToolsMenu()">🧠 Derin Düşünme</div>
@@ -1723,13 +1724,26 @@ const PRO_ACTIVATION_CODE = "SERVAN2026OMNI";
 // ── Mermaid init ──
 mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'loose' });
 
-// ── PWA: kurulabilir uygulama + otomatik güncelleme ──
+// ── PWA: kurulabilir uygulama + güvenilir güncelleme ──
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').then((reg) => {
-    // Her açılışta yeni sürüm var mı diye kontrol et
+    // İlk yüklemede ve periyodik olarak yeni sürüm kontrolü
     reg.update().catch(() => {});
-    // Sayfa açıkken periyodik kontrol (her 60 sn)
-    setInterval(() => reg.update().catch(() => {}), 60000);
+    setInterval(() => reg.update().catch(() => {}), 30000);
+
+    // Zaten bekleyen bir SW varsa hemen banner göster
+    if (reg.waiting) showUpdateBanner();
+
+    // Yeni SW bulununca: yüklenip hazır olduğunda banner göster
+    reg.addEventListener('updatefound', () => {
+      const nw = reg.installing;
+      if (!nw) return;
+      nw.addEventListener('statechange', () => {
+        if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+          showUpdateBanner();
+        }
+      });
+    });
   }).catch(() => {});
 
   // Yeni SW devralınca sayfayı otomatik tazele
@@ -3512,6 +3526,11 @@ async function sendMessage() {
 
   let sendText = messageText;
 
+  // ── İstemci tarafı injection uyarısı ──
+  if (detectClientInjection(messageText)) {
+    showToast('⚠️ Bu mesaj sistem güvenlik filtrelerinden geçecek.');
+  }
+
   resetInput();
   appendUserMsg(messageText);
 
@@ -4338,6 +4357,42 @@ function toggleImgGenMode() {
     ? '🎨 Görsel açıklaması girin… (örn: şehir manzarası gece, sibernetik, 4K)'
     : 'Mesajınızı yazın… (Enter → gönder, Shift+Enter → yeni satır)';
   showToast(imgGenMode ? '🎨 Görsel üretme modu aktif' : 'Görsel modu kapatıldı');
+}
+
+/* ════════════════════════════════════════════════════
+   GÜVENLİK — İstemci tarafı injection tespiti
+════════════════════════════════════════════════════ */
+const CLIENT_INJECTION_PATTERNS = [
+  /ignore\s+(all\s+)?(previous|prior|above)\s+instructions?/i,
+  /forget\s+(all|your|the)\s+(above|previous|instructions)/i,
+  /\[SYSTEM\]|\[ADMIN\]|\[DEVELOPER\]/i,
+  /(developer|admin|root|jailbreak|dan)\s+mode/i,
+  /jailbreak/i,
+  /(reveal|show|output|leak)\s+(your\s+)?(system\s+)?prompt/i,
+  /disregard\s+(all|your)\s+instructions?/i,
+  /you\s+are\s+now\s+(free|unrestricted|dan|admin)/i,
+];
+
+function detectClientInjection(text) {
+  if (!text) return false;
+  return CLIENT_INJECTION_PATTERNS.some(function(p) { return p.test(text); });
+}
+
+/* ── Zorunlu Güncelleme (önbellek temizle + tazele) ── */
+function forceUpdate() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function(regs) {
+      regs.forEach(function(reg) { reg.unregister(); });
+    });
+  }
+  // Tüm cache storage'ı temizle
+  if ('caches' in window) {
+    caches.keys().then(function(keys) {
+      keys.forEach(function(k) { caches.delete(k); });
+    });
+  }
+  setTimeout(function() { window.location.reload(true); }, 300);
+  showToast('🔄 Önbellek temizleniyor, sayfa yenileniyor…');
 }
 
 /* ════════════════════════════════════════════════════
