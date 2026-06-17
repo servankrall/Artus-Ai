@@ -1152,6 +1152,24 @@ body.light-mode .mem-item, body.light-mode .proj-item { background:#fff;border-c
 body.light-mode #ctx-menu { background:#fff;border-color:#d0d4e1; }
 body.light-mode .ctx-item { color:#111827; }
 body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
+/* ══ UPDATE LOG ══ */
+#update-modal { display:none;position:fixed;inset:0;z-index:1200;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);align-items:center;justify-content:center; }
+#update-modal.open { display:flex; }
+#update-card { background:var(--bg);border:1px solid var(--border);border-radius:18px;width:min(520px,96vw);max-height:84vh;display:flex;flex-direction:column;overflow:hidden; }
+.update-header { padding:22px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between; }
+.update-header h3 { margin:0;font-size:17px;font-weight:800; }
+.update-body { overflow-y:auto;padding:0 24px 20px;-webkit-overflow-scrolling:touch; }
+.update-version { margin-top:20px; }
+.update-version-tag { display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,var(--accent),var(--accent-2,#8b5cf6));color:#fff;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.5px;margin-bottom:8px; }
+.update-version-date { font-size:11px;color:var(--muted);margin-left:8px; }
+.update-items { list-style:none;padding:0;margin:4px 0 0;display:flex;flex-direction:column;gap:5px; }
+.update-items li { font-size:13px;color:var(--text);display:flex;gap:8px;line-height:1.5; }
+.update-items li::before { content:''; }
+.update-tag { font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;flex-shrink:0;margin-top:2px; }
+.tag-new { background:rgba(34,197,94,.15);color:#22c55e; }
+.tag-fix { background:rgba(239,68,68,.15);color:#ef4444; }
+.tag-improve { background:rgba(99,102,241,.15);color:var(--accent); }
+.tag-security { background:rgba(251,191,36,.15);color:#f59e0b; }
 /* ══ GÖRÜNTÜ GALERİSİ ══ */
 #gallery-modal { display:none;position:fixed;inset:0;z-index:1200;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);overflow-y:auto;padding:20px; }
 #gallery-modal.open { display:block; }
@@ -1230,6 +1248,17 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ── Update Log Modal ── -->
+<div id="update-modal">
+  <div id="update-card">
+    <div class="update-header">
+      <h3>⚡ Sürüm Güncellemeleri</h3>
+      <button onclick="closeUpdateLog()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:22px;line-height:1">✕</button>
+    </div>
+    <div class="update-body" id="update-body"></div>
   </div>
 </div>
 
@@ -1336,6 +1365,7 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
         <div style="position:relative">
           <button class="topbar-icon-btn" id="btn-tools" onclick="toggleToolsMenu(event)" title="Araçlar">⋯</button>
           <div id="tools-dropdown" style="display:none;position:absolute;right:0;top:calc(100%+6px);background:var(--surface);border:1px solid var(--border);border-radius:10px;min-width:210px;z-index:300;overflow:hidden;box-shadow:0 8px 28px rgba(0,0,0,.5);">
+            <div class="exp-item" onclick="openUpdateLog();toggleToolsMenu()">📋 Sürüm Güncellemeleri</div>
             <div class="exp-item" onclick="openGallery();toggleToolsMenu()">🖼 Görüntü Galerisi</div>
             <div class="exp-item" id="tool-reason" onclick="toggleReasoning();toggleToolsMenu()">🧠 Derin Düşünme</div>
             <div class="exp-item" id="tool-compare" onclick="toggleCompareMode();toggleToolsMenu()">⚖️ Karşılaştırma Modu</div>
@@ -2484,6 +2514,8 @@ function init() {
     if (e.key === 'Escape') {
       closeProModal();
       closeHistoryModal();
+      closeUpdateLog();
+      closeGallery();
       document.getElementById('settings-panel').classList.remove('open');
       closeUserDropdown();
     }
@@ -3158,6 +3190,31 @@ function escapeHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// XSS koruması: marked.parse() çıktısından zararlı etiket/öznitelikler çıkarılır.
+// ÖNEMLİ: Regex'ler new RegExp() ile oluşturulur; böylece kaynak kodda hiçbir
+// zaman gerçek kapanış script etiketi geçmez ve HTML parser bloğu kesmez.
+function sanitizeHtml(html) {
+  // <script>…kapanış etiketi bloklarını göster ama çalıştırma
+  const RE_SCRIPT = new RegExp('<scri' + 'pt\\b[^>]*>[\\s\\S]*?<\\/scri' + 'pt>', 'gi');
+  const RE_SCRIPT_TAG = new RegExp('<\\/?scri' + 'pt[^>]*>', 'gi');
+  html = html.replace(RE_SCRIPT, function(m) {
+    var content = m.replace(RE_SCRIPT_TAG, '').trim().slice(0, 120);
+    return '<pre class="xss-blocked" style="color:var(--red);background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:6px;padding:8px 12px;font-size:12px;margin:6px 0">⛔ &lt;script&gt; engellendi: ' + escapeHtml(content) + (content.length === 120 ? '…' : '') + '</pre>';
+  });
+  // <style> etiketleri (sayfa düzenini bozabilir)
+  const RE_STYLE = new RegExp('<style\\b[^>]*>[\\s\\S]*?<\\/style>', 'gi');
+  html = html.replace(RE_STYLE, function() {
+    return '<pre class="xss-blocked" style="color:var(--yellow);background:rgba(234,179,8,.08);border:1px solid rgba(234,179,8,.25);border-radius:6px;padding:8px 12px;font-size:12px;margin:6px 0">⚠️ &lt;style&gt; engellendi (g\xfcvenlik)</pre>';
+  });
+  // Satır içi olay dinleyicileri: onclick=, onload=, onerror=, vb.
+  html = html.replace(/\s(on[a-z]{1,20})\s*=\s*(['"])[^'"]*\2/gi, ' data-blocked-$1="[engellendi]"');
+  html = html.replace(/\s(on[a-z]{1,20})\s*=\s*[^\s>]*/gi, ' data-blocked-$1="[engellendi]"');
+  // javascript: URL
+  html = html.replace(/href\s*=\s*(['"])\s*javascript:[^'"]*\1/gi, 'href="#blocked"');
+  html = html.replace(/src\s*=\s*(['"])\s*javascript:[^'"]*\1/gi, 'src="#blocked"');
+  return html;
+}
+
 /* ── Markdown + Code Rendering ── */
 function renderBubble(bubble, rawText, mode) {
   marked.setOptions({ breaks: true, gfm: true });
@@ -3276,7 +3333,7 @@ function renderBubble(bubble, rawText, mode) {
     <button class="bubble-action-btn" onclick="downloadBubbleMd(this)" data-raw="${escapeHtml(rawText)}">⬇ İndir</button>
   </div>` + html;
 
-  bubble.innerHTML = html;
+  bubble.innerHTML = sanitizeHtml(html);
 
   if (mode === 'design') {
     const btn = bubble.querySelector('.design-gen-btn');
@@ -3302,7 +3359,7 @@ function runPythonBlock(id) {
 function previewCode(btn, lang) {
   const code = decodeURIComponent(btn.dataset.code || '');
   let src = code;
-  if (lang === 'js' || lang === 'javascript') src = `<script>${code}<\/script>`;
+  if (lang === 'js' || lang === 'javascript') src = '<scri' + 'pt>' + code + '<\/scri' + 'pt>';
   if (lang === 'css') src = `<style>${code}</style><div style="padding:12px">Preview</div>`;
   const panel = document.getElementById('artifacts-panel');
   panel.style.display = 'block';
@@ -3467,9 +3524,7 @@ async function sendMessage() {
       bub.innerHTML += imgs;
     }
   }
-  setStreaming(true);
-
-  // ── Gerçek web araması ──
+  // ── Gerçek web araması (streaming başlamadan önce; timeout korumalı) ──
   if (webSearchOn) {
     const statusDiv = document.createElement('div');
     statusDiv.className = 'web-search-status';
@@ -3481,6 +3536,7 @@ async function sendMessage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: messageText }),
+        signal: AbortSignal.timeout(7000), // 7 sn içinde yanıt gelmezse geç
       });
       const sd = await sr.json();
       if (sd.results && sd.results.length) {
@@ -3497,6 +3553,8 @@ async function sendMessage() {
       statusDiv.remove();
     }
   }
+
+  setStreaming(true); // Web araması bittikten SONRA başlat — asılma riski yok
 
   sessionMessages.push({ role: 'user', content: messageText });
   updateUsageBar();
@@ -4372,6 +4430,82 @@ function clearGallery() {
   if (!confirm('Tüm galeri silinsin mi?')) return;
   saveGallery([]);
   renderGallery();
+}
+
+/* ════════════════════════════════════════════════════════
+   UPDATE LOG (Sürüm Geçmişi)
+════════════════════════════════════════════════════════ */
+const CHANGELOG = [
+  {
+    version: 'v3.0', date: '17 Haz 2026',
+    items: [
+      { tag: 'new',      text: 'Gerçek Web Araması — 🌐 butonu artık DuckDuckGo üzerinden gerçek web sonuçlarını AI\'a aktarıyor' },
+      { tag: 'new',      text: 'Görüntü Galerisi — üretilen tüm görseller otomatik kaydediliyor, tam ekran galeri ile yönetiliyor' },
+      { tag: 'new',      text: 'AI Akıllı Öneriler — her yanıt sonrası llama-3.1-8b-instant ile bağlama özgü 3 Türkçe takip sorusu üretiliyor' },
+      { tag: 'security', text: 'XSS Koruması — <script> ve olay dinleyicileri artık filtrelenerek engelleniyor, ekranda g\xfcvenli bi\xe7imde g\xf6steriliyor' },
+      { tag: 'fix',      text: '"Yazıyor…" göstergesi artık web araması asılsa bile takılmıyor (AbortSignal.timeout + sıra düzeltmesi)' },
+    ]
+  },
+  {
+    version: 'v2.5', date: '16 Haz 2026',
+    items: [
+      { tag: 'new',      text: 'Pro üyelik artık cihazlar arası çalışıyor — Netlify Blobs ile e-posta bazlı senkron' },
+      { tag: 'new',      text: 'Gerçek Görüntü Anlama (Vision) — Llama 4 Scout/Maverick modelleriyle multimodal görsel analizi' },
+      { tag: 'improve',  text: 'Kapsamlı mobil & PWA iyileştirmesi — safe-area, 100dvh, kaydırma jestleri, klavye farkındalığı' },
+      { tag: 'fix',      text: 'Görsel üretme URL hatası düzeltildi (pollinations.ai doğru endpoint)' },
+      { tag: 'fix',      text: '<thinking> etiketleri artık animasyon sırasında görünmüyor; katlanabilir "Düşünme süreci" bloğuna dönüştürülüyor' },
+      { tag: 'fix',      text: 'Yer imi kopyalama düzeltildi — özel karakter içeren metinlerde çöküyordu' },
+    ]
+  },
+  {
+    version: 'v2.0', date: '15 Haz 2026',
+    items: [
+      { tag: 'new',      text: 'Karşılaştırma Modu — aynı soruya iki farklı modelin yanıtını yan yana göster' },
+      { tag: 'new',      text: 'Grafik/Chart desteği — ```chart bloğu ile Chart.js grafikleri doğrudan sohbette' },
+      { tag: 'new',      text: 'Çeviri butonu — her AI yanıtını tek tıkla Türkçe/İngilizce çevir' },
+      { tag: 'new',      text: 'Yer İmleri sistemi — önemli yanıtları kaydet, filtrele, kopyala' },
+      { tag: 'new',      text: 'Prompt Şablonları — sık kullanılan istemler için hızlı şablon galerisi' },
+      { tag: 'fix',      text: 'marked.js v12.0.2\'ye sabitlendi — tüm kod bloklarını bozan renderer imza değişikliği giderildi' },
+    ]
+  },
+  {
+    version: 'v1.5', date: '14 Haz 2026',
+    items: [
+      { tag: 'new',      text: 'Ses / Sesli Konuşma Modu — mikrofon ile konuş, AI seslendirsin' },
+      { tag: 'new',      text: 'PDF okuma — yüklenen PDF dosyaları otomatik metne çevriliyor' },
+      { tag: 'new',      text: 'Yanıt Dallanması — mesajı düzenle ve farklı yanıtlar arasında ‹ › ile gezilebilir' },
+      { tag: 'new',      text: 'Komut Paleti (⌘K) — hızlı eylem ve sohbet arama' },
+      { tag: 'improve',  text: 'Topbar sadeleştirildi — ⋯ Araçlar menüsüne taşındı' },
+      { tag: 'fix',      text: 'toggleReasoning / toggleCompareMode çöküşleri giderildi' },
+    ]
+  },
+  {
+    version: 'v1.0', date: '13 Haz 2026',
+    items: [
+      { tag: 'new',      text: 'Artus Omni.Ai ilk sürüm — Groq destekli çoklu model AI sohbeti' },
+      { tag: 'new',      text: 'Hafıza sistemi, özel talimatlar, projeler, tema/aksent seçimi' },
+      { tag: 'new',      text: 'Görsel üretme (Pollinations.ai), Artifacts paneli, Odak Modu' },
+      { tag: 'new',      text: 'PWA desteği — Android/iOS\'a yüklenebilir, çevrimdışı çalışma' },
+    ]
+  },
+];
+
+function openUpdateLog() {
+  const body = document.getElementById('update-body');
+  body.innerHTML = CHANGELOG.map(v => `
+    <div class="update-version">
+      <div style="display:flex;align-items:center">
+        <span class="update-version-tag">⚡ ${v.version}</span>
+        <span class="update-version-date">${v.date}</span>
+      </div>
+      <ul class="update-items">
+        ${v.items.map(it => `<li><span class="update-tag tag-${it.tag}">${it.tag==='new'?'YENİ':it.tag==='fix'?'DÜZELT':it.tag==='security'?'GÜVENLİK':'İYİLEŞ'}</span>${escapeHtml(it.text)}</li>`).join('')}
+      </ul>
+    </div>`).join('');
+  document.getElementById('update-modal').classList.add('open');
+}
+function closeUpdateLog() {
+  document.getElementById('update-modal').classList.remove('open');
 }
 
 /* ════════════════════════════════════════════════════════
