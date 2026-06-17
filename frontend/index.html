@@ -1380,8 +1380,9 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
             <div class="exp-item" onclick="shareConvo();toggleToolsMenu()">🔗 Paylaş</div>
             <div class="exp-item" onclick="exportAs('pdf');toggleToolsMenu()">🖨️ PDF İndir</div>
             <div class="exp-item" onclick="exportAs('md');toggleToolsMenu()">📝 Markdown</div>
-            <div class="exp-item" onclick="exportAs('json');toggleToolsMenu()">📦 JSON</div>
+            <div class="exp-item" onclick="exportAs('json');toggleToolsMenu()">📦 JSON Dışa Aktar</div>
             <div class="exp-item" onclick="exportAs('txt');toggleToolsMenu()">📄 TXT</div>
+            <div class="exp-item" onclick="importHistory();toggleToolsMenu()">📥 Geçmişi İçe Aktar (JSON)</div>
           </div>
         </div>
 
@@ -1719,7 +1720,7 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
    CONFIGURATION
 ══════════════════════════════════════════════ */
 const STRIPE_PAYMENT_LINK = "https://buy.stripe.com/8x2bJ23qeaZe3496MbaZi00";
-const PRO_ACTIVATION_CODE = "SERVAN2026OMNI";
+// Pro kodları sunucu tarafında (KV) saklanır — istemcide sabit kod yoktur
 
 // ── Mermaid init ──
 mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'loose' });
@@ -1984,7 +1985,8 @@ async function fetchAISuggestions(responseText, div) {
     });
     const match = raw.match(/\[[\s\S]*?\]/);
     if (match) {
-      const chips = JSON.parse(match[0]);
+      let chips = null;
+      try { chips = JSON.parse(match[0]); } catch { chips = null; }
       if (Array.isArray(chips) && chips.length) {
         // div hâlâ DOM'daysa güncelle
         if (div.parentNode) {
@@ -2119,6 +2121,39 @@ function exportAs(fmt) {
 }
 function dlBlob(blob, name) {
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+}
+
+function importHistory() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json,application/json';
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      // İki format desteklenir: dizi (exportAs json) veya tam geçmiş nesnesi
+      let entries = [];
+      if (Array.isArray(data)) {
+        // exportAs('json') formatı: [{role,content}...]
+        entries = [{ id: Date.now(), title: file.name.replace('.json',''), date: Date.now(), messages: data }];
+      } else if (data.history && Array.isArray(data.history)) {
+        entries = data.history;
+      } else {
+        showToast('❌ Desteklenmeyen JSON formatı');
+        return;
+      }
+      const existing = getHistory();
+      const merged = [...entries, ...existing].slice(0, 200);
+      localStorage.setItem('artus_history', JSON.stringify(merged));
+      renderConvoList();
+      showToast(`✅ ${entries.length} sohbet içe aktarıldı`);
+    } catch (err) {
+      showToast('❌ JSON okunamadı: ' + err.message);
+    }
+  };
+  input.click();
 }
 
 // ── Prompt Templates ──
@@ -2618,38 +2653,56 @@ function stripeCheckout() {
   window.open(STRIPE_PAYMENT_LINK, '_blank');
 }
 
-function activateProCode() {
+async function activateProCode() {
   const inp = document.getElementById('activation-code-input');
+  const btn = document.querySelector('.btn-activate');
   const code = inp ? inp.value.trim().toUpperCase() : '';
-  if (!code) {
-    showToast('Lütfen aktivasyon kodunu girin');
+  if (!code) { showToast('Lütfen aktivasyon kodunu girin'); return; }
+  if (!CURRENT_USER || !CURRENT_USER.email) {
+    showToast('Önce hesabınıza giriş yapın');
     return;
   }
-  if (code === PRO_ACTIVATION_CODE) {
-    CURRENT_USER.pro = true;
-    localStorage.setItem('artus_user', JSON.stringify(CURRENT_USER));
-    updateTierBadge();
-    closeProModal();
-    showToast('🎉 Pro aktif edildi! Hoş geldiniz.');
-    syncProStatus({ activate: true });
-  } else {
-    showToast('❌ Geçersiz aktivasyon kodu');
-    if (inp) {
-      inp.style.borderColor = 'var(--red)';
-      setTimeout(() => { inp.style.borderColor = ''; }, 1500);
+
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+
+  try {
+    const resp = await fetch('/api/pro-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: CURRENT_USER.email, code }),
+    });
+    const data = await resp.json();
+
+    if (data.pro) {
+      CURRENT_USER.pro = true;
+      localStorage.setItem('artus_user', JSON.stringify(CURRENT_USER));
+      updateTierBadge();
+      closeProModal();
+      showToast('🎉 Pro aktif edildi! Hoş geldiniz.');
+    } else {
+      const msg = data.error || 'Geçersiz aktivasyon kodu';
+      showToast('❌ ' + msg);
+      if (inp) {
+        inp.style.borderColor = 'var(--red)';
+        setTimeout(() => { inp.style.borderColor = ''; }, 1500);
+      }
     }
+  } catch (e) {
+    showToast('❌ Sunucuya bağlanılamadı, tekrar deneyin');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Aktifleştir'; }
   }
 }
 
 // Pro durumunu e-posta bazlı sunucuda senkronlar — böylece başka bir
 // cihazda aynı e-postayla girince Pro durumu otomatik geri yüklenir.
-async function syncProStatus(opts) {
+async function syncProStatus() {
   if (!CURRENT_USER || !CURRENT_USER.email) return;
   try {
     const resp = await fetch('/api/pro-status', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: CURRENT_USER.email, activate: !!(opts && opts.activate) }),
+      body: JSON.stringify({ email: CURRENT_USER.email }),
     });
     if (!resp.ok) return;
     const data = await resp.json();
@@ -2721,14 +2774,6 @@ function updateHistoryEntry() {
   if (idx === -1) return;
   history[idx].messages = [...sessionMessages];
   saveHistory(history);
-}
-
-/* showHistory() — command palette / legacy hook opens sidebar */
-function showHistory() {
-  const sb = document.getElementById('sidebar');
-  if (sb && sb.classList.contains('collapsed')) toggleSidebar();
-  renderConvoList();
-  document.getElementById('convo-search')?.focus();
 }
 
 function showHistory() {
@@ -3634,7 +3679,7 @@ async function sendMessage() {
       if (firstUser && hist && !hist._titled) setTimeout(() => autoTitle(currentHistoryId, firstUser.content), 400);
     } else {
       if (!bubble) bubble = createBotBubble();
-      bubble.innerHTML = '<em style="color:var(--yellow)">Boş cevap geldi, tekrar dene.</em>';
+      bubble.innerHTML = '<em style="color:var(--yellow)">⚠️ Model boş yanıt döndürdü. Mesajı kısaltıp tekrar deneyin veya farklı bir model seçin.</em>';
     }
 
   } catch(err) {
@@ -4860,6 +4905,7 @@ function notifyDone() {
    TOKEN USAGE BAR
 ════════════════════════════════════════════════════════ */
 const MAX_CONTEXT = 128000;
+let _contextWarnedAt = 0;
 function updateUsageBar() {
   const total = sessionMessages.reduce((s, m) => s + (m.content || '').length, 0);
   const pct = Math.min(100, Math.round(total / (MAX_CONTEXT * 4) * 100));
@@ -4867,6 +4913,15 @@ function updateUsageBar() {
   if (bar) {
     bar.style.width = pct + '%';
     bar.style.background = pct > 80 ? 'var(--red)' : pct > 60 ? 'var(--yellow)' : 'linear-gradient(90deg,var(--accent),var(--accent-2))';
+  }
+  if (pct >= 80 && _contextWarnedAt < 80) {
+    _contextWarnedAt = 80;
+    showToast('⚠️ Bağlam penceresi %80 dolu — yeni sohbet başlatmayı düşünün (Ctrl+Shift+O)');
+  } else if (pct >= 95 && _contextWarnedAt < 95) {
+    _contextWarnedAt = 95;
+    showToast('🔴 Bağlam penceresi kritik seviyede! Yeni sohbet başlatın.');
+  } else if (pct < 75) {
+    _contextWarnedAt = 0;
   }
 }
 
