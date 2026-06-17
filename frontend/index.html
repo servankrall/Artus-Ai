@@ -1331,6 +1331,8 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
         </div>
       </div>
 
+      <div id="sb-stats" style="font-size:11px;color:var(--muted);display:flex;gap:12px;padding:2px 4px 0"></div>
+
       <div class="sb-user" onclick="toggleUserDropdown()">
         <div class="sb-user-avatar" id="sb-user-avatar"></div>
         <div class="sb-user-info">
@@ -2490,6 +2492,7 @@ function init() {
 
   renderUserUI();
   syncProStatus();
+  updateSidebarStats();
   debugSession.textContent = SESSION_ID;
   applyMode(currentMode, false);
   applyModel(currentModel, false);
@@ -2610,6 +2613,15 @@ function renderUserUI() {
   if (sbName) sbName.textContent = CURRENT_USER.name || '';
 
   updateTierBadge();
+}
+
+function updateSidebarStats() {
+  const el = document.getElementById('sb-stats');
+  if (!el) return;
+  const history = getHistory();
+  const totalMsgs = sessionMessages.length;
+  const totalTokens = Math.round(sessionMessages.reduce((s,m) => s + (m.content||'').length, 0) / 4);
+  el.innerHTML = `<span title="Bu oturumda">💬 ${totalMsgs} mesaj</span><span title="Yaklaşık token">🔢 ~${totalTokens > 999 ? (totalTokens/1000).toFixed(1)+'k' : totalTokens} token</span><span title="Toplam sohbet">📁 ${history.length} sohbet</span>`;
 }
 
 function updateTierBadge() {
@@ -4940,6 +4952,7 @@ function updateUsageBar() {
   } else if (pct < 75) {
     _contextWarnedAt = 0;
   }
+  updateSidebarStats();
 }
 
 /* ════════════════════════════════════════════════════════

@@ -22,6 +22,7 @@ Yazılım geliştirme, web geliştirme, yapay zeka, siber güvenlik, veri analiz
 8. Büyük projeleri modüllere ayır.
 9. Hata bulduğunda nedenini açıkla.
 10. Gereksiz uzun cevap verme.
+11. **Dil uyumu:** Kullanıcı hangi dilde yazıyorsa o dilde yanıt ver. Türkçe soruya Türkçe, İngilizce soruya İngilizce cevap ver. Kod yorumlarında da aynı dili kullan.
 
 ## Çalışma Şekli
 Amaç Analizi → Gereksinimler → Plan → Uygulama → Doğrulama → Sonuç.
