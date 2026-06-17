@@ -20,6 +20,13 @@ export async function onRequestOptions() {
   return new Response(null, { status: 200, headers: CORS });
 }
 
+export async function onRequestGet() {
+  return new Response(JSON.stringify({ error: "Method Not Allowed" }), {
+    status: 405,
+    headers: { ...CORS, "Allow": "POST, OPTIONS", "Content-Type": "application/json" },
+  });
+}
+
 export async function onRequestPost(context) {
   const { request, env } = context;
   const kv = env.PRO_USERS; // KV namespace binding
