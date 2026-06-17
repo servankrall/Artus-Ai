@@ -1152,6 +1152,27 @@ body.light-mode .mem-item, body.light-mode .proj-item { background:#fff;border-c
 body.light-mode #ctx-menu { background:#fff;border-color:#d0d4e1; }
 body.light-mode .ctx-item { color:#111827; }
 body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
+/* ══ GÖRÜNTÜ GALERİSİ ══ */
+#gallery-modal { display:none;position:fixed;inset:0;z-index:1200;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);overflow-y:auto;padding:20px; }
+#gallery-modal.open { display:block; }
+#gallery-card { max-width:1100px;margin:0 auto;background:var(--bg);border:1px solid var(--border);border-radius:16px;overflow:hidden; }
+.gallery-header { display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid var(--border); }
+.gallery-header h3 { margin:0;font-size:18px;font-weight:700; }
+.gallery-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;padding:20px; }
+.gallery-item { border-radius:12px;overflow:hidden;border:1px solid var(--border);background:var(--surface);cursor:pointer;transition:transform .15s,box-shadow .15s;position:relative; }
+.gallery-item:hover { transform:scale(1.02);box-shadow:0 8px 24px rgba(0,0,0,.4); }
+.gallery-item img { width:100%;aspect-ratio:3/2;object-fit:cover;display:block; }
+.gallery-item-bar { padding:8px 10px;display:flex;align-items:center;gap:6px; }
+.gallery-item-prompt { flex:1;font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.gallery-empty { text-align:center;padding:60px 20px;color:var(--muted);font-size:14px; }
+.gallery-del-btn { background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;padding:2px 4px;border-radius:4px;line-height:1; }
+.gallery-del-btn:hover { color:var(--red); }
+/* ══ WEB ARAMA DURUM BALONU ══ */
+.web-search-status { display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);padding:6px 10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:4px; }
+.web-search-status .dot { width:7px;height:7px;border-radius:50%;background:var(--accent);animation:pulse 1s infinite; }
+/* ══ AKILLı ÖNERİLER ══ */
+.suggestion-chips.ai-chips .suggestion-chip { background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(168,85,247,.08));border-color:rgba(99,102,241,.35); }
+.suggestion-chips.ai-chips .suggestion-chip:hover { border-color:var(--accent);background:rgba(99,102,241,.2); }
 </style>
 </head>
 <body data-mode="chat">
@@ -1209,6 +1230,20 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ── Görüntü Galerisi Modal ── -->
+<div id="gallery-modal">
+  <div id="gallery-card">
+    <div class="gallery-header">
+      <h3>🖼 Görüntü Galerisi</h3>
+      <div style="display:flex;gap:10px;align-items:center">
+        <button onclick="clearGallery()" style="background:none;border:1px solid var(--border);color:var(--muted);padding:5px 12px;border-radius:8px;cursor:pointer;font-size:12px">Tümünü Sil</button>
+        <button onclick="closeGallery()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:22px;line-height:1">✕</button>
+      </div>
+    </div>
+    <div id="gallery-grid" class="gallery-grid"></div>
   </div>
 </div>
 
@@ -1301,6 +1336,7 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
         <div style="position:relative">
           <button class="topbar-icon-btn" id="btn-tools" onclick="toggleToolsMenu(event)" title="Araçlar">⋯</button>
           <div id="tools-dropdown" style="display:none;position:absolute;right:0;top:calc(100%+6px);background:var(--surface);border:1px solid var(--border);border-radius:10px;min-width:210px;z-index:300;overflow:hidden;box-shadow:0 8px 28px rgba(0,0,0,.5);">
+            <div class="exp-item" onclick="openGallery();toggleToolsMenu()">🖼 Görüntü Galerisi</div>
             <div class="exp-item" id="tool-reason" onclick="toggleReasoning();toggleToolsMenu()">🧠 Derin Düşünme</div>
             <div class="exp-item" id="tool-compare" onclick="toggleCompareMode();toggleToolsMenu()">⚖️ Karşılaştırma Modu</div>
             <div class="exp-item" onclick="toggleArtifacts();toggleToolsMenu()">🗂 Artifacts Paneli</div>
@@ -1860,29 +1896,66 @@ function downloadArtifact(i) {
   el.download = `artifact-${i+1}.html`; el.click();
 }
 
-// ── Quick reply suggestions ──
-const SUGGESTIONS = {
+// ── Akıllı AI Önerileri ──
+const FALLBACK_SUGGESTIONS = {
   code: ['Kodu açıkla', 'Test yaz', 'Optimize et'],
   list: ['Detaylandır', 'Önceliklendir', 'Özetle'],
   explain: ['Örnek ver', 'Daha basit anlat', 'Devam et'],
   default: ['Devam et', 'Daha fazla', 'Farklı yaklaşım']
 };
-function getSuggestions(text) {
-  if (/```/.test(text)) return SUGGESTIONS.code;
-  if (/^\s*[-*\d]/.test(text)) return SUGGESTIONS.list;
-  if (text.length > 300) return SUGGESTIONS.explain;
-  return SUGGESTIONS.default;
+function getFallbackSuggestions(text) {
+  if (/```/.test(text)) return FALLBACK_SUGGESTIONS.code;
+  if (/^\s*[-*\d]/.test(text)) return FALLBACK_SUGGESTIONS.list;
+  if (text.length > 300) return FALLBACK_SUGGESTIONS.explain;
+  return FALLBACK_SUGGESTIONS.default;
 }
-function addSuggestions(text) {
-  const chips = getSuggestions(text);
+function addSuggestions(aiResponseText) {
+  // Önce statik önerileri göster, sonra AI'dan gerçek öneriler al
   const div = document.createElement('div');
   div.className = 'suggestion-chips';
-  div.innerHTML = chips.map(c => `<button class="suggestion-chip" onclick="sendSuggestion(this,'${c}')">${c}</button>`).join('');
+  const fallback = getFallbackSuggestions(aiResponseText);
+  div.innerHTML = fallback.map(c => `<button class="suggestion-chip" onclick="sendSuggestion(this,${JSON.stringify(c)})">${c}</button>`).join('');
   document.getElementById('chat-area').appendChild(div);
   scrollToBottom();
+
+  // Arka planda AI'dan bağlama özel sorular al
+  fetchAISuggestions(aiResponseText, div);
 }
+
+async function fetchAISuggestions(responseText, div) {
+  try {
+    const snippet = responseText.slice(0, 600);
+    const msgs = [
+      { role: 'user', content: 'Konuşmaya devam etmek için 3 kısa Türkçe soru öner. Sadece JSON array: ["soru1","soru2","soru3"]. Başka hiçbir şey yazma.' },
+      { role: 'assistant', content: snippet },
+      { role: 'user', content: 'Bu yanıtı göz önünde bulundurarak kullanıcının sorabileceği 3 kısa Türkçe soru öner. SADECE JSON array: ["soru1","soru2","soru3"]' }
+    ];
+    let raw = '';
+    await OmniAI.streamChat({
+      messages: msgs,
+      model: 'llama-3.1-8b-instant',
+      maxTokens: 120,
+      temperature: 0.7,
+      onText: (t) => { raw += t; },
+    });
+    const match = raw.match(/\[[\s\S]*?\]/);
+    if (match) {
+      const chips = JSON.parse(match[0]);
+      if (Array.isArray(chips) && chips.length) {
+        // div hâlâ DOM'daysa güncelle
+        if (div.parentNode) {
+          div.className = 'suggestion-chips ai-chips';
+          div.innerHTML = chips.map(c => `<button class="suggestion-chip" onclick="sendSuggestion(this,${JSON.stringify(c)})">${c}</button>`).join('');
+          scrollToBottom();
+        }
+      }
+    }
+  } catch(_) { /* AI öneri alamadı — statik çipler kalır */ }
+}
+
 function sendSuggestion(btn, text) {
-  btn.closest('.suggestion-chips').remove();
+  const chips = btn.closest('.suggestion-chips');
+  if (chips) chips.remove();
   inputEl.value = text;
   sendMessage();
 }
@@ -3381,12 +3454,10 @@ async function sendMessage() {
   }
 
   let sendText = messageText;
-  if (webSearchOn) {
-    sendText = '[WEB ARAMA MODU - güncel bilgileri kullanarak cevap ver]: ' + messageText;
-  }
 
   resetInput();
   appendUserMsg(messageText);
+
   // Yüklenen görsellerin küçük resimlerini kullanıcı balonuna ekle
   if (imageUrls.length) {
     const lastUser = [...chatArea.querySelectorAll('.msg.user')].pop();
@@ -3397,6 +3468,35 @@ async function sendMessage() {
     }
   }
   setStreaming(true);
+
+  // ── Gerçek web araması ──
+  if (webSearchOn) {
+    const statusDiv = document.createElement('div');
+    statusDiv.className = 'web-search-status';
+    statusDiv.innerHTML = `<span class="dot"></span><span>🔍 Web'de aranıyor: <em>${escapeHtml(messageText.slice(0,60))}</em>…</span>`;
+    chatArea.appendChild(statusDiv);
+    scrollBottom();
+    try {
+      const sr = await fetch('/api/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: messageText }),
+      });
+      const sd = await sr.json();
+      if (sd.results && sd.results.length) {
+        const webCtx = sd.results.map((r, i) =>
+          `${i+1}. **${r.title}**\n${r.snippet}${r.url ? '\nKaynak: ' + r.url : ''}`
+        ).join('\n\n');
+        sendText = messageText + `\n\n[GÜNCEL WEB SONUÇLARI]\n${webCtx}\n[/WEB SONUÇLARI]\n\nYukarıdaki güncel web bilgilerini kullanarak yanıt ver.`;
+        statusDiv.innerHTML = `<span style="color:var(--accent)">✓</span> ${sd.results.length} web sonucu bulundu`;
+        setTimeout(() => statusDiv.remove(), 2500);
+      } else {
+        statusDiv.remove();
+      }
+    } catch (_) {
+      statusDiv.remove();
+    }
+  }
 
   sessionMessages.push({ role: 'user', content: messageText });
   updateUsageBar();
@@ -4182,6 +4282,18 @@ function toggleImgGenMode() {
   showToast(imgGenMode ? '🎨 Görsel üretme modu aktif' : 'Görsel modu kapatıldı');
 }
 
+/* ════════════════════════════════════════════════════
+   GÖRÜNTÜ ÜRETİMİ + GALERİ
+════════════════════════════════════════════════════ */
+function getGallery() { try { return JSON.parse(localStorage.getItem('artus_gallery') || '[]'); } catch(_) { return []; } }
+function saveGallery(list) { localStorage.setItem('artus_gallery', JSON.stringify(list)); }
+
+function saveToGallery(prompt, url) {
+  const list = getGallery();
+  list.unshift({ id: Date.now(), prompt, url, date: new Date().toISOString() });
+  saveGallery(list.slice(0, 100)); // max 100 görsel
+}
+
 function generateImage(prompt) {
   const encodedPrompt = encodeURIComponent(prompt);
   const seed = Math.floor(Math.random() * 99999);
@@ -4203,10 +4315,12 @@ function generateImage(prompt) {
     bar.innerHTML = `
       <span style="flex:1;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(prompt)}</span>
       <button class="btn-copy" onclick="downloadGenImg('${url}','${encodeURIComponent(prompt)}')">⬇ İndir</button>
+      <button class="btn-copy" onclick="openGallery()" title="Galeriyi aç">🖼</button>
       <button class="btn-copy" onclick="generateImage('${prompt.replace(/'/g,"\\'")}')">🔄 Yeniden</button>`;
     wrap.appendChild(bar);
     bubble.appendChild(wrap);
     sessionMessages.push({ role:'assistant', content:`[Görsel üretildi: ${prompt}]` });
+    saveToGallery(prompt, url);
     updateHistoryEntry();
     scrollBottom();
     notifyDone();
@@ -4222,6 +4336,42 @@ function downloadGenImg(url, encodedName) {
   const a = document.createElement('a');
   a.href = url; a.download = decodeURIComponent(encodedName).slice(0,40)+'.jpg';
   a.target = '_blank'; a.click();
+}
+
+function openGallery() {
+  renderGallery();
+  document.getElementById('gallery-modal').classList.add('open');
+  closeUserDropdown();
+}
+function closeGallery() {
+  document.getElementById('gallery-modal').classList.remove('open');
+}
+function renderGallery() {
+  const list = getGallery();
+  const grid = document.getElementById('gallery-grid');
+  if (!list.length) {
+    grid.innerHTML = `<div class="gallery-empty">🎨 Henüz görsel üretilmedi.<br><br><button onclick="closeGallery();if(!imgGenMode)toggleImgGenMode();" style="background:var(--accent);color:#fff;border:none;padding:8px 20px;border-radius:8px;cursor:pointer;font-size:13px">Görsel Üret</button></div>`;
+    return;
+  }
+  grid.innerHTML = list.map((item, i) => `
+    <div class="gallery-item">
+      <img src="${item.url}" alt="${escapeHtml(item.prompt)}" loading="lazy" onclick="window.open('${item.url}','_blank')">
+      <div class="gallery-item-bar">
+        <span class="gallery-item-prompt" title="${escapeHtml(item.prompt)}">${escapeHtml(item.prompt)}</span>
+        <button class="gallery-del-btn" onclick="deleteGalleryItem(${item.id})" title="Sil">🗑</button>
+        <button class="gallery-del-btn" onclick="downloadGenImg('${item.url}','${encodeURIComponent(item.prompt.slice(0,40))}')" title="İndir">⬇</button>
+      </div>
+    </div>`).join('');
+}
+function deleteGalleryItem(id) {
+  const list = getGallery().filter(i => i.id !== id);
+  saveGallery(list);
+  renderGallery();
+}
+function clearGallery() {
+  if (!confirm('Tüm galeri silinsin mi?')) return;
+  saveGallery([]);
+  renderGallery();
 }
 
 /* ════════════════════════════════════════════════════════
