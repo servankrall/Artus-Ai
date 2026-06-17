@@ -1190,6 +1190,13 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
 /* ══ WEB ARAMA DURUM BALONU ══ */
 .web-search-status { display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);padding:6px 10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:4px; }
 .web-search-status .dot { width:7px;height:7px;border-radius:50%;background:var(--accent);animation:pulse 1s infinite; }
+.citations-panel { display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px;margin-top:4px;border-top:1px solid var(--border); }
+.citation-chip { display:inline-flex;align-items:center;gap:4px;padding:3px 9px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.3);border-radius:20px;font-size:11.5px;color:var(--accent);text-decoration:none;max-width:260px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis; }
+.citation-chip:hover { background:rgba(99,102,241,.2); }
+.research-progress { background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin:8px 0;font-size:13px;line-height:1.7; }
+.research-step { display:flex;align-items:center;gap:8px;padding:3px 0;color:var(--muted); }
+.research-step.done { color:var(--accent); }
+.research-step.active { color:var(--text); }
 /* ══ AKILLı ÖNERİLER ══ */
 .suggestion-chips.ai-chips .suggestion-chip { background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(168,85,247,.08));border-color:rgba(99,102,241,.35); }
 .suggestion-chips.ai-chips .suggestion-chip:hover { border-color:var(--accent);background:rgba(99,102,241,.2); }
@@ -1451,6 +1458,7 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
         <div class="input-wrap">
           <button class="input-side-btn" id="btn-attach" title="Dosya ekle (PDF, görsel, kod)" onclick="triggerFileAttach()">＋</button>
           <button class="input-side-btn" id="btn-web" title="Web arama modu" onclick="toggleWebSearch()">🌐</button>
+          <button class="input-side-btn" id="btn-deep-research" title="Derin Araştırma modu" onclick="toggleDeepResearch()">🔬</button>
           <button class="input-side-btn" id="btn-img-gen" title="Görsel üret (Ctrl+G)" onclick="toggleImgGenMode()">🎨</button>
           <button class="input-side-btn" id="btn-enhance" title="Promptu geliştir (✨)" onclick="enhancePrompt()">✨</button>
           <textarea id="user-input" rows="1" placeholder="Mesajınızı yazın… ( / komutlar · Enter gönder )"></textarea>
@@ -1926,25 +1934,46 @@ function addArtifact(code, lang) {
   const ab = document.getElementById('btn-artifacts');
   if (ab) { ab.dataset.count = artifacts.length; ab.classList.add('has-artifacts'); }
 }
+let _activeArtifact = 0;
+let _artifactEditMode = false;
 function renderArtifactPanel() {
   const panel = document.getElementById('artifacts-panel');
   if (!panel) return;
-  const header = `<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border);flex-shrink:0">
-    <strong style="color:var(--text);font-size:14px">🗂 Artifacts (${artifacts.length})</strong>
-    <button onclick="document.getElementById('artifacts-panel').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;line-height:1">×</button>
-  </div>`;
-  const body = artifacts.map((a, i) => `
-    <div class="artifact-tab" onclick="showArtifact(${i})" style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border)">
-      <span>⬡ ${a.title}</span>
-      <button onclick="event.stopPropagation();downloadArtifact(${i})" title="İndir" style="background:none;border:none;color:var(--accent);cursor:pointer">⬇</button>
-    </div>
-    <iframe id="af-${i}" sandbox="allow-scripts allow-same-origin" class="artifact-frame" srcdoc="${a.code.replace(/"/g,'&quot;')}" style="width:100%;height:60%;border:none;display:${i===artifacts.length-1?'block':'none'};background:#fff"></iframe>
-  `).join('');
-  panel.innerHTML = `<div style="display:flex;flex-direction:column;height:100%">${header}<div style="flex:1;overflow-y:auto">${body}</div></div>`;
+  const a = artifacts[_activeArtifact] || artifacts[0];
+  if (!a) return;
+  const tabs = artifacts.map((art,i) => `<button onclick="switchArtifact(${i})" style="padding:5px 12px;border:none;background:${i===_activeArtifact?'var(--accent)':'transparent'};color:${i===_activeArtifact?'#fff':'var(--muted)'};border-radius:6px;cursor:pointer;font-size:12px">⬡ ${escapeHtml(art.title)}</button>`).join('');
+  const editModeLabel = _artifactEditMode ? '👁 Önizle' : '✏️ Düzenle';
+  panel.innerHTML = `
+    <div style="display:flex;flex-direction:column;height:100%">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid var(--border);flex-shrink:0;gap:8px">
+        <div style="display:flex;gap:4px;flex-wrap:wrap;flex:1">${tabs}</div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button onclick="toggleArtifactEdit()" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text);cursor:pointer;font-size:12px">${editModeLabel}</button>
+          <button onclick="downloadArtifact(${_activeArtifact})" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--accent);cursor:pointer;font-size:12px">⬇</button>
+          <button onclick="document.getElementById('artifacts-panel').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;line-height:1">×</button>
+        </div>
+      </div>
+      <div style="flex:1;display:flex;min-height:0">
+        ${_artifactEditMode ? `
+          <textarea id="artifact-editor" oninput="liveArtifactPreview()" style="flex:1;background:var(--bg);color:var(--text);border:none;border-right:1px solid var(--border);padding:12px;font-family:var(--mono);font-size:13px;resize:none;outline:none">${escapeHtml(a.code)}</textarea>
+          <iframe id="artifact-preview" sandbox="allow-scripts allow-same-origin" srcdoc="${a.code.replace(/"/g,'&quot;')}" style="flex:1;border:none;background:#fff"></iframe>
+        ` : `
+          <iframe sandbox="allow-scripts allow-same-origin" srcdoc="${a.code.replace(/"/g,'&quot;')}" style="width:100%;height:100%;border:none;background:#fff"></iframe>
+        `}
+      </div>
+    </div>`;
 }
-function showArtifact(i) {
-  document.querySelectorAll('.artifact-frame').forEach((f,j) => f.style.display = j===i?'block':'none');
+function switchArtifact(i) { _activeArtifact = i; _artifactEditMode = false; renderArtifactPanel(); }
+function toggleArtifactEdit() { _artifactEditMode = !_artifactEditMode; renderArtifactPanel(); }
+function liveArtifactPreview() {
+  const ed = document.getElementById('artifact-editor');
+  const pv = document.getElementById('artifact-preview');
+  if (!ed || !pv) return;
+  artifacts[_activeArtifact].code = ed.value;
+  clearTimeout(liveArtifactPreview._t);
+  liveArtifactPreview._t = setTimeout(() => { pv.srcdoc = ed.value; }, 400);
 }
+function showArtifact(i) { switchArtifact(i); }
 function downloadArtifact(i) {
   const a = artifacts[i];
   const blob = new Blob([a.code], {type:'text/html'});
@@ -1965,6 +1994,35 @@ function getFallbackSuggestions(text) {
   if (text.length > 300) return FALLBACK_SUGGESTIONS.explain;
   return FALLBACK_SUGGESTIONS.default;
 }
+async function autoExtractMemory() {
+  if (!CURRENT_USER) return;
+  const recent = sessionMessages.slice(-6);
+  if (recent.length < 2) return;
+  const userMsgs = recent.filter(m => m.role === 'user').map(m => m.content).join(' ');
+  if (userMsgs.length < 30) return;
+  try {
+    let raw = '';
+    await OmniAI.streamChat({
+      messages: [{ role:'user', content:`Aşağıdaki kullanıcı mesajlarından kullanıcı hakkında öğrenilebilecek kişisel bilgileri, tercihleri veya ilgi alanlarını çıkar. Sadece kesin çıkarımlar. JSON string dizisi olarak döndür (boşsa []). Mesajlar:\n${userMsgs.slice(0,600)}` }],
+      model: 'llama-3.1-8b-instant', temperature: 0.2, maxTokens: 150,
+      onText: c => { raw += c; },
+    });
+    const match = raw.match(/\[[\s\S]*?\]/);
+    if (!match) return;
+    let facts;
+    try { facts = JSON.parse(match[0]); } catch { return; }
+    if (!Array.isArray(facts) || !facts.length) return;
+    const mem = getMemory();
+    const existing = new Set(mem.map(m => m.text.toLowerCase()));
+    const newFacts = facts.filter(f => typeof f === 'string' && f.length > 5 && !existing.has(f.toLowerCase()));
+    if (!newFacts.length) return;
+    newFacts.forEach(f => mem.push({ id: Date.now() + Math.random(), text: f, auto: true }));
+    saveMemory(mem);
+    renderMemoryList();
+    showToast(`🧠 ${newFacts.length} yeni bilgi hafızaya eklendi`);
+  } catch(_) {}
+}
+
 function addSuggestions(aiResponseText) {
   // Önce statik önerileri göster, sonra AI'dan gerçek öneriler al
   const div = document.createElement('div');
@@ -2008,6 +2066,114 @@ async function fetchAISuggestions(responseText, div) {
       }
     }
   } catch(_) { /* AI öneri alamadı — statik çipler kalır */ }
+}
+
+let deepResearchMode = false;
+function toggleDeepResearch() {
+  deepResearchMode = !deepResearchMode;
+  const btn = document.getElementById('btn-deep-research');
+  if (btn) btn.style.background = deepResearchMode ? 'rgba(99,102,241,.25)' : '';
+  if (deepResearchMode) {
+    webSearchOn = false;
+    document.getElementById('btn-web').style.background = '';
+  }
+  showToast(deepResearchMode ? '🔬 Derin Araştırma modu açık' : '🔬 Derin Araştırma kapatıldı');
+}
+
+async function runDeepResearch(query) {
+  setStreaming(true);
+  const progDiv = document.createElement('div');
+  progDiv.className = 'research-progress';
+  progDiv.innerHTML = `<div style="font-weight:600;margin-bottom:8px;color:var(--text)">🔬 Derin Araştırma: <em>${escapeHtml(query.slice(0,60))}</em></div>`;
+  chatArea.appendChild(progDiv);
+  scrollBottom();
+
+  const addStep = (text, state='active') => {
+    const s = document.createElement('div');
+    s.className = 'research-step ' + state;
+    s.innerHTML = `${state==='done'?'✓':state==='active'?'⟳':'○'} ${escapeHtml(text)}`;
+    progDiv.appendChild(s);
+    scrollBottom();
+    return s;
+  };
+  const markDone = (el) => { el.className = 'research-step done'; el.firstChild.textContent = '✓'; };
+
+  try {
+    // Step 1: Generate sub-queries
+    const s1 = addStep('Alt sorgular oluşturuluyor…');
+    let subQRaw = '';
+    await OmniAI.streamChat({
+      messages: [{ role:'user', content:`"${query}" sorusu için 4 farklı araştırma açısından kısa arama sorguları oluştur. JSON dizisi olarak ver, sadece dizi:\n["sorgu1","sorgu2","sorgu3","sorgu4"]` }],
+      model: 'llama-3.1-8b-instant', temperature: 0.4, maxTokens: 200,
+      onText: c => { subQRaw += c; },
+    });
+    let subQueries;
+    try {
+      const m = subQRaw.match(/\[[\s\S]*?\]/);
+      subQueries = m ? JSON.parse(m[0]) : [];
+    } catch { subQueries = []; }
+    if (!subQueries.length) subQueries = [query];
+    markDone(s1);
+
+    // Step 2: Search each sub-query
+    const s2 = addStep(`${subQueries.length} sorgu araştırılıyor…`);
+    const allResults = [];
+    for (const q of subQueries.slice(0,4)) {
+      try {
+        const r = await fetch('/api/search', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({query:q}), signal: AbortSignal.timeout(6000) });
+        const d = await r.json();
+        if (d.results) allResults.push(...d.results.slice(0,3).map(x => ({...x, _query: q})));
+      } catch(_) {}
+    }
+    markDone(s2);
+
+    // Step 3: Synthesize
+    const s3 = addStep('Sentez hazırlanıyor…');
+    const srcCtx = allResults.map((r,i) => `[${i+1}] ${r.title}\n${r.snippet}\nKaynak: ${r.url||''}`).join('\n\n');
+    progDiv.remove();
+    markDone(s3);
+
+    sessionMessages.push({ role:'user', content: query });
+    updateUsageBar();
+    if (!currentHistoryId) createHistoryEntry(query);
+    localStorage.setItem('artus_last_convo', currentHistoryId);
+
+    const bubble = createBotBubble();
+    let fullText = '';
+    await OmniAI.streamChat({
+      messages: [{ role:'user', content: `Şu araştırma sorusuna kapsamlı, yapılandırılmış bir yanıt ver: "${query}"\n\nKaynaklar:\n${srcCtx}\n\nYanıtında [1],[2] şeklinde kaynak atıfları kullan. Başlıklar, maddeler ve özet bölümü ekle.` }],
+      model: currentModel, systemPrompt: buildSystemPrompt(),
+      temperature: getTemperature(), maxTokens: getMaxTokens(),
+      onText: c => { fullText += c; bubble.textContent = ''; },
+    });
+
+    if (fullText) {
+      await typewriteText(bubble, fullText, currentMode);
+      const cleanText = extractReasoning(fullText).rest || fullText;
+      sessionMessages.push({ role:'assistant', content: cleanText });
+      updateHistoryEntry();
+      updateUsageBar();
+      finalizeBotMessage(bubble, cleanText);
+      // Citations panel
+      if (allResults.length) {
+        const citEl = document.createElement('div');
+        citEl.className = 'citations-panel';
+        citEl.innerHTML = '<span style="font-size:11px;color:var(--muted);width:100%">📚 Araştırma Kaynakları (' + allResults.length + '):</span>' +
+          allResults.slice(0,8).map((r,i) => `<a class="citation-chip" href="${escapeHtml(r.url||'#')}" target="_blank" rel="noopener">[${i+1}] ${escapeHtml((r.title||'').slice(0,40))}</a>`).join('');
+        const msgCol = bubble.closest('.msg-col') || bubble.parentElement;
+        if (msgCol) msgCol.appendChild(citEl);
+      }
+      addSuggestions(cleanText);
+      notifyDone();
+    }
+  } catch(err) {
+    progDiv.remove();
+    const b = createBotBubble();
+    b.innerHTML = `<em style="color:var(--yellow)">⏳ Araştırma hatası: ${escapeHtml(err.message)}</em>`;
+  } finally {
+    setStreaming(false);
+    scrollBottom();
+  }
 }
 
 function sendSuggestion(btn, text) {
@@ -2290,6 +2456,7 @@ let SESSION_ID = (() => {
 let currentMode   = localStorage.getItem('artus_mode')  || 'chat';
 let currentModel  = localStorage.getItem('artus_model') || 'llama-3.3-70b-versatile';
 let streaming     = false;
+let _lastSearchResults = null;
 let micActive     = false;
 let recognition   = null;
 
@@ -3583,6 +3750,12 @@ function stopGeneration() {
 async function sendMessage() {
   const rawText = inputEl.value.trim();
   if (!rawText || streaming) return;
+  if (deepResearchMode && rawText) {
+    appendUserMsg(rawText);
+    resetInput();
+    await runDeepResearch(rawText);
+    return;
+  }
 
   // Image generation mode
   if (imgGenMode) {
@@ -3657,7 +3830,8 @@ async function sendMessage() {
         const webCtx = sd.results.map((r, i) =>
           `${i+1}. **${r.title}**\n${r.snippet}${r.url ? '\nKaynak: ' + r.url : ''}`
         ).join('\n\n');
-        sendText = messageText + `\n\n[GÜNCEL WEB SONUÇLARI]\n${webCtx}\n[/WEB SONUÇLARI]\n\nYukarıdaki güncel web bilgilerini kullanarak yanıt ver.`;
+        sendText = messageText + `\n\n[WEB KAYNAKLARI]\n${webCtx}\n[/WEB KAYNAKLARI]\n\nYanıtında bu kaynaklara [1], [2], [3] şeklinde atıfta bulun. Her iddia için ilgili kaynak numarasını kullan.`;
+        _lastSearchResults = sd.results;
         statusDiv.innerHTML = `<span style="color:var(--accent)">✓</span> ${sd.results.length} web sonucu bulundu`;
         setTimeout(() => statusDiv.remove(), 2500);
       } else {
@@ -3705,7 +3879,17 @@ async function sendMessage() {
       updateHistoryEntry();
       updateUsageBar();
       finalizeBotMessage(bubble, cleanText);
+      if (_lastSearchResults && _lastSearchResults.length) {
+        const citEl = document.createElement('div');
+        citEl.className = 'citations-panel';
+        citEl.innerHTML = '<span style="font-size:11px;color:var(--muted);width:100%">📚 Kaynaklar:</span>' +
+          _lastSearchResults.map((r,i) => `<a class="citation-chip" href="${escapeHtml(r.url||'#')}" target="_blank" rel="noopener">[${i+1}] ${escapeHtml((r.title||'').slice(0,40))}</a>`).join('');
+        const msgCol = bubble.closest('.msg-col') || bubble.parentElement;
+        if (msgCol) msgCol.appendChild(citEl);
+        _lastSearchResults = null;
+      }
       addSuggestions(cleanText);
+      setTimeout(() => autoExtractMemory(), 3000);
       notifyDone();
       // AI akıllı başlık — ilk yanıttan sonra, çakışmayı önlemek için
       const firstUser = sessionMessages.find(m => m.role === 'user');
