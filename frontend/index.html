@@ -565,6 +565,30 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .code-wrap pre code .line { counter-increment: line; display: block; }
 .code-wrap pre code .line::before { content: counter(line); display: inline-block; width: 2.2em; margin-right: 1em; text-align: right; color: #555; user-select: none; font-size: 11px; }
 
+/* Focus search mode pill */
+.focus-mode-bar { display:flex;gap:4px;padding:4px 12px 0;flex-wrap:wrap; }
+.focus-chip { padding:3px 10px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:11.5px;cursor:pointer;transition:all .15s; }
+.focus-chip.active { background:var(--accent);border-color:var(--accent);color:#fff; }
+.focus-chip:hover:not(.active) { border-color:var(--accent);color:var(--text); }
+
+/* Sortable smart table */
+.smart-table { width:100%;border-collapse:collapse;margin:10px 0;font-size:13.5px; }
+.smart-table th { background:rgba(99,102,241,.12);padding:8px 12px;text-align:left;border-bottom:2px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap; }
+.smart-table th:hover { background:rgba(99,102,241,.22); }
+.smart-table th.asc::after { content:' ↑'; }
+.smart-table th.desc::after { content:' ↓'; }
+.smart-table td { padding:7px 12px;border-bottom:1px solid var(--border); }
+.smart-table tr:last-child td { border-bottom:none; }
+.smart-table tr:hover td { background:rgba(255,255,255,.03); }
+.smart-table-wrap { overflow-x:auto;border:1px solid var(--border);border-radius:8px;margin:8px 0; }
+
+/* URL summary chip */
+.url-chip { display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.3);border-radius:8px;font-size:12px;color:var(--accent);margin:4px 0; }
+
+/* Prompt history popup */
+.prompt-hist-item { padding:7px 12px;cursor:pointer;font-size:13px;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text); }
+.prompt-hist-item:hover { background:rgba(255,255,255,.06); }
+
 /* Omni Code action buttons */
 .code-actions { display: flex; gap: 8px; padding: 8px 12px; background: #0d1117; border-top: 1px solid var(--border); }
 .btn-accept, .btn-reject {
@@ -1394,6 +1418,8 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
             <div class="exp-item" onclick="exportAs('json');toggleToolsMenu()">📦 JSON Dışa Aktar</div>
             <div class="exp-item" onclick="exportAs('txt');toggleToolsMenu()">📄 TXT</div>
             <div class="exp-item" onclick="importHistory();toggleToolsMenu()">📥 Geçmişi İçe Aktar (JSON)</div>
+            <div class="exp-item" onclick="openPromptHistory();toggleToolsMenu()">📜 Prompt Geçmişi</div>
+            <div class="exp-item" onclick="generatePresentation();toggleToolsMenu()">🎤 Sunum Oluştur</div>
           </div>
         </div>
 
@@ -1452,6 +1478,14 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
     <div id="input-bar">
       <!-- Attached file chips -->
       <div id="attach-chips"></div>
+      <!-- Focus mode bar (shown when web search active) -->
+      <div id="focus-mode-bar" class="focus-mode-bar" style="display:none">
+        <button class="focus-chip active" data-focus="web" onclick="setFocusMode('web')">🌐 Web</button>
+        <button class="focus-chip" data-focus="academic" onclick="setFocusMode('academic')">🎓 Akademik</button>
+        <button class="focus-chip" data-focus="news" onclick="setFocusMode('news')">📰 Haberler</button>
+        <button class="focus-chip" data-focus="code" onclick="setFocusMode('code')">💻 Kod</button>
+        <button class="focus-chip" data-focus="creative" onclick="setFocusMode('creative')">✨ Yaratıcı</button>
+      </div>
       <div class="input-row" style="position:relative">
         <!-- Slash command menu -->
         <div id="slash-menu"></div>
@@ -1459,9 +1493,10 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
           <button class="input-side-btn" id="btn-attach" title="Dosya ekle (PDF, görsel, kod)" onclick="triggerFileAttach()">＋</button>
           <button class="input-side-btn" id="btn-web" title="Web arama modu" onclick="toggleWebSearch()">🌐</button>
           <button class="input-side-btn" id="btn-deep-research" title="Derin Araştırma modu" onclick="toggleDeepResearch()">🔬</button>
+          <button class="input-side-btn" id="btn-url" title="URL özetle — URL yapıştır ve özetle" onclick="triggerUrlSummarize()">🔗</button>
           <button class="input-side-btn" id="btn-img-gen" title="Görsel üret (Ctrl+G)" onclick="toggleImgGenMode()">🎨</button>
           <button class="input-side-btn" id="btn-enhance" title="Promptu geliştir (✨)" onclick="enhancePrompt()">✨</button>
-          <textarea id="user-input" rows="1" placeholder="Mesajınızı yazın… ( / komutlar · Enter gönder )"></textarea>
+          <textarea id="user-input" rows="1" placeholder="Mesajınızı yazın… ( / komutlar · URL yapıştır · Enter gönder )"></textarea>
           <button class="input-side-btn" id="btn-mic" onclick="toggleMic()" title="Sesle yaz (Ctrl+M)">🎤</button>
           <button class="input-side-btn" id="btn-voice" onclick="startVoiceMode()" title="Sesli konuşma modu">🎙️</button>
         </div>
@@ -1820,6 +1855,9 @@ function toggleWebSearch() {
   webSearchOn = !webSearchOn;
   const btn = document.getElementById('btn-web');
   if (btn) btn.classList.toggle('web-active', webSearchOn);
+  const bar = document.getElementById('focus-mode-bar');
+  if (bar) bar.style.display = webSearchOn ? 'flex' : 'none';
+  if (webSearchOn && deepResearchMode) { deepResearchMode = false; const db = document.getElementById('btn-deep-research'); if (db) db.style.background = ''; }
   showToast(webSearchOn ? '🌐 Web modu açık' : 'Web modu kapalı');
 }
 
@@ -3788,12 +3826,13 @@ async function sendMessage() {
     messageText = textFiles.map(f => f.block).join('\n') + messageText;
   }
 
-  let sendText = messageText;
-
   // ── İstemci tarafı injection uyarısı ──
   if (detectClientInjection(messageText)) {
     showToast('⚠️ Bu mesaj sistem güvenlik filtrelerinden geçecek.');
   }
+
+  // Mindmap intent — mermaid mindmap formatı için prompt enjeksiyonu
+  let sendText = isMindmapRequest(messageText) ? injectMindmapPrompt(messageText) : messageText;
 
   resetInput();
   appendUserMsg(messageText);
@@ -3822,7 +3861,7 @@ async function sendMessage() {
       const sr = await fetch('/api/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: messageText }),
+        body: JSON.stringify({ query: (FOCUS_MODES[_focusMode]?.queryPrefix || '') + messageText }),
         signal: AbortSignal.timeout(7000), // 7 sn içinde yanıt gelmezse geç
       });
       const sd = await sr.json();
@@ -4477,6 +4516,11 @@ const SLASH_COMMANDS = [
   { cmd:'/paylas', icon:'🔗', desc:'Sohbeti paylaş', fn:() => { clearSlash(); shareConvo(); } },
   { cmd:'/ses', icon:'🎙️', desc:'Sesli konuşma', fn:() => { clearSlash(); startVoiceMode(); } },
   { cmd:'/tema', icon:'🌙', desc:'Tema değiştir', fn:() => { clearSlash(); toggleTheme(); } },
+  { cmd:'/sunum', icon:'🎤', desc:'AI sunum oluştur', fn:() => { setSlashText('Şu konu için profesyonel sunum hazırla: '); } },
+  { cmd:'/mindmap', icon:'🗺️', desc:'Zihin haritası oluştur', fn:() => { setSlashText('Şu konu için zihin haritası oluştur: '); } },
+  { cmd:'/url', icon:'🔗', desc:'URL özetle', fn:() => { clearSlash(); triggerUrlSummarize(); } },
+  { cmd:'/gecmis', icon:'📜', desc:'Prompt geçmişi', fn:() => { clearSlash(); openPromptHistory(); } },
+  { cmd:'/karsilas', icon:'⚖️', desc:'Karşılaştırma tablosu', fn:() => { setSlashText('Şunları karşılaştır ve tablo yap: '); } },
 ];
 let slashSel = 0;
 
@@ -5259,6 +5303,336 @@ document.addEventListener('click', e => {
     if (dd) dd.style.display = 'none';
   }
 });
+
+/* ════════════════════════════════════════════════════════
+   FOCUS SEARCH MODES (Perplexity-style)
+════════════════════════════════════════════════════════ */
+let _focusMode = 'web';
+const FOCUS_MODES = {
+  web:      { label:'🌐 Web',       queryPrefix:'',                    sysNote:'' },
+  academic: { label:'🎓 Akademik',  queryPrefix:'research paper ',     sysNote:'Akademik ve bilimsel kaynaklara odaklan. Akademik dil kullan.' },
+  news:     { label:'📰 Haberler',  queryPrefix:'news 2025 ',          sysNote:'En güncel haberlere odaklan. Tarihleri ve kaynakları belirt.' },
+  code:     { label:'💻 Kod',       queryPrefix:'stackoverflow programming ', sysNote:'Teknik ve yazılım odaklı yanıt ver. Kod örnekleri ekle.' },
+  creative: { label:'✨ Yaratıcı',  queryPrefix:'',                    sysNote:'Yaratıcı ve özgün bir yaklaşım kullan. Alışılmışın dışına çık.' },
+};
+
+function setFocusMode(mode) {
+  _focusMode = mode;
+  document.querySelectorAll('.focus-chip').forEach(c => c.classList.toggle('active', c.dataset.focus === mode));
+  showToast(FOCUS_MODES[mode].label + ' modu');
+}
+
+/* ════════════════════════════════════════════════════════
+   URL SUMMARIZER (Perplexity Pages)
+════════════════════════════════════════════════════════ */
+function triggerUrlSummarize() {
+  const url = inputEl.value.trim();
+  if (url && /^https?:\/\//i.test(url)) {
+    summarizeUrl(url);
+  } else {
+    const u = prompt('Özetlenecek URL\'yi girin:');
+    if (u) summarizeUrl(u.trim());
+  }
+}
+
+async function summarizeUrl(url) {
+  if (!url) return;
+  setStreaming(true);
+  appendUserMsg('🔗 URL özetle: ' + url);
+  sessionMessages.push({ role:'user', content: 'Şu URL\'yi özetle: ' + url });
+  if (!currentHistoryId) createHistoryEntry('URL: ' + url);
+  localStorage.setItem('artus_last_convo', currentHistoryId);
+  updateUsageBar();
+
+  const statusEl = document.createElement('div');
+  statusEl.className = 'web-search-status';
+  statusEl.innerHTML = `<span class="dot"></span><span>🔗 Sayfa okunuyor: <em>${escapeHtml(url.slice(0,50))}</em>…</span>`;
+  chatArea.appendChild(statusEl);
+  scrollBottom();
+
+  let pageText = '', pageTitle = '';
+  try {
+    const resp = await fetch('/api/url-fetch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+      signal: AbortSignal.timeout(12000),
+    });
+    const d = await resp.json();
+    if (d.error) { statusEl.innerHTML = `<span style="color:var(--red)">✗ ${escapeHtml(d.error)}</span>`; setTimeout(() => statusEl.remove(), 3000); setStreaming(false); return; }
+    pageText = d.text || '';
+    pageTitle = d.title || url;
+    statusEl.innerHTML = `<span style="color:var(--accent)">✓</span> Sayfa okundu: <em>${escapeHtml(pageTitle.slice(0,50))}</em>`;
+    setTimeout(() => statusEl.remove(), 2000);
+  } catch (e) {
+    statusEl.innerHTML = `<span style="color:var(--red)">✗ Bağlantı hatası</span>`;
+    setTimeout(() => statusEl.remove(), 3000);
+    setStreaming(false);
+    return;
+  }
+
+  const prompt = `"${pageTitle}" başlıklı sayfayı analiz et ve şunları sun:\n\n1. **Özet** (3-5 cümle)\n2. **Ana Konular** (madde madde)\n3. **Önemli Noktalar**\n4. **Sonuç**\n\nSayfa içeriği:\n${pageText.slice(0, 12000)}`;
+
+  const bubble = createBotBubble();
+  let fullText = '';
+  try {
+    await OmniAI.streamChat({
+      messages: [{ role:'user', content: prompt }],
+      model: currentModel, systemPrompt: buildSystemPrompt(),
+      temperature: 0.3, maxTokens: getMaxTokens(),
+      onText: c => { fullText += c; },
+    });
+    if (fullText) {
+      await typewriteText(bubble, fullText, currentMode);
+      const cleanText = extractReasoning(fullText).rest || fullText;
+      sessionMessages.push({ role:'assistant', content: cleanText });
+      updateHistoryEntry(); updateUsageBar();
+      // URL chip below response
+      const chip = document.createElement('div');
+      chip.innerHTML = `<a class="url-chip" href="${escapeHtml(url)}" target="_blank" rel="noopener">🔗 ${escapeHtml(pageTitle.slice(0,60))}</a>`;
+      const msgCol = bubble.closest('.msg-col') || bubble.parentElement;
+      if (msgCol) msgCol.appendChild(chip);
+      finalizeBotMessage(bubble, cleanText);
+      addSuggestions(cleanText);
+    }
+  } catch(err) {
+    bubble.innerHTML = `<em style="color:var(--yellow)">⏳ Hata: ${escapeHtml(err.message)}</em>`;
+  } finally {
+    setStreaming(false);
+    scrollBottom();
+    inputEl.value = '';
+    onInputChange();
+  }
+}
+
+// Auto-detect URL paste in textarea
+(function() {
+  let _urlCheckTimer = null;
+  document.addEventListener('DOMContentLoaded', () => {
+    if (!inputEl) return;
+    inputEl.addEventListener('input', () => {
+      clearTimeout(_urlCheckTimer);
+      const val = inputEl.value.trim();
+      if (/^https?:\/\/\S+$/i.test(val)) {
+        _urlCheckTimer = setTimeout(() => {
+          const btn = document.getElementById('btn-url');
+          if (btn) { btn.style.background = 'rgba(99,102,241,.3)'; btn.title = 'URL algılandı — özetlemek için tıkla'; }
+        }, 600);
+      } else {
+        const btn = document.getElementById('btn-url');
+        if (btn) { btn.style.background = ''; btn.title = 'URL özetle'; }
+      }
+    });
+  });
+})();
+
+/* ════════════════════════════════════════════════════════
+   AI PRESENTATION GENERATOR (Gamma-style)
+════════════════════════════════════════════════════════ */
+async function generatePresentation() {
+  const topic = prompt('Sunum konusunu girin (örn: "Yapay Zekanın Geleceği"):');
+  if (!topic || !topic.trim()) return;
+  setStreaming(true);
+  appendUserMsg('🎤 Sunum hazırla: ' + topic.trim());
+  sessionMessages.push({ role:'user', content: topic.trim() });
+  if (!currentHistoryId) createHistoryEntry('Sunum: ' + topic.trim());
+  localStorage.setItem('artus_last_convo', currentHistoryId);
+
+  const statusEl = document.createElement('div');
+  statusEl.className = 'web-search-status';
+  statusEl.innerHTML = `<span class="dot"></span><span>🎤 Sunum oluşturuluyor: <em>${escapeHtml(topic.slice(0,40))}</em>…</span>`;
+  chatArea.appendChild(statusEl); scrollBottom();
+
+  const sysPrompt = `Sen bir sunum tasarımcısısın. Güzel HTML+CSS slayt sunumları oluşturuyorsun. Tek HTML dosyası olarak ver, içinde tüm CSS ve JS dahil.`;
+  const userPrompt = `"${topic.trim()}" konusu için 6-8 slaytlık profesyonel bir sunum HTML dosyası oluştur.
+
+Gereksinimler:
+- Koyu arka plan, modern tasarım
+- Slaytlar arasında geçiş: önceki/sonraki butonlar + klavye okları
+- Her slayta başlık + içerik (maddeler, ikonlar, vurgular)
+- İlk slayt başlık slaytı (büyük başlık + alt başlık + tarih)
+- Son slayt özet/teşekkür
+- İlerleme çubuğu
+- Responsive, mobil uyumlu
+- CSS animations ile akıcı geçiş
+
+Sadece HTML kodunu ver, başka açıklama ekleme.`;
+
+  const bubble = createBotBubble();
+  let fullText = '';
+  try {
+    await OmniAI.streamChat({
+      messages: [{ role:'user', content: userPrompt }],
+      model: 'llama-3.3-70b-versatile', systemPrompt: sysPrompt,
+      temperature: 0.7, maxTokens: 8000,
+      onText: c => { fullText += c; bubble.textContent = '⏳ Sunum oluşturuluyor…'; },
+    });
+    statusEl.remove();
+    if (fullText) {
+      // Extract HTML from response
+      const htmlMatch = fullText.match(/```html\n?([\s\S]*?)```/) || fullText.match(/(<!DOCTYPE[\s\S]*<\/html>)/i);
+      const htmlCode = htmlMatch ? (htmlMatch[1] || htmlMatch[0]) : fullText;
+      bubble.textContent = '';
+      await typewriteText(bubble, `✅ "${escapeHtml(topic.trim())}" sunumu hazır! Artifact panelinde açıldı.`, currentMode);
+      const cleanText = `Sunum hazırlandı: ${topic.trim()}`;
+      sessionMessages.push({ role:'assistant', content: cleanText });
+      updateHistoryEntry(); updateUsageBar();
+      addArtifact(htmlCode, 'html');
+      // Auto-show artifacts panel
+      const ap = document.getElementById('artifacts-panel');
+      if (ap) ap.style.display = 'flex';
+      finalizeBotMessage(bubble, cleanText);
+    }
+  } catch(err) {
+    statusEl.remove();
+    bubble.innerHTML = `<em style="color:var(--yellow)">⏳ Hata: ${escapeHtml(err.message)}</em>`;
+  } finally {
+    setStreaming(false);
+    scrollBottom();
+  }
+}
+
+/* ════════════════════════════════════════════════════════
+   PROMPT HISTORY (up/down arrow)
+════════════════════════════════════════════════════════ */
+const PROMPT_HIST_KEY = 'artus_prompt_history';
+let _histIdx = -1;
+
+function savePromptHistory(text) {
+  if (!text || text.length < 3) return;
+  let hist = JSON.parse(localStorage.getItem(PROMPT_HIST_KEY) || '[]');
+  hist = [text, ...hist.filter(h => h !== text)].slice(0, 100);
+  localStorage.setItem(PROMPT_HIST_KEY, JSON.stringify(hist));
+  _histIdx = -1;
+}
+
+function getPromptHistory() {
+  try { return JSON.parse(localStorage.getItem(PROMPT_HIST_KEY) || '[]'); } catch { return []; }
+}
+
+function openPromptHistory() {
+  const hist = getPromptHistory();
+  if (!hist.length) { showToast('Prompt geçmişi boş'); return; }
+  // Show as a small popup above the input
+  let popup = document.getElementById('prompt-hist-popup');
+  if (popup) { popup.remove(); return; }
+  popup = document.createElement('div');
+  popup.id = 'prompt-hist-popup';
+  popup.style.cssText = 'position:fixed;bottom:140px;left:50%;transform:translateX(-50%);width:min(520px,90vw);max-height:280px;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:12px;z-index:400;padding:6px;box-shadow:0 8px 32px rgba(0,0,0,.5)';
+  popup.innerHTML = `<div style="padding:6px 10px 4px;font-size:11px;color:var(--muted);display:flex;justify-content:space-between"><span>📜 Son ${Math.min(hist.length,50)} prompt</span><button onclick="document.getElementById('prompt-hist-popup').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer">✕</button></div>` +
+    hist.slice(0,50).map((h,i) => `<div class="prompt-hist-item" onclick="usePromptFromHistory(${i})">${escapeHtml(h.slice(0,80))}${h.length>80?'…':''}</div>`).join('');
+  document.body.appendChild(popup);
+  setTimeout(() => document.addEventListener('click', function close(e) { if (!popup.contains(e.target)) { popup.remove(); document.removeEventListener('click', close); } }), 10);
+}
+
+function usePromptFromHistory(i) {
+  const hist = getPromptHistory();
+  if (hist[i]) { inputEl.value = hist[i]; onInputChange(); inputEl.focus(); }
+  const p = document.getElementById('prompt-hist-popup');
+  if (p) p.remove();
+}
+
+// Up/Down arrow in textarea to cycle prompt history
+(function() {
+  document.addEventListener('DOMContentLoaded', () => {
+    if (!inputEl) return;
+    inputEl.addEventListener('keydown', e => {
+      if (e.key === 'ArrowUp' && inputEl.value === '') {
+        e.preventDefault();
+        const hist = getPromptHistory();
+        if (!hist.length) return;
+        _histIdx = Math.min(_histIdx + 1, hist.length - 1);
+        inputEl.value = hist[_histIdx];
+        onInputChange();
+      } else if (e.key === 'ArrowDown' && _histIdx >= 0) {
+        e.preventDefault();
+        const hist = getPromptHistory();
+        _histIdx = Math.max(_histIdx - 1, -1);
+        inputEl.value = _histIdx >= 0 ? hist[_histIdx] : '';
+        onInputChange();
+      }
+    });
+  });
+})();
+
+/* ════════════════════════════════════════════════════════
+   SMART SORTABLE TABLE RENDERER (override marked.js)
+════════════════════════════════════════════════════════ */
+(function patchMarkedTable() {
+  if (typeof marked === 'undefined') return;
+  const renderer = new marked.Renderer();
+  const origTable = renderer.table?.bind(renderer);
+  renderer.table = function(header, body) {
+    const tid = 'tbl_' + Math.random().toString(36).slice(2,8);
+    return `<div class="smart-table-wrap"><table class="smart-table" id="${tid}"><thead>${header}</thead><tbody>${body}</tbody></table></div>`;
+  };
+  renderer.tablerow = function(content) { return `<tr>${content}</tr>`; };
+  renderer.tablecell = function(content, flags) {
+    const tag = flags && flags.header ? 'th' : 'td';
+    const align = flags && flags.align ? ` style="text-align:${flags.align}"` : '';
+    const sort = (flags && flags.header) ? ` onclick="sortTable(this)"` : '';
+    return `<${tag}${align}${sort}>${content}</${tag}>`;
+  };
+  try { marked.use({ renderer }); } catch(_) {}
+})();
+
+function sortTable(th) {
+  const table = th.closest('table');
+  if (!table) return;
+  const ths = [...th.parentElement.querySelectorAll('th')];
+  const colIdx = ths.indexOf(th);
+  const asc = !th.classList.contains('asc');
+  ths.forEach(t => t.className = '');
+  th.className = asc ? 'asc' : 'desc';
+  const tbody = table.querySelector('tbody');
+  const rows = [...tbody.querySelectorAll('tr')];
+  rows.sort((a, b) => {
+    const av = a.cells[colIdx]?.textContent?.trim() || '';
+    const bv = b.cells[colIdx]?.textContent?.trim() || '';
+    const an = parseFloat(av), bn = parseFloat(bv);
+    if (!isNaN(an) && !isNaN(bn)) return asc ? an - bn : bn - an;
+    return asc ? av.localeCompare(bv, 'tr') : bv.localeCompare(av, 'tr');
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+
+/* ════════════════════════════════════════════════════════
+   MINDMAP GENERATOR (auto-detect /mindmap intent)
+════════════════════════════════════════════════════════ */
+function isMindmapRequest(text) {
+  return /zihin haritası|mind.?map|mindmap/i.test(text);
+}
+
+// Hook into sendMessage post-process: if response has mermaid mindmap, auto-render
+// (mermaid rendering already handled by renderBubble — this just ensures prompt injection)
+function injectMindmapPrompt(text) {
+  if (!isMindmapRequest(text)) return text;
+  return text + '\n\nZihin haritasını Mermaid mindmap formatında ver:\n```mermaid\nmindmap\n  root((Konu))\n    ...\n```';
+}
+
+/* ════════════════════════════════════════════════════════
+   SAVE PROMPT TO HISTORY ON SEND
+════════════════════════════════════════════════════════ */
+// Patch sendMessage to save prompt history — hook into input capture
+const _origSendMessage = sendMessage;
+sendMessage = async function() {
+  const txt = inputEl?.value?.trim();
+  if (txt && txt.length > 2 && !txt.startsWith('/')) savePromptHistory(txt);
+  return _origSendMessage.apply(this, arguments);
+};
+
+/* ════════════════════════════════════════════════════════
+   INJECT FOCUS MODE into web search
+════════════════════════════════════════════════════════ */
+// Patched into sendMessage via _focusMode — web search block reads this
+// (focus mode system note appended to buildSystemPrompt)
+const _origBuildSystemPrompt = buildSystemPrompt;
+buildSystemPrompt = function() {
+  let base = _origBuildSystemPrompt.apply(this, arguments);
+  const mode = FOCUS_MODES[_focusMode];
+  if (mode && mode.sysNote && webSearchOn) base += '\n\n[ODAK MODU: ' + mode.sysNote + ']';
+  return base;
+};
 </script>
 
 <!-- Command Palette -->
