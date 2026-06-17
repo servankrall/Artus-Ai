@@ -560,8 +560,10 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 }
 .btn-copy:hover { border-color: var(--accent); color: var(--text); }
 .btn-copy.copied { border-color: var(--green); color: var(--green); }
-.code-wrap pre { margin: 0 !important; border: none !important; border-radius: 0 !important; }
+.code-wrap pre { margin: 0 !important; border: none !important; border-radius: 0 !important; counter-reset: line; }
 .code-wrap pre code { font-family: var(--mono) !important; font-size: 13px !important; }
+.code-wrap pre code .line { counter-increment: line; display: block; }
+.code-wrap pre code .line::before { content: counter(line); display: inline-block; width: 2.2em; margin-right: 1em; text-align: right; color: #555; user-select: none; font-size: 11px; }
 
 /* Omni Code action buttons */
 .code-actions { display: flex; gap: 8px; padding: 8px 12px; background: #0d1117; border-top: 1px solid var(--border); }
@@ -1860,9 +1862,10 @@ function applyPersona(i) {
 }
 function getTemperature() { return parseFloat(localStorage.getItem('artus_temperature') || '0.7'); }
 function setTemperature(v) {
-  localStorage.setItem('artus_temperature', v);
+  const t = Math.max(0.1, Math.min(1.5, parseFloat(v) || 0.7));
+  localStorage.setItem('artus_temperature', t);
   const lbl = document.getElementById('temp-label');
-  if (lbl) lbl.textContent = parseFloat(v).toFixed(1);
+  if (lbl) lbl.textContent = t.toFixed(1);
 }
 
 // ── Draft autosave ──
@@ -2398,10 +2401,13 @@ function renderConvoList() {
 
   const convoRow = (h) => {
     const active = h.id === currentHistoryId ? ' active' : '';
+    const lastMsg = (h.messages || []).filter(m => m.role === 'user').pop();
+    const preview = lastMsg ? escapeHtml(lastMsg.content.slice(0, 55)) + (lastMsg.content.length > 55 ? '…' : '') : '';
+    const timeAgo = h.date ? new Date(h.date).toLocaleDateString('tr-TR', { day:'numeric', month:'short' }) : '';
     return `
-      <div class="sb-convo${active}" onclick="openConvo('${h.id}')">
+      <div class="sb-convo${active}" onclick="openConvo('${h.id}')" title="${preview}">
         <span class="sb-convo-icon">${h.pinned ? '📌' : '💬'}</span>
-        <span class="sb-convo-title">${escapeHtml(h.title || 'Sohbet')}</span>
+        <span class="sb-convo-title" style="flex:1;min-width:0">${escapeHtml(h.title || 'Sohbet')}<br><span style="font-size:10px;color:var(--muted);font-weight:400">${timeAgo} · ${(h.messages||[]).length} msg</span></span>
         <button class="sb-convo-del" title="Sabitle" onclick="event.stopPropagation();pinConvo('${h.id}')">${h.pinned ? '📍' : '📌'}</button>
         <button class="sb-convo-del" title="Yeniden adlandır" onclick="event.stopPropagation();renameConvo('${h.id}')">✎</button>
         <button class="sb-convo-del" title="Sil" onclick="event.stopPropagation();deleteConvo('${h.id}')">×</button>
@@ -3397,7 +3403,7 @@ function renderBubble(bubble, rawText, mode) {
             <button class="btn-copy" onclick="copyCode('${id}', this)">Kopyala</button>
           </div>
         </div>
-        <pre><code class="hljs language-${escapeHtml(language)}">${highlighted}</code></pre>
+        <pre><code class="hljs language-${escapeHtml(language)}">${highlighted.split('\n').map(l => `<span class="line">${l}</span>`).join('\n')}</code></pre>
         ${actionsHtml}
         <div class="py-output" id="out_${id}" style="display:none;padding:8px 12px;background:#0d1117;border-top:1px solid #30363d;font-family:monospace;font-size:12.5px;white-space:pre-wrap;"></div>
       </div>`;
@@ -3826,7 +3832,9 @@ function speakMsg(btn) {
 
 /* ── Thumbs up/down feedback (local only) ── */
 function rateMsg(btn, dir) {
-  btn.closest('.msg-actions').querySelectorAll('.act-fb').forEach(b => b.style.color = '');
+  const actions = btn.closest('.msg-actions');
+  if (!actions) return;
+  actions.querySelectorAll('.act-fb').forEach(b => b.style.color = '');
   btn.style.color = dir === 'up' ? 'var(--green)' : 'var(--red)';
   showToast(dir === 'up' ? '👍 Teşekkürler!' : '👎 Geri bildirim alındı');
 }
@@ -3872,7 +3880,7 @@ async function regenerateLast() {
   try {
     await OmniAI.streamChat({
       messages: groqMessages, model: useModel,
-      systemPrompt: buildSystemPrompt(), temperature: getTemperature() + 0.1,
+      systemPrompt: buildSystemPrompt(), temperature: Math.min(1.5, getTemperature() + 0.1),
       onText: (chunk) => { fullText += chunk; },
     });
     if (fullText) {
@@ -4133,7 +4141,7 @@ function showWhatsNew() {
    ADVANCED GENERATION PARAMS
 ════════════════════════════════════════════════════════ */
 function getMaxTokens() { return parseInt(localStorage.getItem('artus_max_tokens') || '4096'); }
-function setMaxTokens(v) { localStorage.setItem('artus_max_tokens', v); const l=document.getElementById('maxtok-label'); if(l) l.textContent=v; }
+function setMaxTokens(v) { const t = Math.max(256, Math.min(32768, parseInt(v) || 4096)); localStorage.setItem('artus_max_tokens', t); const l=document.getElementById('maxtok-label'); if(l) l.textContent=t; }
 function getTopP() { return parseFloat(localStorage.getItem('artus_top_p') || '1.0'); }
 function setTopP(v) { localStorage.setItem('artus_top_p', v); const l=document.getElementById('topp-label'); if(l) l.textContent=parseFloat(v).toFixed(2); }
 
@@ -4262,7 +4270,7 @@ async function translateMsg(btn) {
   finally { setStreaming(false); scrollBottom(); }
 }
 
-async function continueMsg(btn) {
+function continueMsg(btn) {
   if (streaming) return;
   inputEl.value = 'Devam et';
   sendMessage();
@@ -4798,11 +4806,12 @@ function renderProjectList() {
    SHARE CONVERSATION
 ════════════════════════════════════════════════════════ */
 function shareConvo() {
-  const msgs = [...document.querySelectorAll('.msg')].map(m => {
+  const msgEls = [...document.querySelectorAll('.msg')];
+  if (!msgEls.length) { showToast('Paylaşılacak sohbet yok'); return; }
+  const msgs = msgEls.map(m => {
     const role = m.classList.contains('user') ? '👤 Sen' : '⚡ Omni.Ai';
     return `## ${role}\n${m.querySelector('.bubble')?.innerText?.trim() || ''}`;
   }).join('\n\n---\n\n');
-  if (!msgs) { showToast('Paylaşılacak sohbet yok'); return; }
   const full = `# Omni.Ai Sohbeti\n_${new Date().toLocaleString('tr-TR')}_\n\n---\n\n${msgs}`;
   navigator.clipboard.writeText(full)
     .then(() => showToast('🔗 Sohbet panoya kopyalandı!'))
@@ -4841,8 +4850,12 @@ function initContextMenu() {
     menu.style.top  = y + 'px';
   });
 
-  document.addEventListener('click', () => { menu.style.display = 'none'; });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') menu.style.display = 'none'; });
+  // { once: false } ama guard: menü zaten gizliyse tekrar hide etme
+  if (!initContextMenu._listenersAdded) {
+    initContextMenu._listenersAdded = true;
+    document.addEventListener('click', () => { menu.style.display = 'none'; });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') menu.style.display = 'none'; });
+  }
 
   document.getElementById('ctx-copy').onclick = () => {
     const text = _ctxTarget?.querySelector('.bubble')?.textContent || '';
@@ -4891,6 +4904,7 @@ function initClipboardPaste() {
       renderAttachChips();
       showToast('📋 Görsel yapıştırıldı');
     };
+    reader.onerror = () => showToast('❌ Görsel okunamadı');
     reader.readAsDataURL(file);
   });
 }
