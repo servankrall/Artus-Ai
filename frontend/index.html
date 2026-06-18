@@ -3187,7 +3187,7 @@ async function processAnyFile(file) {
 
   // ── Ses dosyası — Groq Whisper ile transkript ─────────────────
   if (['mp3','mp4','wav','ogg','m4a','webm','flac','opus'].includes(ext)) {
-    if (size > 25 * MB) { showToast('❌ Ses dosyası 25MB altında olmalı'); return; }
+    if (size > 100 * MB) { showToast('❌ Ses dosyası 100MB altında olmalı'); return; }
     showToast(`🎙 Ses transkript ediliyor: ${name}…`);
     try {
       const formData = new FormData();
@@ -3246,7 +3246,7 @@ async function processAnyFile(file) {
   }
 
   // ── Her türlü metin/kod dosyası (bilinmeyen uzantı dahil) ────
-  if (size > 10 * MB) { showToast(`❌ ${name} çok büyük (max 10MB)`); return; }
+  if (size > 100 * MB) { showToast(`❌ ${name} çok büyük (max 100MB)`); return; }
   const reader = new FileReader();
   reader.onload = ev => {
     const content = ev.target.result;
