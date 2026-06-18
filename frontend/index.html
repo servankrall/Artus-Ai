@@ -564,7 +564,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 }
 .btn-copy:hover { border-color: var(--accent); color: var(--text); }
 .btn-copy.copied { border-color: var(--green); color: var(--green); }
-.code-wrap pre { margin: 0 !important; border: none !important; border-radius: 0 !important; counter-reset: line; }
+.code-wrap pre { margin: 0 !important; border: none !important; border-radius: 0 !important; counter-reset: line; max-height: 400px; overflow-y: auto; }
 .code-wrap pre code { font-family: var(--mono) !important; font-size: 13px !important; }
 .code-wrap pre code .line { counter-increment: line; display: block; }
 .code-wrap pre code .line::before { content: counter(line); display: inline-block; width: 2.2em; margin-right: 1em; text-align: right; color: #555; user-select: none; font-size: 11px; }
@@ -3723,7 +3723,7 @@ function renderBubble(bubble, rawText, mode) {
       const jid = 'jv_' + Math.random().toString(36).slice(2);
       let tree = '';
       try { tree = renderJsonTree(JSON.parse(code)); } catch(e) { tree = escapeHtml(code); }
-      return `<div class="code-wrap" id="${jid}"><div class="code-header"><span class="code-lang">json</span><button class="btn-copy" data-action="copy" data-id="${jid}">Kopyala</button></div><div style="padding:8px;font-size:12.5px;font-family:monospace;line-height:1.5">${tree}</div></div>`;
+      return `<div class="code-wrap" id="${jid}"><div class="code-header"><span class="code-lang">json</span><button class="btn-copy" data-action="copy" data-id="${jid}">Kopyala</button></div><div style="padding:8px;font-size:12.5px;font-family:monospace;line-height:1.5;max-height:400px;overflow-y:auto">${tree}</div></div>`;
     }
 
     const highlighted = (() => {
