@@ -2965,7 +2965,25 @@ function getHistory() {
 }
 
 function saveHistory(entries) {
-  localStorage.setItem('artus_history', JSON.stringify(entries));
+  // Strip oversized message content before saving (file blocks can exceed localStorage quota)
+  const slim = entries.map(e => ({
+    ...e,
+    messages: (e.messages || []).map(m => {
+      if (typeof m.content === 'string' && m.content.length > 8000) {
+        return { ...m, content: m.content.slice(0, 8000) + '\n…[içerik kısaltıldı]' };
+      }
+      return m;
+    })
+  }));
+  try {
+    localStorage.setItem('artus_history', JSON.stringify(slim));
+  } catch(e) {
+    // Quota exceeded — remove oldest half and retry
+    try {
+      const trimmed = slim.slice(0, Math.floor(slim.length / 2));
+      localStorage.setItem('artus_history', JSON.stringify(trimmed));
+    } catch(_) {}
+  }
 }
 
 function createHistoryEntry(firstMessage) {
@@ -3534,8 +3552,8 @@ function appendUserMsg(text) {
     <div class="msg-col">
       <div class="bubble">${escapeHtml(text)}</div>
       <div class="msg-actions">
-        <button class="msg-act-btn" onclick="editUserMsg(this)">✏️ Düzenle</button>
-        <button class="msg-act-btn act-copy" onclick="navigator.clipboard.writeText(this.closest('.msg').querySelector('.bubble').innerText).then(()=>showToast('Kopyalandı'))">📋 Kopyala</button>
+        <button class="msg-act-btn" data-action="edit-user">✏️ Düzenle</button>
+        <button class="msg-act-btn act-copy" data-action="copy-user">📋 Kopyala</button>
         <span class="msg-time">${nowTime()}</span>
       </div>
     </div>`;
@@ -3869,17 +3887,43 @@ function openDesignCreate(btnId) {
 function acceptCode(id) {
   const wrap = document.getElementById(id);
   if (!wrap) return;
+  const wasAccepted = wrap.classList.contains('accepted');
   wrap.classList.remove('rejected');
   wrap.classList.toggle('accepted');
-  showToast(wrap.classList.contains('accepted') ? '✓ Kod kabul edildi' : 'Kabul geri alındı');
+  if (!wasAccepted) {
+    // Copy code to clipboard on accept
+    const code = wrap.querySelector('pre code');
+    const text = code ? code.innerText : '';
+    if (text) {
+      navigator.clipboard.writeText(text).catch(() => {
+        const ta = document.createElement('textarea');
+        ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+      });
+    }
+    showToast('✓ Kod kabul edildi ve kopyalandı');
+  } else {
+    showToast('Kabul geri alındı');
+  }
 }
 
 function rejectCode(id) {
   const wrap = document.getElementById(id);
   if (!wrap) return;
+  const wasRejected = wrap.classList.contains('rejected');
   wrap.classList.remove('accepted');
   wrap.classList.toggle('rejected');
-  showToast(wrap.classList.contains('rejected') ? '✗ Kod reddedildi' : 'Red geri alındı');
+  if (!wasRejected) {
+    // Collapse the code block on reject
+    const pre = wrap.querySelector('pre');
+    if (pre) pre.style.display = 'none';
+    const actions = wrap.querySelector('.code-actions');
+    showToast('✗ Kod reddedildi — gizlendi');
+  } else {
+    // Expand again
+    const pre = wrap.querySelector('pre');
+    if (pre) pre.style.display = '';
+    showToast('Red geri alındı');
+  }
 }
 
 function copyCode(id, btn) {
@@ -4737,7 +4781,7 @@ async function enhancePrompt() {
       onInputChange();
       showToast('✨ Prompt geliştirildi');
     }
-  } catch(e) { showToast('Geliştirilemedi: ' + e.message); }
+  } catch(e) { showToast('✨ Geliştirilemedi — tekrar dene'); console.error('enhancePrompt:', e); }
   finally { btn.classList.remove('enhancing'); }
 }
 
@@ -5329,6 +5373,15 @@ function initBubbleDelegation() {
       case 'dl-bubble':    downloadBubbleMd(btn); break;
       case 'design-create': openDesignCreate(id); break;
       case 'toggle-reason': document.getElementById(id)?.classList.toggle('open'); break;
+      case 'edit-user': editUserMsg(btn); break;
+      case 'copy-user': {
+        const bubble = btn.closest('.msg')?.querySelector('.bubble');
+        const t = bubble ? bubble.innerText : '';
+        navigator.clipboard.writeText(t).then(() => showToast('Kopyalandı')).catch(() => {
+          const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); showToast('Kopyalandı');
+        });
+        break;
+      }
     }
   });
 }
@@ -5357,22 +5410,29 @@ function initClipboardPaste() {
    AUTO-RESUME last conversation on load
 ════════════════════════════════════════════════════════ */
 function autoResume() {
-  const lastId = localStorage.getItem('artus_last_convo');
-  if (!lastId) return;
-  const history = getHistory();
-  const entry = history.find(h => h.id === lastId);
-  if (!entry || !entry.messages.length) return;
-  // Silently restore without toast
-  chatArea.innerHTML = '';
-  sessionMessages = [...entry.messages];
-  currentHistoryId = entry.id;
-  entry.messages.forEach(msg => {
-    if (msg.role === 'user') appendUserMsg(msg.content);
-    else { const b = createBotBubble(); renderBubble(b, msg.content, currentMode); finalizeBotMessage(b, msg.content); }
-  });
-  updateConvoTitle();
-  renderConvoList();
-  scrollBottom();
+  try {
+    const lastId = localStorage.getItem('artus_last_convo');
+    if (!lastId) return;
+    const history = getHistory();
+    const entry = history.find(h => h.id === lastId);
+    if (!entry || !Array.isArray(entry.messages) || !entry.messages.length) return;
+    chatArea.innerHTML = '';
+    sessionMessages = [...entry.messages];
+    currentHistoryId = entry.id;
+    entry.messages.forEach(msg => {
+      try {
+        if (msg.role === 'user') appendUserMsg(msg.content || '');
+        else {
+          const b = createBotBubble();
+          renderBubble(b, msg.content || '', currentMode);
+          finalizeBotMessage(b, msg.content || '');
+        }
+      } catch(_) {}
+    });
+    updateConvoTitle();
+    renderConvoList();
+    scrollBottom();
+  } catch(_) {}
 }
 
 /* ════════════════════════════════════════════════════════
