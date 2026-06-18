@@ -70,13 +70,18 @@ export async function onRequestPost(context) {
       return json({ error: "Bu kod daha önce kullanılmış" }, 409);
     }
 
-    // Kodu yak (tek kullanım)
-    await kv.put(codeKey, JSON.stringify({ used: true, usedBy: email, usedAt: Date.now() }));
+    // Creator kodu: yakılmaz, tekrar tekrar kullanılabilir
+    const isCreator = !!codeData.creator;
 
-    // Kullanıcıyı Pro yap
-    await kv.put("user:" + email, JSON.stringify({ pro: true, activatedAt: Date.now() }));
+    if (!isCreator) {
+      // Normal tek kullanımlık kod — yak
+      await kv.put(codeKey, JSON.stringify({ used: true, usedBy: email, usedAt: Date.now() }));
+    }
 
-    return json({ pro: true });
+    // Kullanıcıyı Pro (ve gerekirse creator) yap
+    await kv.put("user:" + email, JSON.stringify({ pro: true, creator: isCreator, activatedAt: Date.now() }));
+
+    return json({ pro: true, creator: isCreator });
   }
 
   // ── Pro durumu sorgula ──────────────────────────────────────
