@@ -23,10 +23,10 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script>if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';}</script>
-<!-- Universal file support -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
-<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<!-- Universal file support — async so they don't block page load -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js" async></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js" async></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" async></script>
 <script src="/omni-config.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1355,6 +1355,7 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
         <button class="mode-btn" data-mode="code" onclick="handleModeClick('code')" title="Omni Code — PRO (Ctrl+2)">⚡<span class="pro-lock" id="code-lock">🔒</span></button>
         <button class="mode-btn" data-mode="design" onclick="handleModeClick('design')" title="Omni Design — PRO (Ctrl+3)">🎨<span class="pro-lock" id="design-lock">🔒</span></button>
         <button class="mode-btn" onclick="toggleSettings()" title="Ayarlar">⚙️</button>
+        <button class="mode-btn" id="btn-creator-mode" onclick="activateCreatorMode()" title="Creator Modu">⚡</button>
       </div>
 
       <div class="sb-footer-row">
@@ -5808,24 +5809,28 @@ buildSystemPrompt = function() {
 ════════════════════════════════════════════════════════ */
 let _creatorMode = localStorage.getItem('artus_creator') === '1';
 
-function activateCreatorMode() {
+// Gizli hash — SHA-256("SERVAN2026CREATOR") ilk 16 hex
+// KV'ye ihtiyaç yok, tamamen client-side çalışır
+async function _hashCode(s) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,'0')).join('').slice(0,16);
+}
+
+const _CREATOR_HASH = '633d31db3eea6f0f'; // SHA-256("SERVAN2026CREATOR")[:16]
+
+async function activateCreatorMode() {
   const code = prompt('Yaratıcı kodunu girin:');
   if (!code) return;
-  fetch('/api/pro-status', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: (CURRENT_USER?.email || 'creator@artus'), code: code.trim().toUpperCase() }),
-  }).then(r => r.json()).then(d => {
-    if (d.pro) {
-      _creatorMode = true;
-      localStorage.setItem('artus_creator', '1');
-      if (CURRENT_USER) { CURRENT_USER.pro = true; localStorage.setItem('artus_user', JSON.stringify(CURRENT_USER)); updateTierBadge(); }
-      _showCreatorBadge();
-      showToast('⚡ Yaratıcı modu aktif — Tüm kısıtlamalar kaldırıldı');
-    } else {
-      showToast('❌ ' + (d.error || 'Geçersiz kod'));
-    }
-  }).catch(() => showToast('❌ Sunucuya bağlanılamadı'));
+  const h = await _hashCode(code.trim().toUpperCase());
+  if (h === _CREATOR_HASH) {
+    _creatorMode = true;
+    localStorage.setItem('artus_creator', '1');
+    if (CURRENT_USER) { CURRENT_USER.pro = true; localStorage.setItem('artus_user', JSON.stringify(CURRENT_USER)); updateTierBadge(); }
+    _showCreatorBadge();
+    showToast('⚡ Yaratıcı modu aktif — Tüm kısıtlamalar kaldırıldı');
+  } else {
+    showToast('❌ Geçersiz kod');
+  }
 }
 
 function deactivateCreatorMode() {
