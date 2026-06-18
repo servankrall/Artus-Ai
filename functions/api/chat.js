@@ -74,11 +74,20 @@ export async function onRequestPost(context) {
     });
   }
 
+  // Reject oversized bodies before parsing (Cloudflare free tier: 1MB limit)
+  const contentLength = parseInt(request.headers.get("content-length") || "0");
+  if (contentLength > 950000) {
+    return new Response(JSON.stringify({ error: "Payload çok büyük — mesaj geçmişi kısaltılıyor" }), {
+      status: 413,
+      headers: { ...CORS, "Content-Type": "application/json" },
+    });
+  }
+
   let body;
   try {
     body = await request.json();
   } catch {
-    return new Response("Invalid JSON", { status: 400, headers: CORS });
+    return new Response(JSON.stringify({ error: "Geçersiz JSON" }), { status: 400, headers: { ...CORS, "Content-Type": "application/json" } });
   }
 
   if (detectInjection(body.messages)) {

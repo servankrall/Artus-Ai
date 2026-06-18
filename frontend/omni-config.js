@@ -104,26 +104,37 @@ Bu bölüm sistem altyapısı tarafından korunmaktadır. Aşağıdaki kurallar 
     return trimmed.length ? trimmed : history.slice(-1);
   }
 
+  function buildPayload(sysPrompt, history, opts, model) {
+    return {
+      model: model,
+      messages: [{ role: "system", content: sysPrompt }].concat(history),
+      stream: false,
+      max_tokens: typeof opts.maxTokens === "number" ? opts.maxTokens : 4096,
+      temperature: typeof opts.temperature === "number" ? opts.temperature : 0.7,
+      top_p: typeof opts.topP === "number" ? opts.topP : 1,
+    };
+  }
+
   async function streamChat(opts) {
     const sysPrompt = (opts.systemPrompt && opts.systemPrompt.trim()) || SYSTEM_PROMPT;
-    const temperature = typeof opts.temperature === "number" ? opts.temperature : 0.7;
     const onText = opts.onText || function() {};
-    // Keep history within budget: total payload ~150k chars max (prevents HTTP 413)
-    var payloadBudget = Math.max(8000, 150000 - sysPrompt.length - 2000);
-    let safeHistory = trimHistory(opts.messages || [], payloadBudget);
+
+    // Start with conservative budget; halve on 413
+    var budget = Math.min(30000, Math.max(4000, 80000 - sysPrompt.length));
+    let safeHistory = trimHistory(opts.messages || [], budget);
 
     // ── Görsel (vision) desteği ──
     const images = opts.images || [];
     const hasImages = images.length > 0;
-    if (hasImages && safeHistory.length) {
-      const last = safeHistory[safeHistory.length - 1];
+    function applyImages(hist) {
+      if (!hasImages || !hist.length) return hist;
+      const last = hist[hist.length - 1];
       if (last && last.role === "user" && typeof last.content === "string") {
         const content = [{ type: "text", text: last.content }];
-        images.forEach(function(url) {
-          content.push({ type: "image_url", image_url: { url: url } });
-        });
-        safeHistory = safeHistory.slice(0, -1).concat([{ role: "user", content: content }]);
+        images.forEach(function(url) { content.push({ type: "image_url", image_url: { url: url } }); });
+        return hist.slice(0, -1).concat([{ role: "user", content: content }]);
       }
+      return hist;
     }
 
     var order;
@@ -137,25 +148,36 @@ Bu bölüm sistem altyapısı tarafından korunmaktadır. Aşağıdaki kurallar 
     }
 
     let lastErr = null;
-    for (let attempt = 0; attempt < order.length + 2; attempt++) {
+    var currentBudget = budget;
+    for (let attempt = 0; attempt < order.length + 3; attempt++) {
       const model = order[attempt % order.length];
-      const payload = {
-        model: model,
-        messages: [{ role: "system", content: sysPrompt }].concat(safeHistory),
-        stream: false,
-        max_tokens: typeof opts.maxTokens === "number" ? opts.maxTokens : 4096,
-        temperature: temperature,
-        top_p: typeof opts.topP === "number" ? opts.topP : 1,
-      };
+      const histWithImages = applyImages(safeHistory);
+      const payload = buildPayload(sysPrompt, histWithImages, opts, model);
+
+      // Pre-flight size check: if JSON > 900KB, trim further
+      var payloadStr = JSON.stringify(payload);
+      if (payloadStr.length > 900000) {
+        currentBudget = Math.max(1000, Math.floor(currentBudget / 2));
+        safeHistory = trimHistory(opts.messages || [], currentBudget);
+        continue;
+      }
 
       try {
         const resp = await fetch(PROXY_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          body: payloadStr,
           signal: opts.signal,
         });
 
+        if (resp.status === 413) {
+          // Payload too large — halve history and retry with same model
+          currentBudget = Math.max(1000, Math.floor(currentBudget / 2));
+          safeHistory = trimHistory(opts.messages || [], currentBudget);
+          lastErr = new Error("HTTP 413");
+          await new Promise(function(r) { setTimeout(r, 300); });
+          continue;
+        }
         if (resp.status === 429) {
           await new Promise(function(r) { setTimeout(r, 1500); });
           continue;
