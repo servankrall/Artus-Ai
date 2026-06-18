@@ -4770,14 +4770,15 @@ async function enhancePrompt() {
   try {
     let result = '';
     await OmniAI.streamChat({
-      messages: [{ role:'user', content:`Aşağıdaki istemi, yapay zekadan daha iyi sonuç alacak şekilde yeniden yaz. Sadece geliştirilmiş istemi döndür, açıklama ekleme:\n\n"${draft}"` }],
+      messages: [{ role: 'user', content: `ORİJİNAL İSTEM: "${draft}"\n\nGÖREV: Yukarıdaki istemi daha net ve açık hale getir. Konuyu değiştirme, anlam katma veya içerik uydurma. Sadece mevcut isteği daha anlaşılır ve detaylı yaz. Yanıtında SADECE geliştirilmiş istemi yaz, başka hiçbir şey yazma.` }],
       model: 'llama-3.1-8b-instant',
-      systemPrompt: 'Sen bir prompt mühendisisin. Kullanıcının istemlerini netleştirir, bağlam ve detay ekleyerek geliştirirsin. Sadece geliştirilmiş istemi döndür.',
-      temperature: 0.5,
+      systemPrompt: 'Sen bir prompt editörüsün. Kullanıcının verdiği metni daha açık ve net hale getirirsin. Konuyu, amacı veya isteği asla değiştirmezsin. Sadece mevcut isteği geliştirirsin. Yanıtın yalnızca geliştirilmiş istemden oluşur.',
+      temperature: 0.1,
+      maxTokens: 300,
       onText: (c) => { result += c; },
     });
     if (result) {
-      inputEl.value = result.replace(/^["']|["']$/g, '').trim();
+      inputEl.value = result.replace(/^["'`]|["'`]$/g, '').trim();
       onInputChange();
       showToast('✨ Prompt geliştirildi');
     }
