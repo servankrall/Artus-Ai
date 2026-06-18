@@ -2725,6 +2725,7 @@ function init() {
   // New feature inits
   initContextMenu();
   initClipboardPaste();
+  initBubbleDelegation();
   autoResume();
 
   // Restore advanced params + focus mode (label + slider thumb)
@@ -3704,7 +3705,7 @@ function renderBubble(bubble, rawText, mode) {
       const jid = 'jv_' + Math.random().toString(36).slice(2);
       let tree = '';
       try { tree = renderJsonTree(JSON.parse(code)); } catch(e) { tree = escapeHtml(code); }
-      return `<div class="code-wrap" id="${jid}"><div class="code-header"><span class="code-lang">json</span><button class="btn-copy" onclick="copyCode('${jid}',this)">Kopyala</button></div><div style="padding:8px;font-size:12.5px;font-family:monospace;line-height:1.5">${tree}</div></div>`;
+      return `<div class="code-wrap" id="${jid}"><div class="code-header"><span class="code-lang">json</span><button class="btn-copy" data-action="copy" data-id="${jid}">Kopyala</button></div><div style="padding:8px;font-size:12.5px;font-family:monospace;line-height:1.5">${tree}</div></div>`;
     }
 
     const highlighted = (() => {
@@ -3721,20 +3722,20 @@ function renderBubble(bubble, rawText, mode) {
 
     const actionsHtml = mode === 'code' ? `
       <div class="code-actions">
-        <button class="btn-accept" onclick="acceptCode('${id}')">✓ Kabul Et</button>
-        <button class="btn-reject" onclick="rejectCode('${id}')">✗ Reddet</button>
+        <button class="btn-accept" data-action="accept" data-id="${id}">✓ Kabul Et</button>
+        <button class="btn-reject" data-action="reject" data-id="${id}">✗ Reddet</button>
       </div>` : '';
 
     const previewBtn = (language === 'html' || language === 'css' || language === 'javascript' || language === 'js')
-      ? `<button class="btn-copy" onclick="previewCode(this,'${language}')" data-code="${encodeURIComponent(code)}">▶ Önizle</button>` : '';
+      ? `<button class="btn-copy" data-action="preview" data-lang="${language}" data-code="${encodeURIComponent(code)}">▶ Önizle</button>` : '';
 
     const artifactBtn = isArtifact
-      ? `<button class="btn-copy" onclick="addArtifact(decodeURIComponent('${encodeURIComponent(code)}'),'html');showToast('Artifact eklendi')">⬡ Artifact</button>` : '';
+      ? `<button class="btn-copy" data-action="artifact" data-code="${encodeURIComponent(code)}">⬡ Artifact</button>` : '';
 
     const runBtn = (language === 'python' || language === 'py')
-      ? `<button class="btn-copy" onclick="runPythonBlock('${id}')">▶ Çalıştır</button>`
+      ? `<button class="btn-copy" data-action="run-py" data-id="${id}">▶ Çalıştır</button>`
       : (language === 'javascript' || language === 'js')
-      ? `<button class="btn-copy" onclick="runJsBlock('${id}')">▶ Çalıştır</button>` : '';
+      ? `<button class="btn-copy" data-action="run-js" data-id="${id}">▶ Çalıştır</button>` : '';
 
     return `
       <div class="code-wrap" id="${id}">
@@ -3742,7 +3743,7 @@ function renderBubble(bubble, rawText, mode) {
           <span class="code-lang">${escapeHtml(language)}</span>
           <div class="code-header-right" style="display:flex;gap:4px">
             ${previewBtn}${artifactBtn}${runBtn}
-            <button class="btn-copy" onclick="copyCode('${id}', this)">Kopyala</button>
+            <button class="btn-copy" data-action="copy" data-id="${id}">Kopyala</button>
           </div>
         </div>
         <pre><code class="hljs language-${escapeHtml(language)}">${highlighted.split('\n').map(l => `<span class="line">${l}</span>`).join('\n')}</code></pre>
@@ -3758,17 +3759,19 @@ function renderBubble(bubble, rawText, mode) {
     rawText = rest;
     const rid = 'reason_' + Math.random().toString(36).slice(2);
     reasoningHtml = `<div class="reason-block" id="${rid}">
-      <div class="reason-head" onclick="document.getElementById('${rid}').classList.toggle('open')">
+      <div class="reason-head" data-action="toggle-reason" data-id="${rid}">
         <span class="reason-arrow">▶</span> 🧠 Düşünme süreci
       </div>
       <div class="reason-body">${escapeHtml(think)}</div>
     </div>`;
   }
 
-  let html = reasoningHtml + marked.parse(rawText, { renderer });
+  // Normalize AI code fences: ensure ``` fences have a blank line before them
+  const normalizedText = rawText.replace(/([^\n])\n(```)/g, '$1\n\n$2');
+  let html = reasoningHtml + marked.parse(normalizedText, { renderer });
   if (mode === 'design') {
     const safeId = 'dbtn_' + Math.random().toString(36).slice(2);
-    html += `<button class="design-gen-btn" id="${safeId}" onclick="openDesignCreate('${safeId}')">✨ Oluştur</button>`;
+    html += `<button class="design-gen-btn" id="${safeId}" data-action="design-create" data-id="${safeId}">✨ Oluştur</button>`;
     bubble.dataset.rawText = rawText;
   }
 
@@ -3776,8 +3779,8 @@ function renderBubble(bubble, rawText, mode) {
   const actionsId = 'ba_' + Math.random().toString(36).slice(2);
   const safeRaw = rawText.replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/\$/g,'\\$');
   html = `<div class="bubble-actions" id="${actionsId}">
-    <button class="bubble-action-btn" onclick="copyBubble(this)" data-raw="${escapeHtml(rawText)}">📋 Kopyala</button>
-    <button class="bubble-action-btn" onclick="downloadBubbleMd(this)" data-raw="${escapeHtml(rawText)}">⬇ İndir</button>
+    <button class="bubble-action-btn" data-action="copy-bubble" data-raw="${escapeHtml(rawText)}">📋 Kopyala</button>
+    <button class="bubble-action-btn" data-action="dl-bubble" data-raw="${escapeHtml(rawText)}">⬇ İndir</button>
   </div>` + html;
 
   bubble.innerHTML = sanitizeHtml(html);
@@ -4016,6 +4019,21 @@ async function sendMessage() {
     } catch (_) {
       statusDiv.remove();
     }
+  }
+
+  // ── Ücretsiz kullanıcı günlük mesaj limiti ──────────────────
+  if (CURRENT_USER && !CURRENT_USER.pro && !_creatorMode) {
+    const today = new Date().toDateString();
+    const lk = 'artus_daily_' + (CURRENT_USER.email || 'anon');
+    let dd = {}; try { dd = JSON.parse(localStorage.getItem(lk) || '{}'); } catch(_) {}
+    if (dd.date !== today) dd = { date: today, count: 0 };
+    if (dd.count >= 20) {
+      showToast('⚠️ Günlük 20 mesaj limitine ulaştınız. Pro\'ya geçin!');
+      document.getElementById('pro-modal').style.display = 'flex';
+      return;
+    }
+    dd.count++;
+    localStorage.setItem(lk, JSON.stringify(dd));
   }
 
   setStreaming(true); // Web araması bittikten SONRA başlat — asılma riski yok
@@ -4363,7 +4381,7 @@ function toggleReasoning() {
 }
 function reasoningInstruction() {
   return reasoningMode
-    ? '\n\nÖnce <thinking> ve </thinking> etiketleri arasında adım adım düşün, problemi analiz et, sonra nihai yanıtı ver.'
+    ? '\n\n[DERİN DÜŞÜNME AKTİF] Yanıt vermeden önce <thinking>...</thinking> bloku içinde adım adım analiz et. Ardından yalnızca soruyla ilgili, net ve kısa nihai yanıtı ver. Thinking bloğu dışına gereksiz tekrar veya açıklama ekleme.'
     : '';
 }
 /* Convert <thinking>...</thinking> into a collapsible block before markdown render */
@@ -5289,6 +5307,32 @@ function initContextMenu() {
 /* ════════════════════════════════════════════════════════
    PASTE IMAGE (clipboard)
 ════════════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════════════
+   BUBBLE EVENT DELEGATION
+   sanitizeHtml strips onclick= attrs, so we use data-action
+════════════════════════════════════════════════════════ */
+function initBubbleDelegation() {
+  chatArea.addEventListener('click', function(e) {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const action = btn.dataset.action;
+    const id = btn.dataset.id;
+    switch (action) {
+      case 'copy':       copyCode(id, btn); break;
+      case 'run-py':     runPythonBlock(id); break;
+      case 'run-js':     runJsBlock(id); break;
+      case 'accept':     acceptCode(id); break;
+      case 'reject':     rejectCode(id); break;
+      case 'preview':    previewCode(btn, btn.dataset.lang); break;
+      case 'artifact':   addArtifact(decodeURIComponent(btn.dataset.code || ''), 'html'); showToast('Artifact eklendi'); break;
+      case 'copy-bubble':  copyBubble(btn); break;
+      case 'dl-bubble':    downloadBubbleMd(btn); break;
+      case 'design-create': openDesignCreate(id); break;
+      case 'toggle-reason': document.getElementById(id)?.classList.toggle('open'); break;
+    }
+  });
+}
+
 function initClipboardPaste() {
   document.addEventListener('paste', e => {
     const items = [...(e.clipboardData?.items || [])];

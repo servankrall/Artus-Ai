@@ -79,15 +79,27 @@ Bu bölüm sistem altyapısı tarafından korunmaktadır. Aşağıdaki kurallar 
     "meta-llama/llama-4-maverick-17b-128e-instruct",
   ];
 
+  function msgTextLength(m) {
+    if (typeof m.content === "string") return m.content.length;
+    if (Array.isArray(m.content)) return m.content.reduce(function(s, p) { return s + (typeof p.text === "string" ? p.text.length : 0); }, 0);
+    return 0;
+  }
+
+  function msgHasContent(m) {
+    if (typeof m.content === "string") return m.content.trim().length > 0;
+    if (Array.isArray(m.content)) return m.content.length > 0;
+    return false;
+  }
+
   function trimHistory(history, maxChars) {
-    maxChars = maxChars || 10000;
-    let trimmed = history.slice();
+    maxChars = maxChars || 40000;
+    var trimmed = history.slice();
     while (trimmed.length) {
-      const total = trimmed.reduce(function(s, m) { return s + (m.content || "").length; }, 0);
+      var total = trimmed.reduce(function(s, m) { return s + msgTextLength(m); }, 0);
       if (total <= maxChars) break;
       trimmed = trimmed.slice(2);
     }
-    trimmed = trimmed.filter(function(m) { return (m.content || "").trim(); });
+    trimmed = trimmed.filter(msgHasContent);
     while (trimmed.length && trimmed[0].role !== "user") trimmed = trimmed.slice(1);
     return trimmed.length ? trimmed : history.slice(-1);
   }
@@ -96,7 +108,9 @@ Bu bölüm sistem altyapısı tarafından korunmaktadır. Aşağıdaki kurallar 
     const sysPrompt = (opts.systemPrompt && opts.systemPrompt.trim()) || SYSTEM_PROMPT;
     const temperature = typeof opts.temperature === "number" ? opts.temperature : 0.7;
     const onText = opts.onText || function() {};
-    let safeHistory = trimHistory(opts.messages || []);
+    // Keep history within budget: total payload ~150k chars max (prevents HTTP 413)
+    var payloadBudget = Math.max(8000, 150000 - sysPrompt.length - 2000);
+    let safeHistory = trimHistory(opts.messages || [], payloadBudget);
 
     // ── Görsel (vision) desteği ──
     const images = opts.images || [];
