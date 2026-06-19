@@ -2834,11 +2834,13 @@ function init() {
   initClipboardPaste();
   initBubbleDelegation();
   // Show limit wall if already hit today
-  if (CURRENT_USER && !CURRENT_USER.pro && !_creatorMode) {
+  if (CURRENT_USER && !_creatorMode) {
+    const isPro = !!CURRENT_USER.pro;
+    const limit = isPro ? 100 : 20;
     const lk = 'artus_daily_' + (CURRENT_USER.email || 'anon');
     try {
       const dd = JSON.parse(localStorage.getItem(lk) || '{}');
-      if (dd.date === new Date().toDateString() && dd.count >= 20) showFreeLimitWall();
+      if (dd.date === new Date().toDateString() && dd.count >= limit) showFreeLimitWall(isPro);
     } catch(_) {}
   }
   autoResume();
@@ -2991,27 +2993,24 @@ function signOut() {
 /* ═══════════════════════════════════════════════
    PRO MODAL
 ═══════════════════════════════════════════════ */
-function showFreeLimitWall() {
-  // Kilitle input
+function showFreeLimitWall(isPro) {
   const inp = document.getElementById('user-input');
   const wrap = document.querySelector('.input-wrap');
-  if (inp) { inp.disabled = true; inp.placeholder = '🔒 Günlük limit doldu — yarın yenilenir veya Pro\'ya geç'; }
+  if (inp) { inp.disabled = true; inp.placeholder = '🔒 Günlük limit doldu — yarın yenilenir'; }
   if (wrap) { wrap.style.opacity = '0.5'; wrap.style.pointerEvents = 'none'; }
 
-  // Banner zaten varsa ekleme
   if (document.getElementById('free-limit-banner')) return;
   const banner = document.createElement('div');
   banner.id = 'free-limit-banner';
   banner.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:9999;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 -4px 24px rgba(0,0,0,.3)';
+  const msg = isPro
+    ? `<div style="font-weight:700">Günlük 100 mesaj limitine ulaştın</div><div style="font-size:12px;opacity:.85">Limit yarın gece yarısı sıfırlanır</div>`
+    : `<div style="font-weight:700">Günlük 20 mesaj limitine ulaştın</div><div style="font-size:12px;opacity:.85">Limit yarın gece yarısı sıfırlanır · Pro'ya geçerek 100 mesaj/gün kullan</div>`;
+  const btn = isPro ? '' : `<button onclick="openProModal()" style="background:#fff;color:#7c3aed;border:none;padding:8px 18px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;white-space:nowrap">⚡ Pro'ya Geç</button>`;
   banner.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;font-size:14px">
-      <span style="font-size:20px">🔒</span>
-      <div>
-        <div style="font-weight:700">Günlük 20 mesaj limitine ulaştın</div>
-        <div style="font-size:12px;opacity:.85">Limit yarın gece yarısı sıfırlanır · Pro'ya geçerek sınırsız kullan</div>
-      </div>
-    </div>
-    <button onclick="openProModal()" style="background:#fff;color:#7c3aed;border:none;padding:8px 18px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;white-space:nowrap">⚡ Pro'ya Geç</button>`;
+      <span style="font-size:20px">🔒</span><div>${msg}</div>
+    </div>${btn}`;
   document.body.appendChild(banner);
 }
 
@@ -4215,14 +4214,16 @@ async function sendMessage() {
     }
   }
 
-  // ── Ücretsiz kullanıcı günlük mesaj limiti ──────────────────
-  if (CURRENT_USER && !CURRENT_USER.pro && !_creatorMode) {
+  // ── Günlük mesaj limiti (Creator = sınırsız) ──────────────────
+  if (CURRENT_USER && !_creatorMode) {
+    const isPro = !!CURRENT_USER.pro;
+    const limit = isPro ? 100 : 20;
     const today = new Date().toDateString();
     const lk = 'artus_daily_' + (CURRENT_USER.email || 'anon');
     let dd = {}; try { dd = JSON.parse(localStorage.getItem(lk) || '{}'); } catch(_) {}
     if (dd.date !== today) dd = { date: today, count: 0 };
-    if (dd.count >= 20) {
-      showFreeLimitWall();
+    if (dd.count >= limit) {
+      showFreeLimitWall(isPro);
       return;
     }
     dd.count++;
