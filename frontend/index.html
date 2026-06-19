@@ -1552,7 +1552,7 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
         <!-- Tools dropdown -->
         <div style="position:relative">
           <button class="topbar-icon-btn" id="btn-tools" onclick="toggleToolsMenu(event)" title="Araçlar">⋯</button>
-          <div id="tools-dropdown" style="display:none;position:absolute;right:0;top:calc(100%+6px);background:var(--surface);border:1px solid var(--border);border-radius:10px;min-width:210px;z-index:300;overflow:hidden;box-shadow:0 8px 28px rgba(0,0,0,.5);">
+          <div id="tools-dropdown" style="display:none;position:absolute;right:0;top:calc(100%+6px);background:var(--surface);border:1px solid var(--border);border-radius:10px;min-width:210px;z-index:300;overflow-y:auto;max-height:70vh;box-shadow:0 8px 28px rgba(0,0,0,.5);">
             <div class="exp-item" onclick="forceUpdate();toggleToolsMenu()">🔄 Zorunlu Yenile (Önbellek Temizle)</div>
             <div class="exp-item" onclick="openUpdateLog();toggleToolsMenu()">📋 Sürüm Güncellemeleri</div>
             <div class="exp-item" onclick="openGallery();toggleToolsMenu()">🖼 Görüntü Galerisi</div>
@@ -6367,7 +6367,7 @@ document.addEventListener('DOMContentLoaded', () => {
   btn.innerHTML = '⚡ Creator Modu';
   btn.onclick = () => { toggleToolsMenu(); _creatorMode ? deactivateCreatorMode() : activateCreatorMode(); };
   dd.appendChild(sep); dd.appendChild(btn);
-  _updateCreatorVisibility();
+  setTimeout(_updateCreatorVisibility, 100);
 });
 </script>
 
