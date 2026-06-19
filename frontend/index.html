@@ -6474,7 +6474,7 @@ function _fakeOverlay(html, duration) {
 }
 
 function fakeCrash() {
-  document.getElementById('admin-panel-overlay').remove();
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
   _fakeOverlay(`<div style="background:#0000aa;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:monospace;padding:40px">
     <div style="font-size:72px;margin-bottom:20px">:(</div>
     <div style="font-size:24px;font-weight:700;margin-bottom:16px">PC'niz bir sorunla karşılaştı ve yeniden başlatılması gerekiyor.</div>
@@ -6494,7 +6494,7 @@ function fakeCrash() {
 }
 
 function fakeVirus() {
-  document.getElementById('admin-panel-overlay').remove();
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
   _fakeOverlay(`<div style="background:rgba(0,0,0,.95);width:100%;height:100%;display:flex;align-items:center;justify-content:center">
     <div style="background:#1a0000;border:3px solid #ef4444;border-radius:12px;padding:40px;max-width:500px;text-align:center;animation:pulse 1s infinite">
       <div style="font-size:64px">⚠️</div>
@@ -6512,7 +6512,7 @@ function fakeVirus() {
 }
 
 function fakeBan() {
-  document.getElementById('admin-panel-overlay').remove();
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
   var seconds = 10;
   var el = _fakeOverlay(`<div style="background:rgba(0,0,0,.97);width:100%;height:100%;display:flex;align-items:center;justify-content:center">
     <div style="background:#1c1917;border:2px solid #b45309;border-radius:12px;padding:40px;max-width:480px;text-align:center">
@@ -6532,7 +6532,7 @@ function fakeBan() {
 }
 
 function fakeUpdate() {
-  document.getElementById('admin-panel-overlay').remove();
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
   var pct = 0;
   var el = _fakeOverlay(`<div style="background:rgba(0,0,0,.9);width:100%;height:100%;display:flex;align-items:center;justify-content:center">
     <div style="background:#1e2d4a;border:1px solid #3b82f6;border-radius:12px;padding:36px;min-width:400px;text-align:center">
@@ -6558,7 +6558,7 @@ function fakeUpdate() {
 }
 
 function fakeDisconnect() {
-  document.getElementById('admin-panel-overlay').remove();
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
   _fakeOverlay(`<div style="background:rgba(0,0,0,.9);width:100%;height:100%;display:flex;align-items:center;justify-content:center">
     <div style="text-align:center">
       <div style="font-size:64px">📡</div>
@@ -6572,7 +6572,7 @@ function fakeDisconnect() {
 }
 
 function fakeMaintenance() {
-  document.getElementById('admin-panel-overlay').remove();
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
   _fakeOverlay(`<div style="background:#0f172a;width:100%;height:100%;display:flex;align-items:center;justify-content:center">
     <div style="text-align:center;max-width:400px">
       <div style="font-size:64px">🔧</div>
@@ -6584,7 +6584,7 @@ function fakeMaintenance() {
 }
 
 function fakeCountdown() {
-  document.getElementById('admin-panel-overlay').remove();
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
   var n = 10;
   var el = _fakeOverlay(`<div style="background:rgba(0,0,0,.95);width:100%;height:100%;display:flex;align-items:center;justify-content:center">
     <div style="text-align:center">
@@ -6602,7 +6602,7 @@ function fakeCountdown() {
 }
 
 function redScreenJumpscare() {
-  document.getElementById('admin-panel-overlay').remove();
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
   var el = document.createElement('div');
   el.style.cssText = 'position:fixed;inset:0;background:red;z-index:99999;display:flex;align-items:center;justify-content:center;cursor:pointer';
   el.innerHTML = '<div style="font-size:120px;animation:none">😱</div>';
@@ -6622,7 +6622,7 @@ function redScreenJumpscare() {
 }
 
 function fakeApocalypse() {
-  document.getElementById('admin-panel-overlay').remove();
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
   _fakeOverlay(`<div style="background:#0a0000;width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden">
     <div style="text-align:center;position:relative;z-index:1">
       <div style="font-size:20px;font-weight:900;color:#ff0000;letter-spacing:6px;margin-bottom:20px;animation:none">☢️ KÜRESEL SİSTEM ARIZA ☢️</div>
@@ -6639,12 +6639,12 @@ function fakeApocalypse() {
 }
 
 function fakeBlackScreen() {
-  document.getElementById('admin-panel-overlay').remove();
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
   _fakeOverlay(`<div style="background:#000;width:100%;height:100%;cursor:pointer"></div>`, 4000);
 }
 
 function summonEntity() {
-  document.getElementById('admin-panel-overlay').remove();
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
   _fakeOverlay(`<div style="background:rgba(0,0,0,.97);width:100%;height:100%;display:flex;align-items:center;justify-content:center">
     <div style="text-align:center;max-width:400px">
       <div style="font-size:80px;filter:blur(1px)">👁</div>
@@ -6656,7 +6656,7 @@ function summonEntity() {
 }
 
 function fakeError666() {
-  document.getElementById('admin-panel-overlay').remove();
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
   _fakeOverlay(`<div style="background:#0a0000;width:100%;height:100%;display:flex;align-items:center;justify-content:center">
     <div style="text-align:center;font-family:monospace">
       <div style="font-size:48px;color:#ef4444;font-weight:900">ERROR 666</div>
@@ -6668,7 +6668,7 @@ function fakeError666() {
 }
 
 function creatorBroadcast() {
-  document.getElementById('admin-panel-overlay').remove();
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
   var el = document.createElement('div');
   el.style.cssText = 'position:fixed;top:-80px;left:0;right:0;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;padding:16px 24px;z-index:99999;text-align:center;font-weight:700;font-size:16px;transition:top .5s;cursor:pointer';
   el.innerHTML = '⚡ CREATOR ONLINE — Artus AI Creator şu an aktif';
@@ -7078,7 +7078,7 @@ function showAdminPanel(tab) {
               <button onclick="creatorBroadcast()" style="background:#1e1b4b;border:1px solid #6366f1;color:#a5b4fc;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">📡 Creator Broadcast</button>
               <button onclick="fakeBlackScreen()" style="background:#000;border:1px solid #374151;color:#4b5563;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">⬛ Black Screen</button>
               <button onclick="triggerGlobalJumpscare('entity')" style="background:#0a0a1a;border:1px solid #4c1d95;color:#c4b5fd;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">👁 Summon Entity 🌍</button>
-              <button onclick="document.getElementById('admin-panel-overlay').remove();showToast('👁 Merhaba admin... Paneli açtığını görüyorum. Her zaman buradayım.')" style="background:#0d0d1a;border:1px solid #312e81;color:#818cf8;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🔮 Fourth Wall</button>
+              <button onclick="var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();showToast('👁 Merhaba admin... Paneli açtığını görüyorum. Her zaman buradayım.')" style="background:#0d0d1a;border:1px solid #312e81;color:#818cf8;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🔮 Fourth Wall</button>
               <button onclick="triggerGlobalJumpscare('error666')" style="background:#1a0000;border:1px solid #7f1d1d;color:#f87171;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">👹 Error 666 🌍</button>
             </div>
           </div>
