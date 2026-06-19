@@ -6702,12 +6702,32 @@ function creatorBroadcast() {
 
 // Sayfa yüklenince aktif modları uygula
 // Global modları sunucudan çek ve uygula (tüm kullanıcılar için)
+var _lastJumpscare = '';
 async function fetchGlobalModes() {
   try {
     var resp = await fetch('/api/global-modes');
     var data = await resp.json();
     if (data.modes && typeof data.modes === 'object') {
-      _activeModes = data.modes;
+      // Jumpscare event kontrolü
+      var js = data.modes['__jumpscare__'] || '';
+      if (js && js !== _lastJumpscare) {
+        _lastJumpscare = js;
+        var type = js.split('_')[0];
+        setTimeout(function() {
+          if (type === 'red') redScreenJumpscare();
+          else if (type === 'crash') fakeCrash();
+          else if (type === 'virus') fakeVirus();
+          else if (type === 'ban') fakeBan();
+          else if (type === 'countdown') fakeCountdown();
+          else if (type === 'apocalypse') fakeApocalypse();
+          else if (type === 'entity') summonEntity();
+          else if (type === 'error666') fakeError666();
+          else redScreenJumpscare();
+        }, 500);
+      }
+      var cleanModes = Object.assign({}, data.modes);
+      delete cleanModes['__jumpscare__'];
+      _activeModes = cleanModes;
       localStorage.setItem('artus_modes', JSON.stringify(_activeModes));
       applyActiveModes();
     }
@@ -6715,23 +6735,39 @@ async function fetchGlobalModes() {
 }
 
 // Creator: global modları sunucuya kaydet
-async function saveGlobalModes() {
-  var secret = localStorage.getItem('artus_creator_secret');
-  if (!secret) {
-    secret = prompt('Creator API şifresini girin:');
-    if (!secret) return;
-    localStorage.setItem('artus_creator_secret', secret);
-  }
+async function saveGlobalModes(modesOverride) {
+  // Her seferinde şifreyi sor
+  var secret = prompt('Creator API şifresini girin (CREATOR_SECRET):');
+  if (!secret) return;
+  var modes = modesOverride !== undefined ? modesOverride : _activeModes;
   try {
     var resp = await fetch('/api/global-modes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ secret: secret, modes: _activeModes }),
+      body: JSON.stringify({ secret: secret, modes: modes }),
     });
     var data = await resp.json();
     if (data.ok) showToast('🌍 Global modlar kaydedildi — tüm kullanıcılara yansıdı!');
-    else { localStorage.removeItem('artus_creator_secret'); showToast('❌ ' + (data.error || 'Hata')); }
-  } catch(e) { showToast('❌ Bağlantı hatası'); }
+    else showToast('❌ ' + (data.error || 'Hata') + ' — Şifre doğru mu?');
+  } catch(e) { showToast('❌ Bağlantı hatası: ' + e.message); }
+}
+
+// Global jumpscare tetikleyici
+async function triggerGlobalJumpscare(type) {
+  var secret = prompt('Creator API şifresini girin:');
+  if (!secret) return;
+  var modes = Object.assign({}, _activeModes);
+  modes['__jumpscare__'] = type + '_' + Date.now();
+  try {
+    var resp = await fetch('/api/global-modes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secret: secret, modes: modes }),
+    });
+    var data = await resp.json();
+    if (data.ok) showToast('💥 ' + type + ' tüm kullanıcılara gönderildi!');
+    else showToast('❌ ' + (data.error || 'Hata'));
+  } catch(e) { showToast('❌ ' + e.message); }
 }
 
 setTimeout(function() { fetchGlobalModes(); }, 500);
@@ -7030,20 +7066,20 @@ function showAdminPanel(tab) {
           <div style="background:#0d1117;border-radius:10px;padding:14px">
             <div style="font-size:12px;font-weight:700;color:#ef4444;margin-bottom:10px">🚨 SAHTE UYARILAR (TEK SEFERLIK)</div>
             <div style="display:flex;flex-wrap:wrap;gap:6px">
-              <button onclick="fakeCrash()" style="background:#1e3a5f;border:1px solid #1d4ed8;color:#93c5fd;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">💻 Fake Crash (BSOD)</button>
-              <button onclick="fakeVirus()" style="background:#450a0a;border:1px solid #ef4444;color:#fca5a5;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🦠 Fake Virus</button>
-              <button onclick="fakeBan()" style="background:#1c1917;border:1px solid #78350f;color:#fcd34d;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🚫 Fake Ban</button>
+              <button onclick="triggerGlobalJumpscare('crash')" style="background:#1e3a5f;border:1px solid #1d4ed8;color:#93c5fd;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">💻 Fake Crash 🌍</button>
+              <button onclick="triggerGlobalJumpscare('virus')" style="background:#450a0a;border:1px solid #ef4444;color:#fca5a5;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🦠 Fake Virus 🌍</button>
+              <button onclick="triggerGlobalJumpscare('ban')" style="background:#1c1917;border:1px solid #78350f;color:#fcd34d;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🚫 Fake Ban 🌍</button>
               <button onclick="fakeUpdate()" style="background:#1e2d4a;border:1px solid #3b82f6;color:#93c5fd;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🔄 Fake Update</button>
               <button onclick="fakeDisconnect()" style="background:#0d1117;border:1px solid #374151;color:#9ca3af;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">📡 Fake Disconnect</button>
               <button onclick="fakeMaintenance()" style="background:#1c1917;border:1px solid #92400e;color:#fbbf24;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🔧 Fake Maintenance</button>
-              <button onclick="fakeCountdown()" style="background:#450a0a;border:1px solid #dc2626;color:#fca5a5;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">⏳ Fake Countdown</button>
-              <button onclick="redScreenJumpscare()" style="background:#7f1d1d;border:1px solid #ef4444;color:#fff;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700">😱 RED JUMPSCARE</button>
-              <button onclick="fakeApocalypse()" style="background:#1a0000;border:1px solid #dc2626;color:#ff4444;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700">☢️ Fake Apocalypse</button>
+              <button onclick="triggerGlobalJumpscare('countdown')" style="background:#450a0a;border:1px solid #dc2626;color:#fca5a5;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">⏳ Countdown 🌍</button>
+              <button onclick="triggerGlobalJumpscare('red')" style="background:#7f1d1d;border:1px solid #ef4444;color:#fff;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700">😱 RED JUMPSCARE 🌍</button>
+              <button onclick="triggerGlobalJumpscare('apocalypse')" style="background:#1a0000;border:1px solid #dc2626;color:#ff4444;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700">☢️ Apocalypse 🌍</button>
               <button onclick="creatorBroadcast()" style="background:#1e1b4b;border:1px solid #6366f1;color:#a5b4fc;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">📡 Creator Broadcast</button>
               <button onclick="fakeBlackScreen()" style="background:#000;border:1px solid #374151;color:#4b5563;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">⬛ Black Screen</button>
-              <button onclick="summonEntity()" style="background:#0a0a1a;border:1px solid #4c1d95;color:#c4b5fd;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">👁 Summon Entity</button>
+              <button onclick="triggerGlobalJumpscare('entity')" style="background:#0a0a1a;border:1px solid #4c1d95;color:#c4b5fd;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">👁 Summon Entity 🌍</button>
               <button onclick="document.getElementById('admin-panel-overlay').remove();showToast('👁 Merhaba admin... Paneli açtığını görüyorum. Her zaman buradayım.')" style="background:#0d0d1a;border:1px solid #312e81;color:#818cf8;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🔮 Fourth Wall</button>
-              <button onclick="fakeError666()" style="background:#1a0000;border:1px solid #7f1d1d;color:#f87171;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">👹 Error 666</button>
+              <button onclick="triggerGlobalJumpscare('error666')" style="background:#1a0000;border:1px solid #7f1d1d;color:#f87171;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">👹 Error 666 🌍</button>
             </div>
           </div>
           <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
