@@ -33,6 +33,7 @@ export async function onRequestPost(context) {
 
   const params = new URLSearchParams({
     "mode": "subscription",
+    "payment_method_types[0]": "card",
     "line_items[0][price]": priceId,
     "line_items[0][quantity]": "1",
     "success_url": `${origin}/?payment_success=1&tier=${tier}&session_id={CHECKOUT_SESSION_ID}`,
