@@ -1503,7 +1503,7 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
         <button class="mode-btn" data-mode="code" onclick="handleModeClick('code')" title="Omni Code — PRO (Ctrl+2)">⚡<span class="pro-lock" id="code-lock">🔒</span></button>
         <button class="mode-btn" data-mode="design" onclick="handleModeClick('design')" title="Omni Design — PRO (Ctrl+3)">🎨<span class="pro-lock" id="design-lock">🔒</span></button>
         <button class="mode-btn" onclick="toggleSettings()" title="Ayarlar">⚙️</button>
-        <button class="mode-btn" id="btn-creator-mode" onclick="activateCreatorMode()" title="Creator Modu">⚡</button>
+        <button class="mode-btn" id="btn-creator-mode" onclick="activateCreatorMode()" title="Creator Modu" style="display:none">⚡</button>
       </div>
 
       <div class="sb-footer-row">
@@ -2990,6 +2990,7 @@ function renderUserUI() {
   if (sbName) sbName.textContent = CURRENT_USER.name || '';
 
   updateTierBadge();
+  _updateCreatorVisibility();
 }
 
 function updateSidebarStats() {
@@ -3118,9 +3119,15 @@ async function stripeCheckout(tier) {
 // ── Max Kod Aktivasyonu ──────────────────────────────────────────────────────
 // Kodlar: MAX-XXXXXXXX-CCCC formatında, CCCC = SHA-256("ARTUSMAX_" + XXXXXXXX)[:4]
 const _MAX_CODE_SALT = 'ARTUSMAX_2026';
+const _PRO_CODE_SALT = 'ARTUSPRO_2026';
 
 async function _maxCodeHash(random8) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(_MAX_CODE_SALT + random8));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,'0')).join('').slice(0,4).toUpperCase();
+}
+
+async function _proCodeHash(rand) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(_PRO_CODE_SALT + rand));
   return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,'0')).join('').slice(0,4).toUpperCase();
 }
 
@@ -3129,54 +3136,89 @@ async function activateMaxCode() {
   const raw = (inp ? inp.value.trim().toUpperCase() : '').replace(/\s/g,'');
   if (!raw) { showToast('Lütfen aktivasyon kodunu girin'); return; }
 
-  // Format: MAX-XXXXXXXX-CCCC (toplam 18 karakter)
-  const m = raw.match(/^MAX-([A-Z0-9]{8})-([A-Z0-9]{4})$/);
-  if (!m) { showToast('❌ Geçersiz kod formatı (MAX-XXXXXXXX-XXXX)'); return; }
-
-  const [, rand, check] = m;
-  const expected = await _maxCodeHash(rand);
-  if (check !== expected) { showToast('❌ Geçersiz aktivasyon kodu'); return; }
-
   // Daha önce kullanılmış mı?
   const used = JSON.parse(localStorage.getItem('artus_used_codes') || '[]');
   if (used.includes(raw)) { showToast('❌ Bu kod daha önce kullanılmış'); return; }
-  used.push(raw);
-  localStorage.setItem('artus_used_codes', JSON.stringify(used));
 
-  if (!CURRENT_USER) { CURRENT_USER = { name: 'Kullanıcı' }; }
-  CURRENT_USER.max = true;
-  localStorage.setItem('artus_user', JSON.stringify(CURRENT_USER));
-  updateTierBadge();
-  closeProModal();
-  hideFreeLimitWall();
-  showToast('✦ Max aktif edildi! Hoş geldiniz.');
+  // MAX kodu: MAX-XXXXXXXX-CCCC
+  const mMax = raw.match(/^MAX-([A-Z0-9]{8})-([A-Z0-9]{4})$/);
+  if (mMax) {
+    const [, rand, check] = mMax;
+    const expected = await _maxCodeHash(rand);
+    if (check !== expected) { showToast('❌ Geçersiz aktivasyon kodu'); return; }
+    used.push(raw);
+    localStorage.setItem('artus_used_codes', JSON.stringify(used));
+    if (!CURRENT_USER) { CURRENT_USER = { name: 'Kullanıcı' }; }
+    CURRENT_USER.max = true;
+    localStorage.setItem('artus_user', JSON.stringify(CURRENT_USER));
+    updateTierBadge(); closeProModal(); hideFreeLimitWall();
+    showToast('✦ Max aktif edildi! Hoş geldiniz.');
+    return;
+  }
+
+  // PRO kodu: PRO-XXXXXXXX-CCCC
+  const mPro = raw.match(/^PRO-([A-Z0-9]{8})-([A-Z0-9]{4})$/);
+  if (mPro) {
+    const [, rand, check] = mPro;
+    const expected = await _proCodeHash(rand);
+    if (check !== expected) { showToast('❌ Geçersiz aktivasyon kodu'); return; }
+    used.push(raw);
+    localStorage.setItem('artus_used_codes', JSON.stringify(used));
+    if (!CURRENT_USER) { CURRENT_USER = { name: 'Kullanıcı' }; }
+    CURRENT_USER.pro = true;
+    localStorage.setItem('artus_user', JSON.stringify(CURRENT_USER));
+    updateTierBadge(); closeProModal(); hideFreeLimitWall();
+    showToast('⚡ Pro aktif edildi! Hoş geldiniz.');
+    return;
+  }
+
+  showToast('❌ Geçersiz kod formatı');
 }
 
-// ── Creator: Max Kodu Üretici ────────────────────────────────────────────────
-async function generateMaxCode() {
+// ── Creator: Kod Üretici (Pro + Max) ────────────────────────────────────────
+
+async function generateCode(tier) {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let rand = '';
   for (let i = 0; i < 8; i++) rand += chars[Math.floor(Math.random() * chars.length)];
-  const check = await _maxCodeHash(rand);
-  return `MAX-${rand}-${check}`;
+  if (tier === 'pro') {
+    const check = await _proCodeHash(rand);
+    return `PRO-${rand}-${check}`;
+  } else {
+    const check = await _maxCodeHash(rand);
+    return `MAX-${rand}-${check}`;
+  }
 }
 
 async function showCodeGenerator() {
-  const code = await generateMaxCode();
+  let currentTier = 'max';
   const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center';
-  overlay.innerHTML = `
-    <div style="background:#1c2128;border:1px solid #f59e0b;border-radius:16px;padding:28px 32px;min-width:320px;text-align:center">
-      <div style="font-size:14px;color:#f59e0b;font-weight:700;margin-bottom:12px">✦ MAX KOD ÜRETİCİ</div>
-      <div id="gen-code" style="font-size:22px;font-weight:800;letter-spacing:3px;color:#fff;background:#0d1117;padding:12px 20px;border-radius:10px;margin-bottom:16px;font-family:var(--mono)">${code}</div>
-      <div style="display:flex;gap:10px;justify-content:center">
-        <button onclick="(async()=>{const c=await generateMaxCode();document.getElementById('gen-code').textContent=c;})()" style="background:#262d3a;border:none;color:#e8ecf3;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px">🔄 Yeni Kod</button>
-        <button onclick="navigator.clipboard.writeText(document.getElementById('gen-code').textContent).then(()=>showToast('✅ Kopyalandı!'))" style="background:linear-gradient(135deg,#f59e0b,#fb923c);border:none;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700">📋 Kopyala</button>
-        <button onclick="this.closest('div[style*=fixed]').remove()" style="background:#262d3a;border:none;color:#e8ecf3;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px">✕ Kapat</button>
-      </div>
-      <div style="font-size:11px;color:#4b5563;margin-top:12px">Her kod tek kullanımlık</div>
-    </div>`;
+  overlay.id = 'code-gen-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center';
+
+  async function render() {
+    const code = await generateCode(currentTier);
+    const isPro = currentTier === 'pro';
+    overlay.innerHTML = `
+      <div style="background:#1c2128;border:1.5px solid ${isPro ? '#6366f1' : '#f59e0b'};border-radius:16px;padding:28px 32px;min-width:340px;text-align:center">
+        <div style="font-size:13px;color:var(--muted);font-weight:600;margin-bottom:14px">🎟 KOD ÜRETİCİ</div>
+        <div style="display:flex;gap:8px;justify-content:center;margin-bottom:18px">
+          <button id="cgb-pro" onclick="document.getElementById('cgb-pro').style.fontWeight='800';document.getElementById('cgb-max').style.fontWeight='400';window._cgTier='pro';(async()=>{const c=await generateCode('pro');document.getElementById('gen-code').textContent=c;})()" style="background:${isPro?'#6366f1':'#262d3a'};border:none;color:#fff;padding:7px 22px;border-radius:20px;cursor:pointer;font-size:13px;font-weight:${isPro?'800':'400'}">⚡ Pro</button>
+          <button id="cgb-max" onclick="document.getElementById('cgb-max').style.fontWeight='800';document.getElementById('cgb-pro').style.fontWeight='400';window._cgTier='max';(async()=>{const c=await generateCode('max');document.getElementById('gen-code').textContent=c;})()" style="background:${!isPro?'linear-gradient(135deg,#f59e0b,#fb923c)':'#262d3a'};border:none;color:#fff;padding:7px 22px;border-radius:20px;cursor:pointer;font-size:13px;font-weight:${!isPro?'800':'400'}">✦ Max</button>
+        </div>
+        <div id="gen-code" style="font-size:20px;font-weight:800;letter-spacing:3px;color:#fff;background:#0d1117;padding:12px 20px;border-radius:10px;margin-bottom:18px;font-family:var(--mono)">${code}</div>
+        <div style="display:flex;gap:8px;justify-content:center">
+          <button onclick="(async()=>{const t=window._cgTier||'max';const c=await generateCode(t);document.getElementById('gen-code').textContent=c;})()" style="background:#262d3a;border:none;color:#e8ecf3;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px">🔄 Yeni</button>
+          <button onclick="navigator.clipboard.writeText(document.getElementById('gen-code').textContent).then(()=>showToast('✅ Kopyalandı!'))" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700">📋 Kopyala</button>
+          <button onclick="document.getElementById('code-gen-overlay').remove()" style="background:#262d3a;border:none;color:#e8ecf3;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px">✕</button>
+        </div>
+        <div style="font-size:11px;color:#4b5563;margin-top:12px">Her kod tek kullanımlık</div>
+      </div>`;
+    window._cgTier = currentTier;
+  }
+
   document.body.appendChild(overlay);
+  await render();
 }
 
 async function activateProCode() {
@@ -6297,18 +6339,35 @@ function _showCreatorBadge() {
   document.body.appendChild(wrap);
 }
 
+const _OWNER_EMAIL = 'servankangal21@gmail.com';
+
+function _isOwner() {
+  return CURRENT_USER && CURRENT_USER.email && CURRENT_USER.email.toLowerCase() === _OWNER_EMAIL;
+}
+
+function _updateCreatorVisibility() {
+  const btn = document.getElementById('btn-creator-mode');
+  if (btn) btn.style.display = _isOwner() ? '' : 'none';
+  // tools dropdown creator butonunu da göster/gizle
+  const ddBtn = document.getElementById('tools-creator-btn');
+  if (ddBtn) ddBtn.style.display = _isOwner() ? '' : 'none';
+  const ddSep = document.getElementById('tools-creator-sep');
+  if (ddSep) ddSep.style.display = _isOwner() ? '' : 'none';
+}
+
 if (_creatorMode) setTimeout(_showCreatorBadge, 500);
 
 // Araçlar menüsüne Creator Mode butonu ekle
 document.addEventListener('DOMContentLoaded', () => {
   const dd = document.getElementById('tools-dropdown');
   if (!dd) return;
-  const sep = document.createElement('div'); sep.className = 'ctx-sep';
-  const btn = document.createElement('div'); btn.className = 'exp-item';
-  btn.style.cssText = 'color:#818cf8;font-weight:600';
+  const sep = document.createElement('div'); sep.className = 'ctx-sep'; sep.id = 'tools-creator-sep'; sep.style.display = 'none';
+  const btn = document.createElement('div'); btn.className = 'exp-item'; btn.id = 'tools-creator-btn';
+  btn.style.cssText = 'color:#818cf8;font-weight:600;display:none';
   btn.innerHTML = '⚡ Creator Modu';
   btn.onclick = () => { toggleToolsMenu(); _creatorMode ? deactivateCreatorMode() : activateCreatorMode(); };
   dd.appendChild(sep); dd.appendChild(btn);
+  _updateCreatorVisibility();
 });
 </script>
 
