@@ -1503,7 +1503,7 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
         <button class="mode-btn" data-mode="code" onclick="handleModeClick('code')" title="Omni Code — PRO (Ctrl+2)">⚡<span class="pro-lock" id="code-lock">🔒</span></button>
         <button class="mode-btn" data-mode="design" onclick="handleModeClick('design')" title="Omni Design — PRO (Ctrl+3)">🎨<span class="pro-lock" id="design-lock">🔒</span></button>
         <button class="mode-btn" onclick="toggleSettings()" title="Ayarlar">⚙️</button>
-        <button class="mode-btn" id="btn-creator-mode" onclick="activateCreatorMode()" title="Creator Modu" style="display:none">⚡</button>
+        <button class="mode-btn" id="btn-creator-mode" onclick="activateCreatorMode()" title="Creator Modu">⚡</button>
       </div>
 
       <div class="sb-footer-row">
@@ -1599,7 +1599,7 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
             <button class="ud-item" onclick="startNewChat(); closeUserDropdown();">✨ Yeni Sohbet</button>
             <button class="ud-item" onclick="openGlobalSearch(); closeUserDropdown();">🔎 Tüm Sohbetlerde Ara</button>
             <button class="ud-item" onclick="showWhatsNew(); closeUserDropdown();">✨ Yenilikler</button>
-            <button class="ud-item" id="ud-creator-btn" style="display:none;color:#818cf8;font-weight:700" onclick="closeUserDropdown(); _creatorMode ? deactivateCreatorMode() : activateCreatorMode();">⚡ Creator Modu</button>
+            <button class="ud-item" id="ud-creator-btn" style="color:#818cf8;font-weight:700" onclick="closeUserDropdown(); _creatorMode ? deactivateCreatorMode() : activateCreatorMode();">⚡ Creator Modu</button>
             <button class="ud-item danger" onclick="signOut()">↩ Çıkış Yap</button>
           </div>
         </div>
@@ -6347,9 +6347,9 @@ function _isOwner() {
 }
 
 function _updateCreatorVisibility() {
-  const show = _isOwner() ? '' : 'none';
+  // Buton herkese görünür, şifre güvenliği sağlar
   const ids = ['btn-creator-mode', 'tools-creator-btn', 'tools-creator-sep', 'ud-creator-btn'];
-  ids.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = show; });
+  ids.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = ''; });
 }
 
 if (_creatorMode) setTimeout(_showCreatorBadge, 500);
