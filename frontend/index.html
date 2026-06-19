@@ -346,6 +346,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 }
 .badge:hover { opacity: .8; }
 .badge-pro    { background: rgba(16,185,129,.12); color: var(--green); border: 1px solid rgba(16,185,129,.3); }
+.badge-max    { background: linear-gradient(135deg,rgba(234,179,8,.18),rgba(251,146,60,.18)); color: #f59e0b; border: 1px solid rgba(234,179,8,.4); font-weight: 700; }
 .badge-free   { background: rgba(125,133,144,.12); color: var(--muted); border: 1px solid rgba(125,133,144,.25); }
 
 /* Clear button */
@@ -998,6 +999,30 @@ body[data-mode="chat"] .msg.bot .bubble { background: #ffffff; border: 1px solid
 body[data-mode="chat"] .msg.user .bubble { background: linear-gradient(135deg,#7c3aed,#6d28d9); color:#fff; }
 body[data-mode="chat"] .bubble-action-btn { color: #6b7280; }
 
+/* Design modu dashboard */
+body[data-mode="design"] { --bg: #f5f4f0; --surface: #ffffff; --border: #e2e0d8; --text: #1a1a1a; --muted: #78716c; }
+body[data-mode="design"] #chat-area { background: #f5f4f0; }
+body[data-mode="design"] #welcome { align-items: flex-start; padding: 32px 40px; gap: 16px; }
+#welcome .ds-header { display:flex; flex-direction:column; gap:6px; margin-bottom:4px; }
+#welcome .ds-logo { font-size: 22px; font-weight: 700; color: #1a1a1a; letter-spacing: -0.3px; }
+#welcome .ds-sub { font-size: 14px; color: #78716c; }
+#welcome .ds-section-label { font-size: 13px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
+#welcome .ds-grid {
+  display: grid; grid-template-columns: repeat(4, 180px); gap: 12px;
+  width: 100%; max-width: 800px;
+}
+#welcome .ds-card {
+  background: #ffffff; border: 1px solid #e2e0d8; border-radius: 12px;
+  padding: 18px 16px; cursor: pointer; text-align: left;
+  display: flex; flex-direction: column; gap: 5px;
+  transition: border-color .15s, box-shadow .15s, transform .1s;
+}
+#welcome .ds-card:hover { border-color: #a8a29e; box-shadow: 0 4px 16px rgba(0,0,0,.08); transform: translateY(-2px); }
+#welcome .ds-card-icon { font-size: 28px; margin-bottom: 4px; }
+#welcome .ds-card-title { font-size: 13.5px; font-weight: 600; color: #1a1a1a; }
+#welcome .ds-card-desc { font-size: 12px; color: #78716c; }
+@media (max-width: 700px) { #welcome .ds-grid { grid-template-columns: 1fr 1fr; } }
+
 /* Code modu */
 body[data-mode="code"] { --bg: #f6f8fa; --surface: #ffffff; --border: #d0d7de; --text: #1f2328; --muted: #656d76; --accent: #0969da; }
 body[data-mode="code"] #chat-area { background: #f6f8fa; }
@@ -1348,17 +1373,17 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
   <div id="pro-modal-card">
     <div class="pro-modal-header">
       <button class="pro-modal-close" onclick="closeProModal()">✕</button>
-      <div class="pro-modal-title">⚡ Omni.Ai PRO</div>
-      <div class="pro-modal-sub">Tüm özelliklerin kilidini açın</div>
+      <div class="pro-modal-title">⚡ Omni.Ai Planlar</div>
+      <div class="pro-modal-sub">İhtiyacına uygun planı seç</div>
     </div>
     <div class="pro-modal-body">
-      <div class="plan-cols">
+      <div class="plan-cols" style="grid-template-columns:1fr 1fr 1fr">
         <!-- Free -->
         <div class="plan-col">
           <div class="plan-label free-lbl">🆓 Ücretsiz</div>
           <div class="plan-feature ok">Chat modu</div>
           <div class="plan-feature ok">Llama 3.1 8B</div>
-          <div class="plan-feature ok">50 mesaj/gün</div>
+          <div class="plan-feature ok">20 mesaj/gün</div>
           <div class="plan-feature no">Omni Code</div>
           <div class="plan-feature no">Omni Design</div>
           <div class="plan-feature no">Tüm modeller</div>
@@ -1369,17 +1394,32 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
           <div class="popular-badge">EN POPÜLER</div>
           <div class="plan-label pro-lbl">⚡ Pro</div>
           <div class="plan-feature ok">Tüm modeller</div>
-          <div class="plan-feature ok">Sınırsız mesaj</div>
+          <div class="plan-feature ok">100 mesaj/gün</div>
           <div class="plan-feature ok">Omni Code ⚡</div>
           <div class="plan-feature ok">Omni Design 🎨</div>
-          <div class="plan-feature ok">GPT-4 / Claude</div>
           <div class="plan-feature ok">Öncelikli destek</div>
           <div class="plan-feature ok">Erken erişim</div>
+          <div class="plan-feature no">Sınırsız mesaj</div>
+        </div>
+        <!-- Max -->
+        <div class="plan-col" style="border:1.5px solid #f59e0b;background:rgba(234,179,8,.04);position:relative">
+          <div class="popular-badge" style="background:linear-gradient(135deg,#f59e0b,#fb923c)">✦ MAX</div>
+          <div class="plan-label" style="color:#f59e0b">✦ Max</div>
+          <div class="plan-feature ok">Pro'daki her şey</div>
+          <div class="plan-feature ok">Sınırsız mesaj</div>
+          <div class="plan-feature ok">En hızlı modeller</div>
+          <div class="plan-feature ok">Görsel üretimi</div>
+          <div class="plan-feature ok">API erişimi</div>
+          <div class="plan-feature ok">7/24 öncelikli destek</div>
+          <div class="plan-feature ok">Beta özellikler</div>
         </div>
       </div>
-      <div class="price-row">
-        <span class="price-amount">₺299</span>
-        <span class="price-period">/ay · İstediğiniz zaman iptal</span>
+      <div class="price-row" style="flex-direction:column;gap:4px">
+        <div style="display:flex;gap:24px;justify-content:center;align-items:baseline">
+          <span style="font-size:13px;color:var(--muted)">Pro: <b style="color:var(--text)">₺299/ay</b></span>
+          <span style="font-size:13px;color:#f59e0b">Max: <b>₺599/ay</b></span>
+        </div>
+        <span class="price-period">İstediğiniz zaman iptal</span>
       </div>
       <button class="btn-stripe" onclick="stripeCheckout()">💳 Stripe ile Öde</button>
 
@@ -2834,7 +2874,7 @@ function init() {
   initClipboardPaste();
   initBubbleDelegation();
   // Show limit wall if already hit today
-  if (CURRENT_USER && !_creatorMode) {
+  if (CURRENT_USER && !_creatorMode && !CURRENT_USER.max) {
     const isPro = !!CURRENT_USER.pro;
     const limit = isPro ? 100 : 20;
     const lk = 'artus_daily_' + (CURRENT_USER.email || 'anon');
@@ -2960,14 +3000,16 @@ function updateSidebarStats() {
 
 function updateTierBadge() {
   if (!CURRENT_USER) return;
-  const isPro = CURRENT_USER.pro === true;
-  tierBadge.textContent = isPro ? 'PRO' : 'ÜCRETSİZ';
-  tierBadge.className = 'badge ' + (isPro ? 'badge-pro' : 'badge-free');
-
+  const isMax = CURRENT_USER.max === true;
+  const isPro = CURRENT_USER.pro === true || isMax;
+  const label = isMax ? '✦ MAX' : isPro ? 'PRO' : 'ÜCRETSİZ';
+  const cls   = isMax ? 'badge-max' : isPro ? 'badge-pro' : 'badge-free';
+  tierBadge.textContent = label;
+  tierBadge.className = 'badge ' + cls;
   document.getElementById('code-lock').style.display = isPro ? 'none' : '';
   document.getElementById('design-lock').style.display = isPro ? 'none' : '';
   const sbTier = document.getElementById('sb-user-tier');
-  if (sbTier) sbTier.textContent = isPro ? '⚡ Pro üye' : 'Ücretsiz';
+  if (sbTier) sbTier.textContent = isMax ? '✦ Max üye' : isPro ? '⚡ Pro üye' : 'Ücretsiz';
 }
 
 function getInitials(name) {
@@ -3544,6 +3586,12 @@ function applyMode(m, save) {
   settingsModeS.value = m;
   inputEl.placeholder = MODE_PLACEHOLDERS[m] || MODE_PLACEHOLDERS.chat;
   modeHint.textContent = MODE_HINTS[m] || '';
+  // Design modunda welcome alanını dashboard'a çevir
+  const welcomeEl = document.getElementById('welcome');
+  if (welcomeEl) {
+    if (m === 'design') welcomeEl.innerHTML = renderDesignDashboard();
+    else welcomeEl.innerHTML = renderWelcome();
+  }
 }
 
 /* ═══════════════════════════════════════════════
@@ -3628,6 +3676,34 @@ function useChip(el) {
   inputEl.value = el.textContent.replace(/^[^\s]+\s/, '') + ': ';
   inputEl.focus();
   onInputChange();
+}
+
+const DESIGN_TEMPLATES = [
+  { icon:'🖼️', title:'Sunum / Slides', desc:'Sunu & pitch deck', prompt:'Şu konu için profesyonel bir sunum tasarla ve HTML slide göster: ' },
+  { icon:'📱', title:'Uygulama Prototipi', desc:'İnteraktif mockup', prompt:'Şu uygulama için tıklanabilir bir HTML/CSS prototipi yap: ' },
+  { icon:'📐', title:'Wireframe', desc:'Lo-fi ekran akışı', prompt:'Şu ürün için wireframe ve kullanıcı akışı tasarla: ' },
+  { icon:'📄', title:'Döküman', desc:'CV, rapor, README', prompt:'Şu içerik için profesyonel bir döküman hazırla: ' },
+  { icon:'🎨', title:'Logo / Marka', desc:'Renk paleti & tipografi', prompt:'Şu marka için renk paleti, tipografi ve logo konsepti öner: ' },
+  { icon:'✨', title:'Animasyon', desc:'CSS/JS animasyonlar', prompt:'Şu için güzel bir CSS animasyonu yaz: ' },
+  { icon:'🏠', title:'Landing Page', desc:'Dönüşüm odaklı sayfa', prompt:'Şu ürün için modern bir landing page tasarla ve HTML ver: ' },
+  { icon:'📊', title:'Dashboard', desc:'Veri görselleştirme', prompt:'Şu veriler için analitik dashboard tasarla: ' },
+];
+
+function renderDesignDashboard() {
+  const name = (CURRENT_USER && CURRENT_USER.name) ? CURRENT_USER.name.split(' ')[0] : '';
+  const cards = DESIGN_TEMPLATES.map(t =>
+    `<button class="ds-card" data-action="use-card" data-prompt="${encodeURIComponent(t.prompt)}">
+      <span class="ds-card-icon">${t.icon}</span>
+      <span class="ds-card-title">${t.title}</span>
+      <span class="ds-card-desc">${t.desc}</span>
+    </button>`).join('');
+  return `
+    <div class="ds-header">
+      <div class="ds-logo">🎨 Omni Design</div>
+      ${name ? `<div class="ds-sub">Merhaba ${name}, ne oluşturalım?</div>` : '<div class="ds-sub">Ne oluşturalım?</div>'}
+    </div>
+    <div class="ds-section-label">Yeni bir şey oluştur</div>
+    <div class="ds-grid">${cards}</div>`;
 }
 
 /* ═══════════════════════════════════════════════
@@ -4214,8 +4290,8 @@ async function sendMessage() {
     }
   }
 
-  // ── Günlük mesaj limiti (Creator = sınırsız) ──────────────────
-  if (CURRENT_USER && !_creatorMode) {
+  // ── Günlük mesaj limiti (Creator + Max = sınırsız) ──────────────────
+  if (CURRENT_USER && !_creatorMode && !CURRENT_USER.max) {
     const isPro = !!CURRENT_USER.pro;
     const limit = isPro ? 100 : 20;
     const today = new Date().toDateString();
