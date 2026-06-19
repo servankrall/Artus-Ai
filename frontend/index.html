@@ -1599,6 +1599,7 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
             <button class="ud-item" onclick="startNewChat(); closeUserDropdown();">✨ Yeni Sohbet</button>
             <button class="ud-item" onclick="openGlobalSearch(); closeUserDropdown();">🔎 Tüm Sohbetlerde Ara</button>
             <button class="ud-item" onclick="showWhatsNew(); closeUserDropdown();">✨ Yenilikler</button>
+            <button class="ud-item" id="ud-creator-btn" style="display:none;color:#818cf8;font-weight:700" onclick="closeUserDropdown(); _creatorMode ? deactivateCreatorMode() : activateCreatorMode();">⚡ Creator Modu</button>
             <button class="ud-item danger" onclick="signOut()">↩ Çıkış Yap</button>
           </div>
         </div>
@@ -6346,13 +6347,9 @@ function _isOwner() {
 }
 
 function _updateCreatorVisibility() {
-  const btn = document.getElementById('btn-creator-mode');
-  if (btn) btn.style.display = _isOwner() ? '' : 'none';
-  // tools dropdown creator butonunu da göster/gizle
-  const ddBtn = document.getElementById('tools-creator-btn');
-  if (ddBtn) ddBtn.style.display = _isOwner() ? '' : 'none';
-  const ddSep = document.getElementById('tools-creator-sep');
-  if (ddSep) ddSep.style.display = _isOwner() ? '' : 'none';
+  const show = _isOwner() ? '' : 'none';
+  const ids = ['btn-creator-mode', 'tools-creator-btn', 'tools-creator-sep', 'ud-creator-btn'];
+  ids.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = show; });
 }
 
 if (_creatorMode) setTimeout(_showCreatorBadge, 500);
