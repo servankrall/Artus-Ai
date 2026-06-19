@@ -1922,7 +1922,7 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
    CONFIGURATION
 ══════════════════════════════════════════════ */
 const STRIPE_PRO_LINK = "https://buy.stripe.com/8x2bJ23qeaZe3496MbaZi00";
-const STRIPE_MAX_LINK = ""; // TODO: Stripe'tan Max ödeme linkini buraya yapıştır
+const STRIPE_MAX_LINK = ""; // artık create-checkout endpoint'i kullanılıyor
 // Pro kodları sunucu tarafında (KV) saklanır — istemcide sabit kod yoktur
 
 // ── Mermaid init ──
@@ -2888,6 +2888,7 @@ function init() {
     } catch(_) {}
   }
   autoResume();
+  handlePaymentReturn();
 
   // Restore advanced params + focus mode (label + slider thumb)
   const mt = getMaxTokens(); const mtl = document.getElementById('maxtok-label'); if (mtl) { mtl.textContent = mt; const s=mtl.closest('.settings-group')?.querySelector('input[type=range]'); if(s) s.value = mt; }
@@ -3069,6 +3070,38 @@ function hideFreeLimitWall() {
   if (wrap) { wrap.style.opacity = ''; wrap.style.pointerEvents = ''; }
 }
 
+async function handlePaymentReturn() {
+  const params = new URLSearchParams(window.location.search);
+  if (!params.get('payment_success')) return;
+  const sessionId = params.get('session_id');
+  const tier = params.get('tier') || 'pro';
+  // URL'yi temizle
+  window.history.replaceState({}, '', window.location.pathname);
+  if (!sessionId) return;
+  showToast('⏳ Ödeme doğrulanıyor…');
+  try {
+    const resp = await fetch('/api/verify-payment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: sessionId }),
+    });
+    const data = await resp.json();
+    if (resp.ok && (data.tier === 'pro' || data.tier === 'max')) {
+      if (CURRENT_USER) {
+        CURRENT_USER.pro = true;
+        if (data.tier === 'max') CURRENT_USER.max = true;
+        localStorage.setItem('artus_user', JSON.stringify(CURRENT_USER));
+        updateTierBadge();
+        hideFreeLimitWall();
+        const label = data.tier === 'max' ? '✦ Max' : '⚡ Pro';
+        showToast(`🎉 ${label} aktif edildi! Hoş geldiniz.`);
+      }
+    } else {
+      showToast('❌ Ödeme doğrulanamadı: ' + (data.error || 'Bilinmeyen hata'));
+    }
+  } catch(e) { showToast('❌ Doğrulama hatası: ' + e.message); }
+}
+
 function openProModal() {
   document.getElementById('pro-modal').classList.add('open');
   closeUserDropdown();
@@ -3080,10 +3113,21 @@ function closeProModal() {
   document.getElementById('pro-modal').classList.remove('open');
 }
 
-function stripeCheckout(tier) {
-  const link = tier === 'max' ? STRIPE_MAX_LINK : STRIPE_PRO_LINK;
-  if (!link) { showToast('Ödeme linki henüz ayarlanmadı'); return; }
-  window.open(link, '_blank');
+async function stripeCheckout(tier) {
+  if (tier === 'pro') { window.open(STRIPE_PRO_LINK, '_blank'); return; }
+  // Max: create-checkout endpoint ile oturum aç
+  showToast('⏳ Ödeme sayfası hazırlanıyor…');
+  try {
+    const email = CURRENT_USER?.email || '';
+    const resp = await fetch('/api/create-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tier: 'max', email }),
+    });
+    const data = await resp.json();
+    if (data.url) window.location.href = data.url;
+    else showToast('❌ ' + (data.error || 'Ödeme başlatılamadı'));
+  } catch(e) { showToast('❌ Bağlantı hatası: ' + e.message); }
 }
 
 async function activateProCode() {
