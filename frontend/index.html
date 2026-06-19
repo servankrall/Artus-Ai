@@ -6701,7 +6701,42 @@ function creatorBroadcast() {
 })();
 
 // Sayfa yüklenince aktif modları uygula
-setTimeout(applyActiveModes, 500);
+// Global modları sunucudan çek ve uygula (tüm kullanıcılar için)
+async function fetchGlobalModes() {
+  try {
+    var resp = await fetch('/api/global-modes');
+    var data = await resp.json();
+    if (data.modes && typeof data.modes === 'object') {
+      _activeModes = data.modes;
+      localStorage.setItem('artus_modes', JSON.stringify(_activeModes));
+      applyActiveModes();
+    }
+  } catch(e) {}
+}
+
+// Creator: global modları sunucuya kaydet
+async function saveGlobalModes() {
+  var secret = localStorage.getItem('artus_creator_secret');
+  if (!secret) {
+    secret = prompt('Creator API şifresini girin:');
+    if (!secret) return;
+    localStorage.setItem('artus_creator_secret', secret);
+  }
+  try {
+    var resp = await fetch('/api/global-modes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secret: secret, modes: _activeModes }),
+    });
+    var data = await resp.json();
+    if (data.ok) showToast('🌍 Global modlar kaydedildi — tüm kullanıcılara yansıdı!');
+    else { localStorage.removeItem('artus_creator_secret'); showToast('❌ ' + (data.error || 'Hata')); }
+  } catch(e) { showToast('❌ Bağlantı hatası'); }
+}
+
+setTimeout(function() { fetchGlobalModes(); }, 500);
+// Her 10 saniyede bir global modları kontrol et
+setInterval(fetchGlobalModes, 10000);
 
 function _adminLog(msg) {
   var entry = { t: new Date().toISOString(), m: msg };
@@ -7011,8 +7046,9 @@ function showAdminPanel(tab) {
               <button onclick="fakeError666()" style="background:#1a0000;border:1px solid #7f1d1d;color:#f87171;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">👹 Error 666</button>
             </div>
           </div>
-          <div style="text-align:center">
-            <button onclick="Object.keys(_activeModes).forEach(k=>delete _activeModes[k]);localStorage.setItem('artus_modes','{}');applyActiveModes();showAdminPanel('fun');showToast('✅ Tüm modlar sıfırlandı')" style="background:#262d3a;border:1px solid #374151;color:#9ca3af;padding:7px 20px;border-radius:8px;cursor:pointer;font-size:12px">🔄 Tüm Modları Sıfırla</button>
+          <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+            <button onclick="saveGlobalModes()" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:#fff;padding:8px 20px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700">🌍 Tümünü Global Kaydet</button>
+            <button onclick="Object.keys(_activeModes).forEach(k=>delete _activeModes[k]);localStorage.setItem('artus_modes','{}');saveGlobalModes();applyActiveModes();showAdminPanel('fun');showToast('✅ Tüm modlar sıfırlandı')" style="background:#262d3a;border:1px solid #374151;color:#9ca3af;padding:8px 20px;border-radius:8px;cursor:pointer;font-size:12px">🔄 Tümünü Sıfırla</button>
           </div>
         </div>`;
     }
