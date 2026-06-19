@@ -6332,8 +6332,8 @@ function _showCreatorBadge() {
 
   const genBtn = document.createElement('button');
   genBtn.style.cssText = 'background:linear-gradient(135deg,#f59e0b,#fb923c);color:#fff;border:none;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 2px 12px rgba(245,158,11,.4)';
-  genBtn.textContent = '🎟 Kod Üret';
-  genBtn.onclick = showCodeGenerator;
+  genBtn.textContent = '🛡 Admin Panel';
+  genBtn.onclick = showAdminPanel;
 
   wrap.appendChild(badge);
   wrap.appendChild(genBtn);
@@ -6366,6 +6366,278 @@ document.addEventListener('DOMContentLoaded', () => {
   dd.appendChild(sep); dd.appendChild(btn);
   setTimeout(_updateCreatorVisibility, 100);
 });
+
+/* ════════════════════════════════════════════════════════════
+   ADMIN PANEL
+════════════════════════════════════════════════════════════ */
+var _adminLogs = JSON.parse(localStorage.getItem('artus_logs') || '[]');
+var _betaFeatures = JSON.parse(localStorage.getItem('artus_beta') || '{}');
+var _maintenanceMode = localStorage.getItem('artus_maintenance') === '1';
+var _filterLevel = localStorage.getItem('artus_filter') || 'normal';
+var _customSysPrompt = localStorage.getItem('artus_custom_sys') || '';
+
+function _adminLog(msg) {
+  var entry = { t: new Date().toISOString(), m: msg };
+  _adminLogs.unshift(entry);
+  if (_adminLogs.length > 200) _adminLogs = _adminLogs.slice(0, 200);
+  localStorage.setItem('artus_logs', JSON.stringify(_adminLogs));
+}
+
+function showAdminPanel(tab) {
+  tab = tab || 'codes';
+  var existing = document.getElementById('admin-panel-overlay');
+  if (existing) existing.remove();
+
+  var tabs = [
+    { id:'codes',    icon:'🎟', label:'Kodlar' },
+    { id:'system',   icon:'⚙️', label:'Sistem' },
+    { id:'models',   icon:'🤖', label:'Modeller' },
+    { id:'security', icon:'🔒', label:'Güvenlik' },
+    { id:'stats',    icon:'📊', label:'İstatistikler' },
+    { id:'logs',     icon:'📋', label:'Loglar' },
+    { id:'dev',      icon:'💻', label:'Geliştirici' },
+  ];
+
+  var overlay = document.createElement('div');
+  overlay.id = 'admin-panel-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
+
+  function renderTab(activeTab) {
+    var content = '';
+
+    if (activeTab === 'codes') {
+      content = `
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div style="background:#0d1117;border-radius:10px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#f59e0b;margin-bottom:12px">🎟 Aktivasyon Kodu Üret</div>
+            <div style="display:flex;gap:8px;margin-bottom:12px">
+              <button id="adm-pro-btn" onclick="window._admTier='pro';document.getElementById('adm-pro-btn').style.background='#6366f1';document.getElementById('adm-max-btn').style.background='#262d3a';(async()=>{document.getElementById('adm-code-out').textContent=await generateCode('pro');})()" style="background:#262d3a;border:none;color:#fff;padding:7px 20px;border-radius:20px;cursor:pointer;font-size:13px">⚡ Pro</button>
+              <button id="adm-max-btn" onclick="window._admTier='max';document.getElementById('adm-max-btn').style.background='#f59e0b';document.getElementById('adm-pro-btn').style.background='#262d3a';(async()=>{document.getElementById('adm-code-out').textContent=await generateCode('max');})()" style="background:#f59e0b;border:none;color:#fff;padding:7px 20px;border-radius:20px;cursor:pointer;font-size:13px">✦ Max</button>
+            </div>
+            <div id="adm-code-out" style="font-size:18px;font-weight:800;letter-spacing:3px;color:#fff;background:#161b24;padding:12px;border-radius:8px;text-align:center;font-family:monospace;margin-bottom:10px">— Tier seç —</div>
+            <div style="display:flex;gap:8px">
+              <button onclick="(async()=>{const t=window._admTier||'max';document.getElementById('adm-code-out').textContent=await generateCode(t);})()" style="flex:1;background:#262d3a;border:none;color:#e8ecf3;padding:8px;border-radius:8px;cursor:pointer;font-size:13px">🔄 Yeni Kod</button>
+              <button onclick="const c=document.getElementById('adm-code-out').textContent;if(c.includes('-'))navigator.clipboard.writeText(c).then(()=>showToast('✅ Kopyalandı!'))" style="flex:1;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:#fff;padding:8px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700">📋 Kopyala</button>
+            </div>
+          </div>
+          <div style="background:#0d1117;border-radius:10px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#6366f1;margin-bottom:10px">📋 Kullanılmış Kodlar</div>
+            <div style="font-size:12px;color:#4b5563;max-height:120px;overflow-y:auto">${(JSON.parse(localStorage.getItem('artus_used_codes')||'[]')).map(c=>'<div style="padding:3px 0;border-bottom:1px solid #1c2128">'+c+'</div>').join('')||'<span style="color:#4b5563">Henüz kullanılmış kod yok</span>'}</div>
+            <button onclick="if(confirm('Kullanılmış kodları sıfırla?')){localStorage.removeItem('artus_used_codes');showAdminPanel('codes');showToast('✅ Sıfırlandı');}" style="margin-top:10px;background:#ef4444;border:none;color:#fff;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px">🗑 Temizle</button>
+          </div>
+        </div>`;
+    }
+
+    else if (activeTab === 'system') {
+      var mp = _maintenanceMode;
+      content = `
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="background:#0d1117;border-radius:10px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#6366f1;margin-bottom:10px">📝 Sistem Mesajı (System Prompt)</div>
+            <textarea id="adm-sys-prompt" style="width:100%;height:140px;background:#161b24;border:1px solid #262d3a;border-radius:8px;color:#e8ecf3;padding:10px;font-size:12px;font-family:monospace;resize:vertical" placeholder="Boş bırakırsan varsayılan sistem promptu kullanılır">${_customSysPrompt}</textarea>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button onclick="var v=document.getElementById('adm-sys-prompt').value;_customSysPrompt=v;localStorage.setItem('artus_custom_sys',v);_adminLog('Sistem promptu güncellendi');showToast('✅ Kaydedildi')" style="flex:1;background:#6366f1;border:none;color:#fff;padding:8px;border-radius:8px;cursor:pointer;font-size:13px">💾 Kaydet</button>
+              <button onclick="if(confirm('Sıfırla?')){_customSysPrompt='';localStorage.removeItem('artus_custom_sys');document.getElementById('adm-sys-prompt').value='';showToast('✅ Sıfırlandı')}" style="background:#262d3a;border:none;color:#e8ecf3;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px">↺ Sıfırla</button>
+            </div>
+          </div>
+          <div style="background:#0d1117;border-radius:10px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#f59e0b;margin-bottom:10px">🔧 Bakım Modu</div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <div style="width:44px;height:24px;border-radius:12px;background:${mp?'#6366f1':'#262d3a'};cursor:pointer;position:relative;transition:background .2s" onclick="
+                _maintenanceMode=!_maintenanceMode;
+                localStorage.setItem('artus_maintenance',_maintenanceMode?'1':'0');
+                _adminLog('Bakım modu: '+(_maintenanceMode?'AÇık':'KAPALI'));
+                showAdminPanel('system');
+                showToast(_maintenanceMode?'🔧 Bakım modu açık':'✅ Bakım modu kapalı')">
+                <div style="position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;top:3px;left:${mp?'23px':'3px'};transition:left .2s"></div>
+              </div>
+              <span style="color:${mp?'#f59e0b':'#4b5563'};font-size:13px">${mp?'AÇIK — Kullanıcılar erişemiyor':'KAPALI'}</span>
+            </div>
+          </div>
+          <div style="background:#0d1117;border-radius:10px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#ef4444;margin-bottom:10px">⚡ Hızlı Eylemler</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+              <button onclick="if(confirm('Tüm sohbet geçmişini sil?')){Object.keys(localStorage).filter(k=>k.startsWith('artus_hist')).forEach(k=>localStorage.removeItem(k));_adminLog('Tüm bellek silindi');showToast('🗑 Tüm bellek silindi')}" style="background:#ef4444;border:none;color:#fff;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:12px">🗑 Belleği Sıfırla</button>
+              <button onclick="var data=JSON.stringify({user:CURRENT_USER,history:Object.keys(localStorage).filter(k=>k.startsWith('artus')).reduce((o,k)=>(o[k]=localStorage.getItem(k),o),{})});var a=document.createElement('a');a.href='data:application/json,'+encodeURIComponent(data);a.download='artus-backup-'+Date.now()+'.json';a.click();_adminLog('Yedek alındı');showToast('💾 Yedek indirildi')" style="background:#10b981;border:none;color:#fff;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:12px">💾 Belleği Yedekle</button>
+              <button onclick="if(confirm('Sayfayı yenile?'))location.reload(true)" style="background:#262d3a;border:none;color:#e8ecf3;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:12px">🔄 Yenile</button>
+              <button onclick="if(confirm('ACİL KAPAMA — Tüm kullanıcıları çıkış yaptırır!')){localStorage.setItem('artus_emergency','1');_adminLog('ACİL KAPAMA');location.reload()}" style="background:#7f1d1d;border:none;color:#fca5a5;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700">🚨 Acil Kapama</button>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    else if (activeTab === 'models') {
+      var models = ['llama-3.3-70b-versatile','llama-3.1-8b-instant','gemma2-9b-it','llama3-8b-8192','meta-llama/llama-4-scout-17b-16e-instruct','meta-llama/llama-4-maverick-17b-128e-instruct'];
+      var curModel = localStorage.getItem('artus_default_model') || models[0];
+      var tokLimit = localStorage.getItem('artus_max_tokens') || '4096';
+      content = `
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="background:#0d1117;border-radius:10px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#6366f1;margin-bottom:10px">🤖 Varsayılan Model</div>
+            ${models.map(m=>`<div onclick="localStorage.setItem('artus_default_model','${m}');_adminLog('Model değişti: ${m}');showAdminPanel('models');showToast('✅ Model: ${m}')" style="padding:8px 12px;border-radius:8px;margin-bottom:6px;cursor:pointer;display:flex;align-items:center;gap:8px;background:${curModel===m?'#1e2d4a':'#161b24'};border:1px solid ${curModel===m?'#6366f1':'#262d3a'}">
+              <div style="width:8px;height:8px;border-radius:50%;background:${curModel===m?'#6366f1':'#4b5563'}"></div>
+              <span style="font-size:13px;color:${curModel===m?'#818cf8':'#e8ecf3'};font-family:monospace">${m}</span>
+            </div>`).join('')}
+          </div>
+          <div style="background:#0d1117;border-radius:10px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#f59e0b;margin-bottom:10px">📏 Token Limiti</div>
+            <input type="range" min="512" max="8192" step="256" value="${tokLimit}" oninput="this.nextElementSibling.textContent=this.value" onchange="localStorage.setItem('artus_max_tokens',this.value);_adminLog('Token limit: '+this.value)" style="width:100%;accent-color:#6366f1">
+            <div style="text-align:right;color:#818cf8;font-size:13px;font-weight:700">${tokLimit} token</div>
+          </div>
+          <div style="background:#0d1117;border-radius:10px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#10b981;margin-bottom:10px">🧪 Beta / Deneysel Özellikler</div>
+            ${[['stream','Streaming yanıtlar'],['reasoning','Derin düşünce modu v2'],['vision_pro','Gelişmiş görsel analiz'],['multi_agent','Çoklu ajan modu'],['code_exec','Gerçek kod çalıştırma']].map(([k,l])=>`
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #1c2128">
+                <span style="font-size:13px;color:#e8ecf3">${l}</span>
+                <div style="width:36px;height:20px;border-radius:10px;background:${_betaFeatures[k]?'#6366f1':'#262d3a'};cursor:pointer;position:relative" onclick="
+                  _betaFeatures['${k}']=!_betaFeatures['${k}'];
+                  localStorage.setItem('artus_beta',JSON.stringify(_betaFeatures));
+                  _adminLog('Beta özellik ${k}: '+(_betaFeatures['${k}']?'açıldı':'kapandı'));
+                  showAdminPanel('models')">
+                  <div style="position:absolute;width:14px;height:14px;border-radius:50%;background:#fff;top:3px;left:${_betaFeatures[k]?'19px':'3px'};transition:left .2s"></div>
+                </div>
+              </div>`).join('')}
+          </div>
+        </div>`;
+    }
+
+    else if (activeTab === 'security') {
+      var fl = _filterLevel;
+      content = `
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="background:#0d1117;border-radius:10px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#ef4444;margin-bottom:10px">🔒 Filtre Seviyesi</div>
+            ${[['strict','🔴 Katı — Maksimum filtreleme'],['normal','🟡 Normal — Dengeli'],['loose','🟢 Gevşek — Minimum filtreleme'],['off','⚫ Kapalı — Creator only']].map(([v,l])=>`
+              <div onclick="localStorage.setItem('artus_filter','${v}');_filterLevel='${v}';_adminLog('Filtre seviyesi: ${v}');showAdminPanel('security');showToast('✅ Filtre: ${v}')" style="padding:9px 12px;border-radius:8px;margin-bottom:6px;cursor:pointer;background:${fl===v?'#1e2d4a':'#161b24'};border:1px solid ${fl===v?'#6366f1':'#262d3a'};font-size:13px;color:${fl===v?'#818cf8':'#e8ecf3'}">${l}</div>`).join('')}
+          </div>
+          <div style="background:#0d1117;border-radius:10px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#f59e0b;margin-bottom:10px">🚫 Yasaklı Kullanıcılar</div>
+            <div id="ban-list" style="max-height:100px;overflow-y:auto;margin-bottom:10px;font-size:12px;color:#4b5563">${(JSON.parse(localStorage.getItem('artus_banned')||'[]')).map(e=>`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #1c2128"><span>${e}</span><button onclick="var b=JSON.parse(localStorage.getItem('artus_banned')||'[]');localStorage.setItem('artus_banned',JSON.stringify(b.filter(x=>x!=='${e}')));showAdminPanel('security')" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:11px">Kaldır</button></div>`).join('')||'<span>Yasaklı kullanıcı yok</span>'}</div>
+            <div style="display:flex;gap:8px">
+              <input id="ban-input" placeholder="E-posta veya kullanıcı adı" style="flex:1;background:#161b24;border:1px solid #262d3a;border-radius:8px;color:#e8ecf3;padding:7px 10px;font-size:13px">
+              <button onclick="var v=document.getElementById('ban-input').value.trim();if(v){var b=JSON.parse(localStorage.getItem('artus_banned')||'[]');if(!b.includes(v)){b.push(v);localStorage.setItem('artus_banned',JSON.stringify(b));_adminLog('Yasaklandı: '+v);showAdminPanel('security');showToast('🚫 Yasaklandı: '+v)}}" style="background:#ef4444;border:none;color:#fff;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:13px">🚫 Yasakla</button>
+            </div>
+          </div>
+          <div style="background:#0d1117;border-radius:10px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#6366f1;margin-bottom:10px">🔍 Güvenlik Denetimi</div>
+            <div style="font-size:12px;color:#4b5563;line-height:1.8">
+              <div>🔑 Creator modu: <span style="color:${_creatorMode?'#10b981':'#4b5563'}">${_creatorMode?'Aktif':'Kapalı'}</span></div>
+              <div>🔒 Filtre seviyesi: <span style="color:#818cf8">${_filterLevel}</span></div>
+              <div>🔧 Bakım modu: <span style="color:${_maintenanceMode?'#f59e0b':'#4b5563'}">${_maintenanceMode?'Açık':'Kapalı'}</span></div>
+              <div>🚫 Yasaklı sayısı: <span style="color:#e8ecf3">${(JSON.parse(localStorage.getItem('artus_banned')||'[]')).length}</span></div>
+              <div>📋 Log sayısı: <span style="color:#e8ecf3">${_adminLogs.length}</span></div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    else if (activeTab === 'stats') {
+      var totalMsgs = Object.keys(localStorage).filter(k=>k.startsWith('artus_daily')).reduce((s,k)=>{try{return s+parseInt(localStorage.getItem(k)||0)}catch(e){return s}},0);
+      var histCount = Object.keys(localStorage).filter(k=>k.startsWith('artus_hist')).length;
+      var storageUsed = JSON.stringify(localStorage).length;
+      var usedCodes = JSON.parse(localStorage.getItem('artus_used_codes')||'[]').length;
+      content = `
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            ${[
+              ['💬','Toplam Mesaj (Bugün)',totalMsgs,'#6366f1'],
+              ['📁','Sohbet Sayısı',histCount,'#10b981'],
+              ['🎟','Kullanılan Kod',usedCodes,'#f59e0b'],
+              ['💾','localStorage Kullanımı',Math.round(storageUsed/1024)+' KB','#8b5cf6'],
+            ].map(([icon,label,val,color])=>`
+              <div style="background:#0d1117;border-radius:10px;padding:14px;text-align:center">
+                <div style="font-size:22px">${icon}</div>
+                <div style="font-size:22px;font-weight:800;color:${color};margin:4px 0">${val}</div>
+                <div style="font-size:11px;color:#4b5563">${label}</div>
+              </div>`).join('')}
+          </div>
+          <div style="background:#0d1117;border-radius:10px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#6366f1;margin-bottom:10px">📈 Günlük Kullanım</div>
+            ${Object.keys(localStorage).filter(k=>k.startsWith('artus_daily')).map(k=>`
+              <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #1c2128;font-size:12px">
+                <span style="color:#4b5563">${k.replace('artus_daily_','')}</span>
+                <span style="color:#818cf8;font-weight:700">${localStorage.getItem(k)} mesaj</span>
+              </div>`).join('')||'<span style="color:#4b5563;font-size:12px">Veri yok</span>'}
+          </div>
+          <div style="background:#0d1117;border-radius:10px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#f59e0b;margin-bottom:10px">🔑 API Durumu</div>
+            <div style="font-size:12px;color:#4b5563;line-height:2">
+              <div>Groq API: <span style="color:#10b981">✅ Aktif (proxy)</span></div>
+              <div>Stripe: <span style="color:#f59e0b">⏳ Yakında</span></div>
+              <div>Whisper: <span style="color:#10b981">✅ Aktif</span></div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    else if (activeTab === 'logs') {
+      content = `
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="font-size:13px;color:#4b5563">${_adminLogs.length} kayıt</div>
+            <button onclick="_adminLogs=[];localStorage.removeItem('artus_logs');showAdminPanel('logs');showToast('✅ Loglar temizlendi')" style="background:#ef4444;border:none;color:#fff;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px">🗑 Temizle</button>
+          </div>
+          <div style="background:#0d1117;border-radius:10px;padding:12px;max-height:380px;overflow-y:auto;font-family:monospace;font-size:12px">
+            ${_adminLogs.length?_adminLogs.map(l=>`<div style="padding:4px 0;border-bottom:1px solid #1c2128;display:flex;gap:10px"><span style="color:#4b5563;white-space:nowrap">${l.t.slice(11,19)}</span><span style="color:#e8ecf3">${l.m}</span></div>`).join(''):'<span style="color:#4b5563">Henüz log yok</span>'}
+          </div>
+        </div>`;
+    }
+
+    else if (activeTab === 'dev') {
+      content = `
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="background:#0d1117;border-radius:10px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#10b981;margin-bottom:10px">💻 Geliştirici Konsolu</div>
+            <textarea id="dev-cmd" placeholder="JavaScript kodu yaz ve çalıştır..." style="width:100%;height:80px;background:#161b24;border:1px solid #262d3a;border-radius:8px;color:#10b981;padding:10px;font-size:12px;font-family:monospace;resize:vertical"></textarea>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button onclick="try{var r=eval(document.getElementById('dev-cmd').value);document.getElementById('dev-out').textContent=JSON.stringify(r,null,2);_adminLog('Dev cmd çalıştı')}catch(e){document.getElementById('dev-out').textContent='HATA: '+e.message}" style="flex:1;background:#10b981;border:none;color:#fff;padding:8px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700">▶ Çalıştır</button>
+              <button onclick="document.getElementById('dev-cmd').value='';document.getElementById('dev-out').textContent=''" style="background:#262d3a;border:none;color:#e8ecf3;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px">✕ Temizle</button>
+            </div>
+            <div id="dev-out" style="margin-top:8px;background:#161b24;border-radius:8px;padding:10px;font-size:12px;font-family:monospace;color:#818cf8;min-height:40px;white-space:pre-wrap"></div>
+          </div>
+          <div style="background:#0d1117;border-radius:10px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#f59e0b;margin-bottom:10px">⚡ Hızlı Komutlar</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+              ${[
+                ['localStorage sayısı','Object.keys(localStorage).length + " anahtar"'],
+                ['CURRENT_USER','JSON.stringify(CURRENT_USER,null,2)'],
+                ['Sürüm','document.title'],
+                ['User Agent','navigator.userAgent'],
+                ['Bellek (MB)','performance?.memory?Math.round(performance.memory.usedJSHeapSize/1048576)+"MB":"N/A"'],
+              ].map(([l,c])=>`<button onclick="document.getElementById('dev-cmd').value=\`${c}\`;try{document.getElementById('dev-out').textContent=JSON.stringify(eval(\`${c}\`),null,2)}catch(e){document.getElementById('dev-out').textContent=eval(\`${c}\`)}" style="background:#1c2128;border:1px solid #262d3a;color:#e8ecf3;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px">${l}</button>`).join('')}
+            </div>
+          </div>
+          <div style="background:#0d1117;border-radius:10px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#6366f1;margin-bottom:10px">📝 Geliştirici Notları</div>
+            <textarea id="dev-notes" onchange="localStorage.setItem('artus_dev_notes',this.value)" style="width:100%;height:80px;background:#161b24;border:1px solid #262d3a;border-radius:8px;color:#e8ecf3;padding:10px;font-size:12px;resize:vertical" placeholder="Geliştirici notları...">${localStorage.getItem('artus_dev_notes')||''}</textarea>
+          </div>
+        </div>`;
+    }
+
+    overlay.innerHTML = `
+      <div style="background:#161b24;border:1px solid #262d3a;border-radius:16px;width:680px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 32px 64px rgba(0,0,0,.8)">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid #262d3a">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:32px;height:32px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px">🛡</div>
+            <div>
+              <div style="font-size:16px;font-weight:800;color:#e8ecf3">Artus Admin Panel</div>
+              <div style="font-size:11px;color:#4b5563">Creator modu aktif</div>
+            </div>
+          </div>
+          <button onclick="document.getElementById('admin-panel-overlay').remove()" style="background:#262d3a;border:none;color:#e8ecf3;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center">✕</button>
+        </div>
+        <div style="display:flex;gap:4px;padding:12px 24px;border-bottom:1px solid #262d3a;overflow-x:auto">
+          ${tabs.map(t=>`<button onclick="showAdminPanel('${t.id}')" style="white-space:nowrap;background:${activeTab===t.id?'#6366f1':'#1c2128'};border:none;color:${activeTab===t.id?'#fff':'#8b94a7'};padding:6px 14px;border-radius:20px;cursor:pointer;font-size:12px;font-weight:${activeTab===t.id?'700':'400'}">${t.icon} ${t.label}</button>`).join('')}
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:20px 24px">${content}</div>
+      </div>`;
+  }
+
+  renderTab(tab);
+  document.body.appendChild(overlay);
+  _adminLog('Admin panel açıldı: ' + tab);
+}
 </script>
 
 <!-- Command Palette -->
