@@ -1421,7 +1421,10 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
         </div>
         <span class="price-period">İstediğiniz zaman iptal</span>
       </div>
-      <button class="btn-stripe" onclick="stripeCheckout()">💳 Stripe ile Öde</button>
+      <div style="display:flex;gap:10px;margin-top:4px">
+        <button class="btn-stripe" style="flex:1" onclick="stripeCheckout('pro')">⚡ Pro — ₺299/ay</button>
+        <button class="btn-stripe" style="flex:1;background:linear-gradient(135deg,#f59e0b,#fb923c)" onclick="stripeCheckout('max')">✦ Max — ₺599/ay</button>
+      </div>
 
       <!-- Activation code section -->
       <div class="activation-section">
@@ -1918,7 +1921,8 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
 /* ══════════════════════════════════════════════
    CONFIGURATION
 ══════════════════════════════════════════════ */
-const STRIPE_PAYMENT_LINK = "https://buy.stripe.com/8x2bJ23qeaZe3496MbaZi00";
+const STRIPE_PRO_LINK = "https://buy.stripe.com/8x2bJ23qeaZe3496MbaZi00";
+const STRIPE_MAX_LINK = ""; // TODO: Stripe'tan Max ödeme linkini buraya yapıştır
 // Pro kodları sunucu tarafında (KV) saklanır — istemcide sabit kod yoktur
 
 // ── Mermaid init ──
@@ -3076,8 +3080,10 @@ function closeProModal() {
   document.getElementById('pro-modal').classList.remove('open');
 }
 
-function stripeCheckout() {
-  window.open(STRIPE_PAYMENT_LINK, '_blank');
+function stripeCheckout(tier) {
+  const link = tier === 'max' ? STRIPE_MAX_LINK : STRIPE_PRO_LINK;
+  if (!link) { showToast('Ödeme linki henüz ayarlanmadı'); return; }
+  window.open(link, '_blank');
 }
 
 async function activateProCode() {
