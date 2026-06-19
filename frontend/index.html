@@ -2833,6 +2833,14 @@ function init() {
   initContextMenu();
   initClipboardPaste();
   initBubbleDelegation();
+  // Show limit wall if already hit today
+  if (CURRENT_USER && !CURRENT_USER.pro && !_creatorMode) {
+    const lk = 'artus_daily_' + (CURRENT_USER.email || 'anon');
+    try {
+      const dd = JSON.parse(localStorage.getItem(lk) || '{}');
+      if (dd.date === new Date().toDateString() && dd.count >= 20) showFreeLimitWall();
+    } catch(_) {}
+  }
   autoResume();
 
   // Restore advanced params + focus mode (label + slider thumb)
@@ -2983,6 +2991,39 @@ function signOut() {
 /* ═══════════════════════════════════════════════
    PRO MODAL
 ═══════════════════════════════════════════════ */
+function showFreeLimitWall() {
+  // Kilitle input
+  const inp = document.getElementById('user-input');
+  const wrap = document.querySelector('.input-wrap');
+  if (inp) { inp.disabled = true; inp.placeholder = '🔒 Günlük limit doldu — yarın yenilenir veya Pro\'ya geç'; }
+  if (wrap) { wrap.style.opacity = '0.5'; wrap.style.pointerEvents = 'none'; }
+
+  // Banner zaten varsa ekleme
+  if (document.getElementById('free-limit-banner')) return;
+  const banner = document.createElement('div');
+  banner.id = 'free-limit-banner';
+  banner.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:9999;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 -4px 24px rgba(0,0,0,.3)';
+  banner.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;font-size:14px">
+      <span style="font-size:20px">🔒</span>
+      <div>
+        <div style="font-weight:700">Günlük 20 mesaj limitine ulaştın</div>
+        <div style="font-size:12px;opacity:.85">Limit yarın gece yarısı sıfırlanır · Pro'ya geçerek sınırsız kullan</div>
+      </div>
+    </div>
+    <button onclick="openProModal()" style="background:#fff;color:#7c3aed;border:none;padding:8px 18px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;white-space:nowrap">⚡ Pro'ya Geç</button>`;
+  document.body.appendChild(banner);
+}
+
+function hideFreeLimitWall() {
+  const banner = document.getElementById('free-limit-banner');
+  if (banner) banner.remove();
+  const inp = document.getElementById('user-input');
+  const wrap = document.querySelector('.input-wrap');
+  if (inp) { inp.disabled = false; inp.placeholder = 'Mesajınızı yazın… ( / komutlar · URL yapıştır · Enter gönder )'; }
+  if (wrap) { wrap.style.opacity = ''; wrap.style.pointerEvents = ''; }
+}
+
 function openProModal() {
   document.getElementById('pro-modal').classList.add('open');
   closeUserDropdown();
@@ -3023,6 +3064,7 @@ async function activateProCode() {
       localStorage.setItem('artus_user', JSON.stringify(CURRENT_USER));
       updateTierBadge();
       closeProModal();
+      hideFreeLimitWall();
       showToast('🎉 Pro aktif edildi! Hoş geldiniz.');
     } else {
       const msg = data.error || 'Geçersiz aktivasyon kodu';
@@ -4180,8 +4222,7 @@ async function sendMessage() {
     let dd = {}; try { dd = JSON.parse(localStorage.getItem(lk) || '{}'); } catch(_) {}
     if (dd.date !== today) dd = { date: today, count: 0 };
     if (dd.count >= 20) {
-      showToast('⚠️ Günlük 20 mesaj limitine ulaştınız. Pro\'ya geçin!');
-      document.getElementById('pro-modal').style.display = 'flex';
+      showFreeLimitWall();
       return;
     }
     dd.count++;
