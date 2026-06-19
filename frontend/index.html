@@ -962,6 +962,75 @@ body[data-mode="chat"]   #mode-label::before { content: "💬 "; }
 body[data-mode="code"]   #mode-label::before { content: "⚡ "; }
 body[data-mode="design"] #mode-label::before { content: "🎨 "; }
 
+/* ══════════════════════════════════════════════
+   CODE MODE — IDE tarzı görünüm (Claude Code stili)
+══════════════════════════════════════════════ */
+body[data-mode="code"] { --bg: #f6f8fa; --surface: #ffffff; --border: #d0d7de; --text: #1f2328; --muted: #656d76; --accent: #0969da; }
+body[data-mode="code"] #chat-area { background: #f6f8fa; }
+body[data-mode="code"] .msg.bot .bubble {
+  background: #ffffff;
+  border: 1px solid #d0d7de;
+  color: #1f2328;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+}
+body[data-mode="code"] .msg.user .bubble {
+  background: #0969da;
+  color: #ffffff;
+  border-radius: 6px;
+}
+body[data-mode="code"] .code-wrap {
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+}
+body[data-mode="code"] .code-header {
+  background: #f6f8fa;
+  border-bottom: 1px solid #d0d7de;
+}
+body[data-mode="code"] .code-lang { color: #656d76; }
+body[data-mode="code"] .btn-copy {
+  border-color: #d0d7de;
+  color: #656d76;
+}
+body[data-mode="code"] .btn-copy:hover { border-color: #0969da; color: #0969da; }
+body[data-mode="code"] #main-topbar {
+  background: #ffffff;
+  border-bottom: 1px solid #d0d7de;
+}
+body[data-mode="code"] #input-row {
+  background: #ffffff;
+  border-top: 1px solid #d0d7de;
+}
+body[data-mode="code"] #input-wrap {
+  background: #ffffff;
+  border: 1px solid #d0d7de;
+  color: #1f2328;
+}
+body[data-mode="code"] #input-wrap:focus-within {
+  border-color: #0969da;
+  box-shadow: 0 0 0 3px rgba(9,105,218,.12);
+}
+body[data-mode="code"] textarea#msg-input { color: #1f2328; }
+body[data-mode="code"] textarea#msg-input::placeholder { color: #8c959f; }
+body[data-mode="code"] #sidebar {
+  background: #f6f8fa;
+  border-right: 1px solid #d0d7de;
+}
+body[data-mode="code"] .sb-logo-text { color: #1f2328; }
+body[data-mode="code"] .sb-convo { color: #1f2328; border-radius: 6px; }
+body[data-mode="code"] .sb-convo:hover { background: #eaeef2; }
+body[data-mode="code"] .sb-convo.active { background: #ddeeff; color: #0969da; }
+body[data-mode="code"] .sb-section-title { color: #656d76; }
+body[data-mode="code"] .mode-btn { color: #656d76; }
+body[data-mode="code"] .mode-btn:hover { background: #eaeef2; color: #1f2328; }
+body[data-mode="code"] .mode-btn.active { background: #ddeeff; color: #0969da; }
+body[data-mode="code"] .code-actions { background: #f6f8fa; border-top: 1px solid #d0d7de; }
+body[data-mode="code"] #mode-label { color: #0969da; font-weight: 600; }
+body[data-mode="code"] .bubble-action-btn { color: #656d76; border-color: #d0d7de; }
+body[data-mode="code"] .bubble-action-btn:hover { border-color: #0969da; color: #0969da; }
+body[data-mode="code"] .msg-act-btn { color: #656d76; }
+body[data-mode="code"] .msg-act-btn:hover { color: #0969da; }
+
 /* ── Responsive ── */
 @media (max-width: 600px) {
   .plan-cols { grid-template-columns: 1fr; }
