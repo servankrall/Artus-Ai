@@ -1421,17 +1421,15 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
         </div>
         <span class="price-period">İstediğiniz zaman iptal</span>
       </div>
-      <div style="display:flex;gap:10px;margin-top:4px">
-        <button class="btn-stripe" style="flex:1" onclick="stripeCheckout('pro')">⚡ Pro — ₺299/ay</button>
-        <button class="btn-stripe" style="flex:1;background:linear-gradient(135deg,#f59e0b,#fb923c)" onclick="stripeCheckout('max')">✦ Max — ₺599/ay</button>
-      </div>
-
-      <!-- Activation code section -->
+      <!-- Aktivasyon kodu ile Max -->
       <div class="activation-section">
-        <div class="activation-note">Ödeme sonrası size e-posta ile aktivasyon kodu gönderilecektir.</div>
+        <div class="activation-note">✦ Max aktivasyon kodun varsa buraya gir:</div>
         <div class="activation-row">
-          <input class="activation-input" id="activation-code-input" type="text" placeholder="Aktivasyon kodunu girin" maxlength="32" />
-          <button class="btn-activate" onclick="activateProCode()">Aktifleştir</button>
+          <input class="activation-input" id="activation-code-input" type="text" placeholder="MAX-XXXX-XXXX-XXXX" maxlength="20" style="text-transform:uppercase;letter-spacing:1px" />
+          <button class="btn-activate" onclick="activateMaxCode()">Aktifleştir</button>
+        </div>
+        <div style="text-align:center;margin-top:10px;font-size:12px;color:var(--muted)">
+          Kod almak için: <b style="color:var(--accent)">iletişime geç</b>
         </div>
       </div>
     </div>
@@ -3114,20 +3112,71 @@ function closeProModal() {
 }
 
 async function stripeCheckout(tier) {
-  if (tier === 'pro') { window.open(STRIPE_PRO_LINK, '_blank'); return; }
-  // Max: create-checkout endpoint ile oturum aç
-  showToast('⏳ Ödeme sayfası hazırlanıyor…');
-  try {
-    const email = CURRENT_USER?.email || '';
-    const resp = await fetch('/api/create-checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tier: 'max', email }),
-    });
-    const data = await resp.json();
-    if (data.url) window.location.href = data.url;
-    else showToast('❌ ' + (data.error || 'Ödeme başlatılamadı'));
-  } catch(e) { showToast('❌ Bağlantı hatası: ' + e.message); }
+  showToast('⏳ Ödeme sistemi yakında aktif olacak!');
+}
+
+// ── Max Kod Aktivasyonu ──────────────────────────────────────────────────────
+// Kodlar: MAX-XXXXXXXX-CCCC formatında, CCCC = SHA-256("ARTUSMAX_" + XXXXXXXX)[:4]
+const _MAX_CODE_SALT = 'ARTUSMAX_2026';
+
+async function _maxCodeHash(random8) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(_MAX_CODE_SALT + random8));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,'0')).join('').slice(0,4).toUpperCase();
+}
+
+async function activateMaxCode() {
+  const inp = document.getElementById('activation-code-input');
+  const raw = (inp ? inp.value.trim().toUpperCase() : '').replace(/\s/g,'');
+  if (!raw) { showToast('Lütfen aktivasyon kodunu girin'); return; }
+
+  // Format: MAX-XXXXXXXX-CCCC (toplam 18 karakter)
+  const m = raw.match(/^MAX-([A-Z0-9]{8})-([A-Z0-9]{4})$/);
+  if (!m) { showToast('❌ Geçersiz kod formatı (MAX-XXXXXXXX-XXXX)'); return; }
+
+  const [, rand, check] = m;
+  const expected = await _maxCodeHash(rand);
+  if (check !== expected) { showToast('❌ Geçersiz aktivasyon kodu'); return; }
+
+  // Daha önce kullanılmış mı?
+  const used = JSON.parse(localStorage.getItem('artus_used_codes') || '[]');
+  if (used.includes(raw)) { showToast('❌ Bu kod daha önce kullanılmış'); return; }
+  used.push(raw);
+  localStorage.setItem('artus_used_codes', JSON.stringify(used));
+
+  if (!CURRENT_USER) { CURRENT_USER = { name: 'Kullanıcı' }; }
+  CURRENT_USER.max = true;
+  localStorage.setItem('artus_user', JSON.stringify(CURRENT_USER));
+  updateTierBadge();
+  closeProModal();
+  hideFreeLimitWall();
+  showToast('✦ Max aktif edildi! Hoş geldiniz.');
+}
+
+// ── Creator: Max Kodu Üretici ────────────────────────────────────────────────
+async function generateMaxCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let rand = '';
+  for (let i = 0; i < 8; i++) rand += chars[Math.floor(Math.random() * chars.length)];
+  const check = await _maxCodeHash(rand);
+  return `MAX-${rand}-${check}`;
+}
+
+async function showCodeGenerator() {
+  const code = await generateMaxCode();
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center';
+  overlay.innerHTML = `
+    <div style="background:#1c2128;border:1px solid #f59e0b;border-radius:16px;padding:28px 32px;min-width:320px;text-align:center">
+      <div style="font-size:14px;color:#f59e0b;font-weight:700;margin-bottom:12px">✦ MAX KOD ÜRETİCİ</div>
+      <div id="gen-code" style="font-size:22px;font-weight:800;letter-spacing:3px;color:#fff;background:#0d1117;padding:12px 20px;border-radius:10px;margin-bottom:16px;font-family:var(--mono)">${code}</div>
+      <div style="display:flex;gap:10px;justify-content:center">
+        <button onclick="(async()=>{const c=await generateMaxCode();document.getElementById('gen-code').textContent=c;})()" style="background:#262d3a;border:none;color:#e8ecf3;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px">🔄 Yeni Kod</button>
+        <button onclick="navigator.clipboard.writeText(document.getElementById('gen-code').textContent).then(()=>showToast('✅ Kopyalandı!'))" style="background:linear-gradient(135deg,#f59e0b,#fb923c);border:none;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700">📋 Kopyala</button>
+        <button onclick="this.closest('div[style*=fixed]').remove()" style="background:#262d3a;border:none;color:#e8ecf3;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px">✕ Kapat</button>
+      </div>
+      <div style="font-size:11px;color:#4b5563;margin-top:12px">Her kod tek kullanımlık</div>
+    </div>`;
+  document.body.appendChild(overlay);
 }
 
 async function activateProCode() {
@@ -6228,13 +6277,24 @@ function deactivateCreatorMode() {
 
 function _showCreatorBadge() {
   if (document.getElementById('creator-badge')) return;
+  const wrap = document.createElement('div');
+  wrap.id = 'creator-badge';
+  wrap.style.cssText = 'position:fixed;top:8px;right:8px;z-index:9999;display:flex;gap:6px;align-items:center';
+
   const badge = document.createElement('div');
-  badge.id = 'creator-badge';
-  badge.style.cssText = 'position:fixed;top:8px;right:8px;z-index:9999;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;box-shadow:0 2px 12px rgba(99,102,241,.5)';
+  badge.style.cssText = 'background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;box-shadow:0 2px 12px rgba(99,102,241,.5)';
   badge.textContent = '⚡ Creator';
-  badge.title = 'Creator modu aktif — kapatmak için tıkla';
+  badge.title = 'Creator modunu kapat';
   badge.onclick = () => { if (confirm('Creator modunu kapat?')) deactivateCreatorMode(); };
-  document.body.appendChild(badge);
+
+  const genBtn = document.createElement('button');
+  genBtn.style.cssText = 'background:linear-gradient(135deg,#f59e0b,#fb923c);color:#fff;border:none;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 2px 12px rgba(245,158,11,.4)';
+  genBtn.textContent = '🎟 Kod Üret';
+  genBtn.onclick = showCodeGenerator;
+
+  wrap.appendChild(badge);
+  wrap.appendChild(genBtn);
+  document.body.appendChild(wrap);
 }
 
 if (_creatorMode) setTimeout(_showCreatorBadge, 500);
