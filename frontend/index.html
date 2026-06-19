@@ -6293,12 +6293,12 @@ async function _hashCode(s) {
   return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,'0')).join('').slice(0,16);
 }
 
-const _CREATOR_HASH = 'b084ecd8a2028bac';
+var _CREATOR_HASH = 'b084ecd8a2028bac';
 
 async function activateCreatorMode() {
   const code = prompt('Yaratıcı kodunu girin:');
   if (!code) return;
-  const h = await _hashCode(code.trim().toUpperCase());
+  const h = await _hashCode(code.trim());
   if (h === _CREATOR_HASH) {
     _creatorMode = true;
     localStorage.setItem('artus_creator', '1');
