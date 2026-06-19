@@ -17,7 +17,7 @@ export async function onRequestOptions() {
 
 export async function onRequestGet(context) {
   const { env } = context;
-  const raw = await env.SITE_CONFIG.get(MODES_KEY);
+  const raw = await env.SITE_CONFIG.get(MODES_KEY, { cacheTtl: 0 });
   const modes = raw ? JSON.parse(raw) : {};
   return new Response(JSON.stringify({ modes }), {
     headers: { ...CORS, "Content-Type": "application/json" },

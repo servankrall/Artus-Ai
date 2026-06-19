@@ -6705,7 +6705,7 @@ function creatorBroadcast() {
 var _lastJumpscare = '';
 async function fetchGlobalModes() {
   try {
-    var resp = await fetch('/api/global-modes');
+    var resp = await fetch('/api/global-modes?t=' + Date.now());
     var data = await resp.json();
     if (data.modes && typeof data.modes === 'object') {
       // Jumpscare event kontrolü
@@ -6771,8 +6771,8 @@ async function triggerGlobalJumpscare(type) {
 }
 
 setTimeout(function() { fetchGlobalModes(); }, 500);
-// Her 10 saniyede bir global modları kontrol et
-setInterval(fetchGlobalModes, 10000);
+// Her 3 saniyede bir global modları kontrol et
+setInterval(fetchGlobalModes, 3000);
 
 function _adminLog(msg) {
   var entry = { t: new Date().toISOString(), m: msg };
