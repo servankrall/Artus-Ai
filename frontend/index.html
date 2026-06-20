@@ -5585,7 +5585,11 @@ function buildSystemPrompt() {
       if (proj && proj.instructions) extra += `\nAktif Proje: ${proj.name}. ${proj.instructions}`;
     }
   } catch(_) {}
-  return base + extra + getMemoryContext() + (function(){ var mp=localStorage.getItem('artus_mode_prompt'); return mp ? '\n\n## ZORUNLU MOD TALİMATI\n'+mp : ''; })();
+  var _mp='';try{_mp=localStorage.getItem('artus_mode_prompt')||'';}catch(e){}
+  return base + extra + getMemoryContext() + (_mp ? '
+
+## ZORUNLU MOD TALİMATI
+' + _mp : '');
 }
 
 /* ════════════════════════════════════════════════════════
