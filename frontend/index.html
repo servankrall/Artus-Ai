@@ -800,6 +800,7 @@ body[data-mode="code"]   .mode-hint { display: block; color: var(--accent); }
   white-space: nowrap; transform: translateY(10px);
 }
 #toast.show { opacity: 1; transform: translateY(0); }
+@keyframes slideInRight { from { transform: translateX(100px); opacity:0; } to { transform: translateX(0); opacity:1; } }
 
 /* ── Modal Backdrop ── */
 .modal-backdrop {
@@ -971,6 +972,7 @@ body[data-mode="code"]   .mode-hint { display: block; color: var(--accent); }
 body[data-mode="chat"]   #mode-label::before { content: "💬 "; }
 body[data-mode="code"]   #mode-label::before { content: "⚡ "; }
 body[data-mode="design"] #mode-label::before { content: "🎨 "; }
+body[data-mode="story"]  #mode-label::before { content: "📖 "; }
 
 /* ══════════════════════════════════════════════
    CODE MODE — IDE tarzı görünüm (Claude Code stili)
@@ -1502,6 +1504,7 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
         <button class="mode-btn active" data-mode="chat" onclick="setMode('chat')" title="Chat (Ctrl+1)">💬</button>
         <button class="mode-btn" data-mode="code" onclick="handleModeClick('code')" title="Omni Code — PRO (Ctrl+2)">⚡<span class="pro-lock" id="code-lock">🔒</span></button>
         <button class="mode-btn" data-mode="design" onclick="handleModeClick('design')" title="Omni Design — PRO (Ctrl+3)">🎨<span class="pro-lock" id="design-lock">🔒</span></button>
+        <button class="mode-btn" data-mode="story" onclick="setMode('story')" title="Hikaye Modu (Ctrl+4)">📖</button>
         <button class="mode-btn" onclick="toggleSettings()" title="Ayarlar">⚙️</button>
         <button class="mode-btn" id="btn-creator-mode" onclick="activateCreatorMode()" title="Creator Modu">⚡</button>
       </div>
@@ -1683,6 +1686,7 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
     <button class="stab" data-tab="custom" onclick="switchSettingsTab('custom')">Özel Talimatlar</button>
     <button class="stab" data-tab="memory" onclick="switchSettingsTab('memory')">Bellek</button>
     <button class="stab" data-tab="projects" onclick="switchSettingsTab('projects')">Projeler</button>
+    <button class="stab" data-tab="achievements" onclick="switchSettingsTab('achievements')">Başarımlar</button>
   </div>
 
   <div class="settings-body">
@@ -1826,6 +1830,14 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
         <button class="btn-danger" onclick="signOut();">↩ Hesaptan Çık</button>
       </div>
     </div>
+    <div class="settings-group">
+      <label>Tema Rengi</label>
+      <div style="display:flex;align-items:center;gap:10px">
+        <input type="color" id="accent-color-picker" value="#6366f1" style="width:44px;height:32px;border:none;border-radius:6px;cursor:pointer;background:none" oninput="applyAccentColor(this.value)" onchange="applyAccentColor(this.value,true)">
+        <span style="font-size:12px;color:var(--muted)">Vurgu rengi</span>
+        <button class="topbar-icon-btn" onclick="resetAccentColor()" style="font-size:12px;padding:4px 8px">Sıfırla</button>
+      </div>
+    </div>
   </div><!-- /stab-general -->
 
   <!-- TAB: Custom Instructions -->
@@ -1889,6 +1901,12 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
     </div>
   </div><!-- /stab-projects -->
 
+  <!-- TAB: Achievements -->
+  <div id="stab-achievements" class="stab-content" style="display:none">
+    <div class="settings-info" style="margin-bottom:8px">Kazandığın başarımlar aşağıda gösterilir.</div>
+    <div id="achievements-list"></div>
+  </div><!-- /stab-achievements -->
+
   </div><!-- /settings-body -->
 </div><!-- /settings-panel -->
 
@@ -1917,6 +1935,10 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
 </div>
 
 <script>
+(function applyTheme(){
+  var c = localStorage.getItem('artus_theme_color');
+  if(c) document.documentElement.style.setProperty('--accent', c);
+})();
 /* ══════════════════════════════════════════════
    CONFIGURATION
 ══════════════════════════════════════════════ */
@@ -3680,16 +3702,18 @@ function removeAttach(idx) {
 /* ═══════════════════════════════════════════════
    MODE
 ═══════════════════════════════════════════════ */
-const MODE_LABELS = { chat: 'Chat', code: 'Omni Code', design: 'Omni Design' };
+const MODE_LABELS = { chat: 'Chat', code: 'Omni Code', design: 'Omni Design', story: 'Hikaye Modu' };
 const MODE_HINTS = {
   chat:   '',
   code:   '⚡ Omni Code: Kod blokları için Kabul/Reddet butonları aktif',
   design: '🎨 Omni Design: UI/UX odaklı yanıtlar üretiyorum',
+  story:  '📖 Hikaye Modu: İnteraktif hikaye yazıyoruz',
 };
 const MODE_PLACEHOLDERS = {
   chat:   'Mesajınızı yazın… (Enter → gönder)',
   code:   'Kod görevi tanımlayın… (Enter → gönder)',
   design: 'UI/UX fikrinizi anlatın… (Enter → gönder)',
+  story:  'Hikayeye devam et veya yönlendir… (Enter → gönder)',
 };
 
 function handleModeClick(m) {
@@ -3860,7 +3884,16 @@ const WELCOME_CARDS = [
   { icon:'✍️', title:'Yazı yaz', desc:'Metin, e-posta, içerik üret', prompt:'Şu konuda profesyonel bir metin yaz: ' },
 ];
 
+function renderStoryWelcome() {
+  var genres = ['Fantezi','Korku','Romantik','Macera','Bilim Kurgu','Gizemli'];
+  var chips = genres.map(function(g){
+    return '<button class="wlc-chip" data-action="use-card" data-prompt="' + encodeURIComponent('Bana bir ' + g + ' hikayesi başlat') + '"><span>📖</span><span>' + g + '</span></button>';
+  }).join('');
+  return '<div class="wlc-logo">📖</div><h2 id="wlc-greeting">Hikaye Modu</h2><p class="wlc-greeting">Bir tür seç ve hikayemizi başlatalım!</p><div class="wlc-chips">' + chips + '</div>';
+}
+
 function renderWelcome() {
+  if (currentMode === 'story') return renderStoryWelcome();
   const now = new Date().getHours();
   const greet = now < 12 ? 'Günaydın' : now < 18 ? 'İyi günler' : 'İyi akşamlar';
   const firstName = (CURRENT_USER && CURRENT_USER.name) ? CURRENT_USER.name.split(' ')[0] : '';
@@ -3873,7 +3906,9 @@ function renderWelcome() {
     <div class="wlc-logo">✦</div>
     <h2 id="wlc-greeting">${greeting}</h2>
     <p class="wlc-greeting">Sana nasıl yardımcı olabilirim?</p>
-    <div class="wlc-chips">${chips}</div>`;
+    <div class="wlc-chips">${chips}
+    <button class="wlc-chip" data-action="use-card" data-prompt="${encodeURIComponent('Bana Türkçe, rastgele bir konuda 4 şıklı bilgi yarışması sorusu sor. Şıkları A) B) C) D) formatında ver.')}"><span>🎮</span><span>Quiz</span></button>
+    </div>`;
 }
 
 function useCard(prompt) {
@@ -4166,6 +4201,7 @@ function renderBubble(bubble, rawText, mode) {
   html = `<div class="bubble-actions" id="${actionsId}">
     <button class="bubble-action-btn" data-action="copy-bubble" data-raw="${escapeHtml(rawText)}">📋 Kopyala</button>
     <button class="bubble-action-btn" data-action="dl-bubble" data-raw="${escapeHtml(rawText)}">⬇ İndir</button>
+    <button class="bubble-action-btn" data-action="tts">🔊 Dinle</button>
   </div>` + html;
 
   bubble.innerHTML = sanitizeHtml(html);
@@ -4574,6 +4610,7 @@ function finalizeBotMessage(bubble, rawText) {
   // mark bookmarked state
   if (getBookmarks().some(b => b.text === rawText)) bar.querySelector('.act-bm')?.classList.add('bookmarked');
   (col || msgEl).appendChild(bar);
+  try { checkAchievements(); } catch(_) {}
 }
 
 /* ── Navigate between regenerated alternatives ── */
@@ -4744,6 +4781,22 @@ function toggleSettings() {
   renderStats();
   renderTemplates();
   renderPersonas();
+  var c = localStorage.getItem('artus_theme_color') || '#6366f1';
+  var picker = document.getElementById('accent-color-picker');
+  if(picker) picker.value = c;
+}
+
+function applyAccentColor(c, save) {
+  document.documentElement.style.setProperty('--accent', c);
+  if (save) localStorage.setItem('artus_theme_color', c);
+  const picker = document.getElementById('accent-color-picker');
+  if (picker) picker.value = c;
+}
+function resetAccentColor() {
+  document.documentElement.style.removeProperty('--accent');
+  localStorage.removeItem('artus_theme_color');
+  const picker = document.getElementById('accent-color-picker');
+  if (picker) picker.value = '#6366f1';
 }
 
 /* ═══════════════════════════════════════════════
@@ -5567,6 +5620,9 @@ function buildSystemPrompt() {
   if (currentMode === 'code') {
     extra += '\n\n## KOD MODU — ZORUNLU KURALLAR\n1. Kullanıcı bir HATA mesajı verdiğinde: hatayı tam olarak analiz et, o satırı/mantığı düzelt, FARKLI ve ÇALIŞAN kod döndür. Aynı kodu tekrar verme.\n2. Hata düzeltirken önce "Sorun: ..." diye kısaca açıkla, sonra düzeltilmiş kodu ver.\n3. Kod her zaman tam ve çalışır halde olsun — yarım bırakma.\n4. Kullanıcı "çalışmıyor / hata veriyor / düzelt" dediğinde onceki kodun neyi yanlış yaptığını bul ve gerçekten farklı bir yaklaşımla çöz.';
   }
+  if (currentMode === 'story') {
+    return 'Sen yaratıcı bir hikaye yazma asistanısın. Kullanıcıyla birlikte interaktif bir hikaye yaz. Her yanıtında hikayeyi ilerlet ve kullanıcıya 2-3 seçenek sun. Türkçe yaz. Hikayeyi sürükleyici, detaylı ve eğlenceli yap.' + getMemoryContext();
+  }
   try {
     const ci = JSON.parse(localStorage.getItem('artus_ci') || '{}');
     if (ci.name)  extra += `\nKullanıcının adı: ${ci.name}.`;
@@ -5759,6 +5815,17 @@ function initBubbleDelegation() {
         });
         break;
       }
+      case 'tts': {
+        const bubble = btn.closest('.msg')?.querySelector('.bubble');
+        const text = bubble ? bubble.innerText : '';
+        window.speechSynthesis.cancel();
+        if (text) {
+          const utt = new SpeechSynthesisUtterance(text);
+          utt.lang = 'tr-TR';
+          window.speechSynthesis.speak(utt);
+        }
+        break;
+      }
     }
   });
 }
@@ -5859,6 +5926,10 @@ function switchSettingsTab(tab) {
   if (tab === 'memory') renderMemoryList();
   if (tab === 'projects') renderProjectList();
   if (tab === 'custom') loadCustomInstructions();
+  if (tab === 'achievements') {
+    var el = document.getElementById('achievements-list');
+    if (el) el.innerHTML = renderAchievementsList();
+  }
 }
 
 /* ════════════════════════════════════════════════════════
@@ -7323,6 +7394,63 @@ function showAdminPanel(tab) {
   renderTab(tab);
   document.body.appendChild(overlay);
   _adminLog('Admin panel açıldı: ' + tab);
+}
+
+/* ════════════════════════════════════════════════════════
+   ACHIEVEMENT SYSTEM
+════════════════════════════════════════════════════════ */
+var ACHIEVEMENTS_DEF = [
+  { id: 'first_message', label: 'İlk Mesaj', icon: '💬', check: function(s){ return s.count >= 1; } },
+  { id: 'messages_10',   label: '10 Mesaj', icon: '🔥', check: function(s){ return s.count >= 10; } },
+  { id: 'messages_100',  label: '100 Mesaj', icon: '💯', check: function(s){ return s.count >= 100; } },
+  { id: 'night_owl',     label: 'Gece Kuşu', icon: '🦉', check: function(s){ var h=new Date().getHours(); return h>=0 && h<4; } },
+  { id: 'code_master',   label: 'Kod Ustası', icon: '💻', check: function(s){ return s.codeBlocks >= 10; } },
+  { id: 'pro_user',      label: 'Pro Kullanıcı', icon: '⭐', check: function(s){ return !!(CURRENT_USER && CURRENT_USER.pro); } },
+  { id: 'max_user',      label: 'Max Kullanıcı', icon: '👑', check: function(s){ return !!(CURRENT_USER && CURRENT_USER.max); } },
+];
+function getAchievements() {
+  try { return JSON.parse(localStorage.getItem('artus_achievements') || '[]'); } catch(e){ return []; }
+}
+function saveAchievements(arr) {
+  try { localStorage.setItem('artus_achievements', JSON.stringify(arr)); } catch(e){}
+}
+function getAchievementStats() {
+  try { return JSON.parse(localStorage.getItem('artus_ach_stats') || '{}'); } catch(e){ return {}; }
+}
+function saveAchievementStats(s) {
+  try { localStorage.setItem('artus_ach_stats', JSON.stringify(s)); } catch(e){}
+}
+function showAchievementToast(a) {
+  var d = document.createElement('div');
+  d.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;padding:12px 18px;border-radius:12px;font-size:14px;font-weight:600;box-shadow:0 8px 24px rgba(99,102,241,0.4);display:flex;align-items:center;gap:8px;animation:slideInRight .4s ease';
+  d.innerHTML = '<span style="font-size:20px">🏆</span><div><div style="font-size:11px;opacity:.85;margin-bottom:2px">Başarım Kazanıldı!</div>' + a.icon + ' ' + a.label + '</div>';
+  document.body.appendChild(d);
+  setTimeout(function(){ d.style.transition='opacity .4s'; d.style.opacity='0'; setTimeout(function(){ d.remove(); },400); }, 3000);
+}
+function checkAchievements() {
+  var earned = getAchievements();
+  var earnedIds = earned.map(function(a){ return a.id; });
+  var stats = getAchievementStats();
+  stats.count = (stats.count || 0) + 1;
+  var lastBot = document.querySelector('#chat-area .msg.bot:last-child .bubble');
+  if (lastBot) stats.codeBlocks = (stats.codeBlocks || 0) + (lastBot.querySelectorAll('pre code').length || 0);
+  saveAchievementStats(stats);
+  try { localStorage.setItem('artus_msg_count', String(stats.count)); } catch(e){}
+  ACHIEVEMENTS_DEF.forEach(function(def) {
+    if (earnedIds.indexOf(def.id) === -1 && def.check(stats)) {
+      earned.push({ id: def.id, ts: Date.now() });
+      saveAchievements(earned);
+      showAchievementToast(def);
+    }
+  });
+}
+function renderAchievementsList() {
+  var earned = getAchievements();
+  var earnedIds = earned.map(function(a){ return a.id; });
+  return ACHIEVEMENTS_DEF.map(function(def) {
+    var unlocked = earnedIds.indexOf(def.id) !== -1;
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;background:' + (unlocked?'rgba(99,102,241,0.15)':'rgba(255,255,255,0.03)') + ';margin-bottom:6px"><span style="font-size:20px;' + (unlocked?'':'filter:grayscale(1);opacity:0.4') + '">' + def.icon + '</span><div><div style="font-size:13px;font-weight:500;color:var(--text)' + (unlocked?'':';opacity:0.5') + '">' + def.label + '</div><div style="font-size:11px;color:var(--muted)">' + (unlocked?'Kazanıldı ✓':'Henüz kazanılmadı') + '</div></div></div>';
+  }).join('');
 }
 </script>
 
