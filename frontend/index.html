@@ -436,25 +436,38 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   gap: 20px; text-align: center; padding: 60px 20px; color: var(--muted);
 }
 .wlc-logo {
-  width: 52px; height: 52px;
+  width: 64px; height: 64px;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  border-radius: 14px;
+  border-radius: 18px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 26px; color: #fff;
+  font-size: 30px; color: #fff;
   box-shadow: 0 4px 20px rgba(99,102,241,0.4);
-  animation: wlc-pulse 3s ease-in-out infinite;
+  animation: wlc-float 3s ease-in-out infinite;
 }
 .wlc-icon { display: none; }
-@keyframes wlc-pulse {
-  0%,100% { box-shadow: 0 4px 20px rgba(99,102,241,0.3); }
-  50%     { box-shadow: 0 6px 32px rgba(139,92,246,0.6); }
+@keyframes wlc-float {
+  0%,100% { transform: translateY(0) scale(1); box-shadow: 0 4px 20px rgba(99,102,241,0.3); }
+  50%     { transform: translateY(-6px) scale(1.04); box-shadow: 0 12px 36px rgba(139,92,246,0.55); }
 }
+#welcome { animation: wlc-fadein .5s ease; }
+@keyframes wlc-fadein {
+  from { opacity:0; transform: translateY(16px); }
+  to   { opacity:1; transform: translateY(0); }
+}
+/* Balon stilleri */
+body[data-bubble="rounded"] .bubble { border-radius: 24px !important; }
+body[data-bubble="sharp"] .bubble { border-radius: 4px !important; }
+body[data-bubble="minimal"] .msg.bot .bubble { background: transparent !important; border: none !important; padding-left: 0 !important; }
+body[data-bubble="minimal"] .msg.user .bubble { border-radius: 12px !important; }
+body[data-bubble="glass"] .bubble { background: rgba(255,255,255,0.07) !important; backdrop-filter: blur(12px) !important; border: 1px solid rgba(255,255,255,0.12) !important; }
+body[data-bubble="glass"] .msg.user .bubble { background: rgba(99,102,241,0.25) !important; }
 #welcome h2 {
   font-size: 32px; font-weight: 700; letter-spacing: -0.5px;
   color: var(--text);
   background: none; -webkit-text-fill-color: unset; -webkit-background-clip: unset; background-clip: unset;
+  animation: wlc-fadein .6s ease .1s both;
 }
-#welcome .wlc-greeting { font-size: 15px; color: var(--muted); margin-top: -12px; }
+#welcome .wlc-greeting { font-size: 15px; color: var(--muted); margin-top: -12px; animation: wlc-fadein .6s ease .2s both; }
 #welcome p { font-size: 13.5px; max-width: 420px; line-height: 1.7; }
 .wlc-chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 8px; }
 .wlc-chip {
@@ -1832,10 +1845,19 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
     </div>
     <div class="settings-group">
       <label>Tema Rengi</label>
-      <div style="display:flex;align-items:center;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <input type="color" id="accent-color-picker" value="#6366f1" style="width:44px;height:32px;border:none;border-radius:6px;cursor:pointer;background:none" oninput="applyAccentColor(this.value)" onchange="applyAccentColor(this.value,true)">
         <span style="font-size:12px;color:var(--muted)">Vurgu rengi</span>
         <button class="topbar-icon-btn" onclick="resetAccentColor()" style="font-size:12px;padding:4px 8px">Sıfırla</button>
+        <div style="display:flex;gap:6px;margin-top:4px">
+          ${['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#0ea5e9','#f97316'].map(c=>`<div onclick="applyAccentColor('${c}',true);document.getElementById('accent-color-picker').value='${c}'" style="width:22px;height:22px;border-radius:50%;background:${c};cursor:pointer;border:2px solid transparent;transition:border .15s" onmouseover="this.style.border='2px solid #fff'" onmouseout="this.style.border='2px solid transparent'"></div>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="settings-group">
+      <label>Sohbet Balonu Stili</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${[['default','💬 Varsayılan'],['rounded','🫧 Yuvarlak'],['sharp','📐 Köşeli'],['minimal','✏️ Minimal'],['glass','🪟 Cam']].map(([s,l])=>`<button onclick="applyBubbleStyle('${s}')" id="bstyle-${s}" style="padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text)">${l}</button>`).join('')}
       </div>
     </div>
   </div><!-- /stab-general -->
@@ -4798,6 +4820,16 @@ function resetAccentColor() {
   const picker = document.getElementById('accent-color-picker');
   if (picker) picker.value = '#6366f1';
 }
+
+function applyBubbleStyle(style) {
+  document.body.setAttribute('data-bubble', style);
+  localStorage.setItem('artus_bubble_style', style);
+  document.querySelectorAll('[id^="bstyle-"]').forEach(b => b.style.background = 'var(--surface)');
+  const active = document.getElementById('bstyle-' + style);
+  if (active) active.style.background = 'var(--accent)';
+}
+// Sayfa yüklenince balon stilini uygula
+(function(){ var s = localStorage.getItem('artus_bubble_style'); if(s) document.body.setAttribute('data-bubble', s); })();
 
 /* ═══════════════════════════════════════════════
    TOAST
