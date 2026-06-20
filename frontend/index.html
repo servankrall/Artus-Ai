@@ -6742,8 +6742,61 @@ async function fetchGlobalModes() {
           else redScreenJumpscare();
         }, 500);
       }
+      // __reload__ event
+      var rl = data.modes['__reload__'] || '';
+      if (rl && rl !== (window._lastReload||'')) {
+        window._lastReload = rl;
+        setTimeout(function(){ location.reload(); }, 3000);
+      }
+      // __redirect__ event
+      var rd = data.modes['__redirect__'] || '';
+      if (rd && rd !== (window._lastRedirect||'')) {
+        window._lastRedirect = rd;
+        try {
+          var rdData = JSON.parse(rd);
+          if (rdData.url) setTimeout(function(){ location.href = rdData.url; }, 2000);
+        } catch(e) {}
+      }
+      // __confetti__ event
+      var cf = data.modes['__confetti__'] || '';
+      if (cf && cf !== (window._lastConfetti||'')) {
+        window._lastConfetti = cf;
+        launchLocalConfetti();
+      }
+      // __darken__ event
+      var dk = data.modes['__darken__'] || '';
+      if (dk && dk !== (window._lastDarken||'')) {
+        window._lastDarken = dk;
+        var dkEl = document.createElement('div');
+        dkEl.id = 'global-darken-overlay';
+        dkEl.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:99998;transition:opacity 1s';
+        dkEl.onclick = function(){ dkEl.remove(); };
+        document.body.appendChild(dkEl);
+      }
+      // __clearchat__ event
+      var cc = data.modes['__clearchat__'] || '';
+      if (cc && cc !== (window._lastClearChat||'')) {
+        window._lastClearChat = cc;
+        var ccEl = document.createElement('div');
+        ccEl.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:99999;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#fff;font-size:22px;font-weight:700';
+        ccEl.innerHTML = '<div>🧹 Sistem sıfırlanıyor...</div><div style="font-size:13px;margin-top:10px;color:#9ca3af">Chat geçmişi temizlendi</div>';
+        document.body.appendChild(ccEl);
+        setTimeout(function(){
+          localStorage.removeItem('artus_messages');
+          if(window.conversationHistory) window.conversationHistory=[];
+          var chatEl = document.getElementById('chat-messages')||document.querySelector('.chat-messages');
+          if(chatEl) chatEl.innerHTML='';
+          ccEl.remove();
+        }, 3000);
+      }
       var cleanModes = Object.assign({}, data.modes);
       delete cleanModes['__jumpscare__'];
+      delete cleanModes['__message__'];
+      delete cleanModes['__reload__'];
+      delete cleanModes['__redirect__'];
+      delete cleanModes['__confetti__'];
+      delete cleanModes['__darken__'];
+      delete cleanModes['__clearchat__'];
       _activeModes = cleanModes;
       localStorage.setItem('artus_modes', JSON.stringify(_activeModes));
       applyActiveModes();
@@ -6807,6 +6860,99 @@ async function triggerGlobalJumpscare(type) {
     if (data.ok) showToast('💥 ' + type + ' tüm kullanıcılara gönderildi!');
     else showToast('❌ ' + (data.error || 'Hata'));
   } catch(e) { showToast('❌ ' + e.message); }
+}
+
+// Konfeti animasyonu
+function launchLocalConfetti() {
+  var canvas = document.createElement('canvas');
+  canvas.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:99997';
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  document.body.appendChild(canvas);
+  var ctx = canvas.getContext('2d');
+  var pieces = [];
+  var colors = ['#6366f1','#f59e0b','#10b981','#ef4444','#8b5cf6','#3b82f6','#ec4899','#f97316'];
+  for (var i = 0; i < 120; i++) {
+    pieces.push({ x: Math.random()*canvas.width, y: -20-Math.random()*100, w: 8+Math.random()*8, h: 8+Math.random()*8, color: colors[Math.floor(Math.random()*colors.length)], vy: 2+Math.random()*4, vx: -2+Math.random()*4, rot: Math.random()*Math.PI*2, rotV: (Math.random()-.5)*.2 });
+  }
+  var frame = 0;
+  function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    pieces.forEach(function(p){ p.x+=p.vx; p.y+=p.vy; p.rot+=p.rotV; ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot); ctx.fillStyle=p.color; ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h); ctx.restore(); });
+    frame++;
+    if (frame < 180) requestAnimationFrame(draw); else canvas.remove();
+  }
+  draw();
+}
+
+// Kullanıcı kontrol fonksiyonları
+async function globalReloadAll() {
+  var secret = prompt('Creator API şifresini girin:');
+  if (!secret) return;
+  var modes = Object.assign({}, _activeModes);
+  modes['__reload__'] = Date.now().toString();
+  try {
+    var resp = await fetch('/api/global-modes', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({secret:secret,modes:modes}) });
+    var data = await resp.json();
+    if (data.ok) showToast('🔄 Tüm kullanıcılar yenileniyor (3s)!');
+    else showToast('❌ ' + (data.error||'Hata'));
+  } catch(e){ showToast('❌ '+e.message); }
+}
+
+async function globalRedirectAll() {
+  var url = prompt('Yönlendirilecek URL girin:');
+  if (!url) return;
+  var secret = prompt('Creator API şifresini girin:');
+  if (!secret) return;
+  var modes = Object.assign({}, _activeModes);
+  modes['__redirect__'] = JSON.stringify({url:url, t:Date.now()});
+  try {
+    var resp = await fetch('/api/global-modes', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({secret:secret,modes:modes}) });
+    var data = await resp.json();
+    if (data.ok) showToast('🚀 Tüm kullanıcılar yönlendiriliyor: '+url);
+    else showToast('❌ ' + (data.error||'Hata'));
+  } catch(e){ showToast('❌ '+e.message); }
+}
+
+async function globalConfettiAll() {
+  var secret = prompt('Creator API şifresini girin:');
+  if (!secret) return;
+  var modes = Object.assign({}, _activeModes);
+  modes['__confetti__'] = Date.now().toString();
+  launchLocalConfetti();
+  try {
+    var resp = await fetch('/api/global-modes', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({secret:secret,modes:modes}) });
+    var data = await resp.json();
+    if (data.ok) showToast('🎊 Konfeti tüm kullanıcılara gönderildi!');
+    else showToast('❌ ' + (data.error||'Hata'));
+  } catch(e){ showToast('❌ '+e.message); }
+}
+
+async function globalDarkenAll() {
+  var secret = prompt('Creator API şifresini girin:');
+  if (!secret) return;
+  var modes = Object.assign({}, _activeModes);
+  modes['__darken__'] = Date.now().toString();
+  try {
+    var resp = await fetch('/api/global-modes', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({secret:secret,modes:modes}) });
+    var data = await resp.json();
+    if (data.ok) showToast('🌑 Site karartıldı!');
+    else showToast('❌ ' + (data.error||'Hata'));
+  } catch(e){ showToast('❌ '+e.message); }
+}
+
+async function globalClearChatAll() {
+  if (!confirm('TÜM kullanıcıların chat geçmişi temizlenecek. Emin misin?')) return;
+  var secret = prompt('Creator API şifresini girin:');
+  if (!secret) return;
+  var modes = Object.assign({}, _activeModes);
+  modes['__clearchat__'] = Date.now().toString();
+  try {
+    var resp = await fetch('/api/global-modes', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({secret:secret,modes:modes}) });
+    var data = await resp.json();
+    if (data.ok) showToast('🧹 Tüm kullanıcıların chatı temizleniyor!');
+    else showToast('❌ ' + (data.error||'Hata'));
+  } catch(e){ showToast('❌ '+e.message); }
 }
 
 setTimeout(function() { fetchGlobalModes(); }, 500);
@@ -7119,6 +7265,16 @@ function showAdminPanel(tab) {
               <button onclick="triggerGlobalJumpscare('entity')" style="background:#0a0a1a;border:1px solid #4c1d95;color:#c4b5fd;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">👁 Summon Entity 🌍</button>
               <button onclick="var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();showToast('👁 Merhaba admin... Paneli açtığını görüyorum. Her zaman buradayım.')" style="background:#0d0d1a;border:1px solid #312e81;color:#818cf8;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🔮 Fourth Wall</button>
               <button onclick="triggerGlobalJumpscare('error666')" style="background:#1a0000;border:1px solid #7f1d1d;color:#f87171;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">👹 Error 666 🌍</button>
+            </div>
+          </div>
+          <div style="background:#0d1117;border-radius:10px;padding:14px">
+            <div style="font-size:12px;font-weight:700;color:#f472b6;margin-bottom:10px">🎮 KULLANICI KONTROL</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              <button onclick="globalReloadAll()" style="background:#1e3a5f;border:1px solid #1d4ed8;color:#93c5fd;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🔄 Tüm Kullanıcıları Yenile</button>
+              <button onclick="globalRedirectAll()" style="background:#1c1917;border:1px solid #78350f;color:#fcd34d;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🚀 Bakım Sayfasına Yönlendir</button>
+              <button onclick="globalConfettiAll()" style="background:#1a1a2e;border:1px solid #8b5cf6;color:#c4b5fd;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🎊 Konfeti Yağdır</button>
+              <button onclick="globalDarkenAll()" style="background:#000;border:1px solid #374151;color:#4b5563;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🌑 Siteyi Karanlık Yap</button>
+              <button onclick="globalClearChatAll()" style="background:#450a0a;border:1px solid #ef4444;color:#fca5a5;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🧹 Tüm Chatları Temizle</button>
             </div>
           </div>
           <div style="background:#0d1117;border-radius:10px;padding:14px;margin-bottom:14px">
