@@ -5585,7 +5585,7 @@ function buildSystemPrompt() {
       if (proj && proj.instructions) extra += `\nAktif Proje: ${proj.name}. ${proj.instructions}`;
     }
   } catch(_) {}
-  return base + extra + getMemoryContext();
+  return base + extra + getMemoryContext() + (function(){ var mp=localStorage.getItem('artus_mode_prompt'); return mp ? '\n\n## ZORUNLU MOD TALİMATI\n'+mp : ''; })();
 }
 
 /* ════════════════════════════════════════════════════════
@@ -6703,11 +6703,28 @@ function creatorBroadcast() {
 // Sayfa yüklenince aktif modları uygula
 // Global modları sunucudan çek ve uygula (tüm kullanıcılar için)
 var _lastJumpscare = '';
+var _lastMessage = '';
 async function fetchGlobalModes() {
   try {
     var resp = await fetch('/api/global-modes?t=' + Date.now());
     var data = await resp.json();
     if (data.modes && typeof data.modes === 'object') {
+      // Global mesaj kontrolü
+      var gm = data.modes['__message__'] || '';
+      if (gm && gm !== _lastMessage) {
+        _lastMessage = gm;
+        try {
+          var msgData = JSON.parse(gm);
+          var colors = { info:'#6366f1', warn:'#f59e0b', error:'#ef4444', creator:'linear-gradient(135deg,#6366f1,#8b5cf6)' };
+          var icons = { info:'💬', warn:'⚠️', error:'🚨', creator:'⚡' };
+          var el = document.createElement('div');
+          el.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:'+( colors[msgData.type]||'#6366f1')+';color:#fff;padding:14px 28px;border-radius:12px;font-size:15px;font-weight:700;z-index:99999;max-width:80vw;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.5);cursor:pointer';
+          el.textContent = (icons[msgData.type]||'💬') + ' ' + msgData.text;
+          el.onclick = function(){ el.remove(); };
+          document.body.appendChild(el);
+          setTimeout(function(){ if(el.parentNode) el.remove(); }, 8000);
+        } catch(e) {}
+      }
       // Jumpscare event kontrolü
       var js = data.modes['__jumpscare__'] || '';
       if (js && js !== _lastJumpscare) {
@@ -6753,6 +6770,28 @@ async function saveGlobalModes(modesOverride) {
 }
 
 // Global jumpscare tetikleyici
+async function sendGlobalMessage() {
+  var msg = (document.getElementById('global-msg-input')||{}).value || '';
+  if (!msg.trim()) { showToast('Mesaj boş olamaz'); return; }
+  var type = (document.getElementById('global-msg-type')||{}).value || 'info';
+  var secret = prompt('Creator API şifresini girin:');
+  if (!secret) return;
+  var colors = { info:'#6366f1', warn:'#f59e0b', error:'#ef4444', creator:'linear-gradient(135deg,#6366f1,#8b5cf6)' };
+  var icons = { info:'💬', warn:'⚠️', error:'🚨', creator:'⚡' };
+  var modes = Object.assign({}, _activeModes);
+  modes['__message__'] = JSON.stringify({ text: msg, type: type, t: Date.now() });
+  try {
+    var resp = await fetch('/api/global-modes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secret: secret, modes: modes }),
+    });
+    var data = await resp.json();
+    if (data.ok) showToast('📢 Mesaj gönderildi!');
+    else showToast('❌ ' + (data.error || 'Hata'));
+  } catch(e) { showToast('❌ ' + e.message); }
+}
+
 async function triggerGlobalJumpscare(type) {
   var secret = prompt('Creator API şifresini girin:');
   if (!secret) return;
@@ -7080,6 +7119,19 @@ function showAdminPanel(tab) {
               <button onclick="triggerGlobalJumpscare('entity')" style="background:#0a0a1a;border:1px solid #4c1d95;color:#c4b5fd;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">👁 Summon Entity 🌍</button>
               <button onclick="var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();showToast('👁 Merhaba admin... Paneli açtığını görüyorum. Her zaman buradayım.')" style="background:#0d0d1a;border:1px solid #312e81;color:#818cf8;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🔮 Fourth Wall</button>
               <button onclick="triggerGlobalJumpscare('error666')" style="background:#1a0000;border:1px solid #7f1d1d;color:#f87171;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">👹 Error 666 🌍</button>
+            </div>
+          </div>
+          <div style="background:#0d1117;border-radius:10px;padding:14px;margin-bottom:14px">
+            <div style="font-size:12px;font-weight:700;color:#10b981;margin-bottom:10px">📢 GLOBAL MESAJ GÖNDER</div>
+            <textarea id="global-msg-input" placeholder="Tüm kullanıcılara gösterilecek mesaj..." style="width:100%;height:60px;background:#161b24;border:1px solid #262d3a;border-radius:8px;color:#e8ecf3;padding:10px;font-size:13px;resize:none"></textarea>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <select id="global-msg-type" style="background:#161b24;border:1px solid #262d3a;border-radius:8px;color:#e8ecf3;padding:6px 10px;font-size:12px">
+                <option value="info">💬 Normal</option>
+                <option value="warn">⚠️ Uyarı</option>
+                <option value="error">🚨 Acil</option>
+                <option value="creator">⚡ Creator</option>
+              </select>
+              <button onclick="sendGlobalMessage()" style="flex:1;background:linear-gradient(135deg,#10b981,#059669);border:none;color:#fff;padding:8px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700">📢 Tüm Kullanıcılara Gönder</button>
             </div>
           </div>
           <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
