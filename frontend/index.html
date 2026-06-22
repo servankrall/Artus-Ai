@@ -5548,7 +5548,7 @@ const CHANGELOG = [
       { tag: 'new',      text: 'Gerçek Web Araması — 🌐 butonu artık DuckDuckGo üzerinden gerçek web sonuçlarını AI\'a aktarıyor' },
       { tag: 'new',      text: 'Görüntü Galerisi — üretilen tüm görseller otomatik kaydediliyor, tam ekran galeri ile yönetiliyor' },
       { tag: 'new',      text: 'AI Akıllı Öneriler — her yanıt sonrası llama-3.1-8b-instant ile bağlama özgü 3 Türkçe takip sorusu üretiliyor' },
-      { tag: 'security', text: 'XSS Koruması — <script> ve olay dinleyicileri artık filtrelenerek engelleniyor, ekranda g\xfcvenli bi\xe7imde g\xf6steriliyor' },
+      { tag: 'security', text: 'XSS Koruması — \x3cscript\x3e ve olay dinleyicileri artık filtrelenerek engelleniyor, ekranda güvenli biçimde gösteriliyor' },
       { tag: 'fix',      text: '"Yazıyor…" göstergesi artık web araması asılsa bile takılmıyor (AbortSignal.timeout + sıra düzeltmesi)' },
     ]
   },
@@ -5746,10 +5746,7 @@ function buildSystemPrompt() {
     }
   } catch(_) {}
   var _mp='';try{_mp=localStorage.getItem('artus_mode_prompt')||'';}catch(e){}
-  return base + extra + getMemoryContext() + (_mp ? '
-
-## ZORUNLU MOD TALİMATI
-' + _mp : '');
+  return base + extra + getMemoryContext() + (_mp ? '\n\n## ZORUNLU MOD TALİMATI\n' + _mp : '');
 }
 
 /* ════════════════════════════════════════════════════════
