@@ -1,4 +1,5 @@
 {
+  "id": "/",
   "name": "Omni.Ai",
   "short_name": "Omni.Ai",
   "description": "Omni.Ai — Dünyanın en yetenekli dijital operatörü. Yazılım, tasarım, araştırma ve daha fazlası için AI asistanın.",
@@ -11,7 +12,8 @@
   "theme_color": "#6366f1",
   "lang": "tr",
   "dir": "ltr",
-  "categories": ["productivity", "utilities", "developer"],
+  "prefer_related_applications": false,
+  "categories": ["productivity", "utilities"],
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
@@ -20,7 +22,6 @@
   ],
   "shortcuts": [
     { "name": "Yeni Sohbet", "short_name": "Yeni", "description": "Yeni bir sohbet başlat", "url": "/index.html?action=new", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
-    { "name": "Görsel Üret", "short_name": "Görsel", "description": "Görsel üretme modu", "url": "/index.html?action=image", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
     { "name": "Sesli Konuşma", "short_name": "Sesli", "description": "Sesli konuşma modu", "url": "/index.html?action=voice", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] }
   ]
 }

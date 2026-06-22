@@ -1,10 +1,8 @@
-// Omni.Ai Service Worker — v11
-const CACHE = 'omni-ai-v11';
+// Omni.Ai Service Worker — v12
+const CACHE = 'omni-ai-v12';
 
-// HTML ve JS config dosyaları ASLA önbelleğe alınmaz — her zaman ağdan gelir
 const NEVER_CACHE = ['.html', '/sw.js', '/omni-config.js'];
 
-// Sadece statik varlıklar önbelleğe alınır
 const STATIC_ASSETS = [
   '/icon-192.png',
   '/icon-512.png',
@@ -31,7 +29,6 @@ self.addEventListener('fetch', (e) => {
 
   if (url.pathname.startsWith('/api/') || e.request.method !== 'GET') return;
 
-  // HTML, SW ve config: her zaman ağdan al, önbelleğe yazma
   const neverCache = NEVER_CACHE.some((s) => url.pathname.endsWith(s) || url.pathname === '/');
   if (neverCache) {
     e.respondWith(
@@ -42,7 +39,6 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // Diğerleri: ağ-önce, başarısız olursa önbellek
   e.respondWith(
     fetch(e.request)
       .then((resp) => {
@@ -52,7 +48,7 @@ self.addEventListener('fetch', (e) => {
         }
         return resp;
       })
-      .catch(() => caches.match(e.request).then((r) => r || caches.match('/index.html')))
+      .catch(() => caches.match(e.request).then((r) => r || caches.match('/loading.html')))
   );
 });
 
