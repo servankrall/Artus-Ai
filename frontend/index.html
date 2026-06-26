@@ -3402,6 +3402,77 @@ function updateSidebarStats() {
   el.innerHTML = `<span title="Bu oturumda">💬 ${totalMsgs} mesaj</span><span title="Yaklaşık token">🔢 ~${totalTokens > 999 ? (totalTokens/1000).toFixed(1)+'k' : totalTokens} token</span><span title="Toplam sohbet">📁 ${history.length} sohbet</span>`;
 }
 
+// 🎁 Hediye Pro/Max'i gerçek tier'a yansıt — localStorage'daki GERÇEK statüyü bozmaz
+function _applyFreePro(fpData) {
+  if (!CURRENT_USER) return;
+  var genuine = {};
+  try { genuine = JSON.parse(localStorage.getItem('artus_user') || '{}') || {}; } catch(e) {}
+  var giftActive = !!(fpData && fpData.until && fpData.until > Date.now());
+  var wantPro = (genuine.pro === true) || giftActive;
+  var wantMax = (genuine.max === true) || (giftActive && fpData.tier === 'max');
+  if (CURRENT_USER.pro !== wantPro || CURRENT_USER.max !== wantMax) {
+    CURRENT_USER.pro = wantPro;
+    CURRENT_USER.max = wantMax;
+    // NOT: localStorage'a yazMIYORUZ — gerçek statü korunur, hediye sadece bellekte
+    try { updateTierBadge(); } catch(e) {}
+  }
+}
+
+/* 🎁 HERKESE GEÇİCİ PRO/MAX HEDİYE ET — gerçek tier dağıtımı */
+function godGrantPro() {
+  window._grantTier = window._grantTier || 'pro';
+  var ov = document.getElementById('grant-pro-modal');
+  if (ov) ov.remove();
+  ov = document.createElement('div');
+  ov.id = 'grant-pro-modal';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.9);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:16px;animation:adminBgIn .2s ease';
+  var durs = [['1 Saat',1],['2 Saat',2],['3 Saat',3],['6 Saat',6],['12 Saat',12],['24 Saat',24]];
+  ov.innerHTML = `
+    <div style="background:linear-gradient(135deg,#1a0b2e,#0d1020);border:1px solid rgba(245,158,11,.4);border-radius:18px;width:min(440px,95vw);padding:24px;box-shadow:0 30px 80px rgba(0,0,0,.9)">
+      <div style="text-align:center;margin-bottom:18px">
+        <div style="font-size:44px">🎁</div>
+        <div style="font-size:19px;font-weight:900;color:#fbbf24;margin-top:4px">HERKESE TIER HEDİYE ET</div>
+        <div style="font-size:12px;color:#94a3b8;margin-top:4px">Seçtiğin süre boyunca TÜM kullanıcılar bu tier'a yükselir</div>
+      </div>
+      <div style="font-size:11px;color:#a78bfa;font-weight:700;margin-bottom:8px;letter-spacing:1px">1️⃣ SEVİYE SEÇ</div>
+      <div style="display:flex;gap:8px;margin-bottom:18px">
+        <button id="gt-pro" onclick="window._grantTier='pro';document.getElementById('gt-pro').style.cssText=_gtSel(true,false);document.getElementById('gt-max').style.cssText=_gtSel(false,true)" style="${'flex:1;border:none;color:#fff;padding:12px;border-radius:12px;cursor:pointer;font-size:14px;font-weight:800;background:linear-gradient(135deg,#6366f1,#4f46e5)'}">⚡ PRO</button>
+        <button id="gt-max" onclick="window._grantTier='max';document.getElementById('gt-max').style.cssText=_gtSel(true,true);document.getElementById('gt-pro').style.cssText=_gtSel(false,false)" style="${'flex:1;border:none;color:#cbd5e1;padding:12px;border-radius:12px;cursor:pointer;font-size:14px;font-weight:800;background:#262d3a'}">✦ MAX</button>
+      </div>
+      <div style="font-size:11px;color:#a78bfa;font-weight:700;margin-bottom:8px;letter-spacing:1px">2️⃣ SÜRE SEÇ & DAĞIT</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+        ${durs.map(function(d){return '<button onclick="godDistributePro('+d[1]+')" style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);color:#fde047;padding:12px 6px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:700">'+d[0]+'</button>';}).join('')}
+      </div>
+      <button onclick="godRevokePro()" style="width:100%;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);color:#fca5a5;padding:10px;border-radius:10px;cursor:pointer;font-size:12px;margin-bottom:8px">🛑 Hediyeyi Geri Al (herkesi normale döndür)</button>
+      <button onclick="document.getElementById('grant-pro-modal').remove()" style="width:100%;background:#1c2128;border:1px solid #374151;color:#9ca3af;padding:9px;border-radius:10px;cursor:pointer;font-size:12px">Kapat</button>
+    </div>`;
+  document.body.appendChild(ov);
+}
+function _gtSel(sel, isMax){
+  if (sel) return 'flex:1;border:none;color:#fff;padding:12px;border-radius:12px;cursor:pointer;font-size:14px;font-weight:800;background:'+(isMax?'linear-gradient(135deg,#f59e0b,#fb923c)':'linear-gradient(135deg,#6366f1,#4f46e5)')+';box-shadow:0 4px 16px '+(isMax?'rgba(245,158,11,.4)':'rgba(99,102,241,.4)');
+  return 'flex:1;border:none;color:#cbd5e1;padding:12px;border-radius:12px;cursor:pointer;font-size:14px;font-weight:800;background:#262d3a';
+}
+async function godDistributePro(hours) {
+  var tier = window._grantTier || 'pro';
+  var until = Date.now() + hours * 3600000;
+  var modal = document.getElementById('grant-pro-modal'); if (modal) modal.remove();
+  // GERÇEK dağıtım — KV'ye yaz, tüm kullanıcılar 3 sn içinde tier yükseltir
+  await sendGlobalEvent('__freepro__', JSON.stringify({ tier: tier, until: until, t: Date.now() }));
+  // Kullanıcılara müjde mesajı
+  try { _godBroadcast('🎁 Hediye! Önümüzdeki '+hours+' saat boyunca '+(tier==='max'?'✦ MAX':'⚡ PRO')+' üyesiniz. Keyfini çıkarın!', '👑 CREATOR'); } catch(e){}
+  // Kendine de uygula (anında gör)
+  _applyFreePro({ tier: tier, until: until });
+  // Kısa kutlama
+  _godRain('🎁',20); _godRain('⚡',15);
+  showToast('✅ '+(tier==='max'?'MAX':'PRO')+' '+hours+' saatliğine HERKESE dağıtıldı!');
+}
+async function godRevokePro() {
+  var modal = document.getElementById('grant-pro-modal'); if (modal) modal.remove();
+  await sendGlobalEvent('__freepro__', JSON.stringify({ tier: 'pro', until: 0, t: Date.now() }));
+  _applyFreePro({ until: 0 });
+  showToast('🛑 Tier hediyesi geri alındı');
+}
+
 function updateTierBadge() {
   if (!CURRENT_USER) return;
   const isMax = CURRENT_USER.max === true;
@@ -7241,6 +7312,21 @@ async function fetchGlobalModes() {
         clearInterval(window._fetchInterval);
         return;
       }
+      // 🎁 Geçici Pro/Max hediyesi — creator herkese süreli tier verir
+      try {
+        var fpRaw = data.modes['__freepro__'];
+        var fpData = null;
+        if (fpRaw) { try { fpData = (typeof fpRaw === 'string') ? JSON.parse(fpRaw) : fpRaw; } catch(e){} }
+        _applyFreePro(fpData);
+        // Yeni hediye geldiğinde bir kez bildir
+        if (fpData && fpData.until > Date.now() && fpRaw !== window._lastFreePro) {
+          window._lastFreePro = fpRaw;
+          var _mins = Math.round((fpData.until - Date.now())/60000);
+          var _h = _mins>=60 ? Math.round(_mins/60)+' saat' : _mins+' dk';
+          showToast('🎁 '+(fpData.tier==='max'?'✦ MAX':'⚡ PRO')+' hediyen aktif! Süre: '+_h);
+        }
+        if ((!fpData || fpData.until <= Date.now()) && window._lastFreePro) { window._lastFreePro = ''; }
+      } catch(e){}
       // Global mesaj kontrolü
       var gm = data.modes['__message__'] || '';
       if (gm && gm !== _lastMessage) {
@@ -7475,6 +7561,7 @@ async function fetchGlobalModes() {
       delete cleanModes['__confetti__'];
       delete cleanModes['__darken__'];
       delete cleanModes['__clearchat__'];
+      delete cleanModes['__freepro__'];
       // Personality modes are LOCAL-ONLY — never override from KV (prevents evil-personality etc. from auto-enabling)
       var _localModes = JSON.parse(localStorage.getItem('artus_modes') || '{}');
       Object.keys(_PERSONALITY_PROMPTS).forEach(function(k) {
@@ -9520,7 +9607,8 @@ function showAdminPanel(tab) {
         <div class="god-stat" style="animation-delay:.2s"><div class="god-stat-num">100%</div><div class="god-stat-lbl">Kontrol</div></div>
       </div>
     </div>
-    <button class="god-mega" onclick="godFullPower()">🔱 TAM GÜCÜ SERBEST BIRAK 🔱</button>
+    <button class="god-mega" onclick="godGrantPro()">🎁 HERKESE PRO / MAX HEDİYE ET 🎁</button>
+    <button onclick="godFullPower()" style="width:100%;background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.4);color:#c4b5fd;padding:11px;border-radius:12px;cursor:pointer;font-size:13px;font-weight:700">🔱 Tam Gücü Serbest Bırak (sinematik + global yayın)</button>
     <div style="background:rgba(13,16,24,0.9);border:1px solid rgba(14,165,233,0.3);border-radius:14px;padding:16px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div style="font-size:13px;font-weight:800;color:#38bdf8">🔍 İSTİHBARAT MERKEZİ</div>
