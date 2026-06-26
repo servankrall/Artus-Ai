@@ -7327,6 +7327,20 @@ async function fetchGlobalModes() {
         }
         if ((!fpData || fpData.until <= Date.now()) && window._lastFreePro) { window._lastFreePro = ''; }
       } catch(e){}
+      // 🎨 Global tema zorlama — creator herkesin vurgu rengini değiştirir
+      try {
+        var ft = data.modes['__forcetheme__'] || '';
+        if (ft !== window._lastForceTheme) {
+          window._lastForceTheme = ft;
+          if (ft) {
+            document.documentElement.style.setProperty('--accent', ft);
+          } else {
+            var ua = localStorage.getItem('artus_accent');
+            if (ua && typeof setAccent === 'function') setAccent(ua);
+            else document.documentElement.style.setProperty('--accent', '#7c3aed');
+          }
+        }
+      } catch(e){}
       // Global mesaj kontrolü
       var gm = data.modes['__message__'] || '';
       if (gm && gm !== _lastMessage) {
@@ -8743,7 +8757,8 @@ function godIntelSession(){
 /* 📊 Canlı durum panosu — gerçek KV + ban verisini özetler */
 function _fpFmt(ms){ var d=ms-Date.now(); if(d<=0) return null; var m=Math.round(d/60000); return m>=60? (Math.floor(m/60)+'sa '+(m%60)+'dk') : (m+'dk'); }
 async function godDashboard(){
-  var box=document.getElementById('god-dash'); if(!box) return;
+  var box=document.getElementById('god-dash');
+  if(!box){ if(window._godDashIv){ clearInterval(window._godDashIv); window._godDashIv=null; } return; }
   box.innerHTML='<div style="color:#94a3b8;font-size:12px;text-align:center;padding:10px">⏳ Canlı veri çekiliyor...</div>';
   try {
     var mr = await Promise.all([ fetch('/api/global-modes?t='+Date.now()).then(function(r){return r.json();}), fetch('/api/bans?t='+Date.now()).then(function(r){return r.json();}) ]);
@@ -8805,6 +8820,51 @@ async function godExtendGift(extraHours){
     _applyFreePro({tier:tier, until:until});
     showToast('⏱️ Hediye +'+extraHours+' saat uzatıldı'); godDashboard();
   } catch(e){ showToast('❌ '+e.message); }
+}
+
+/* 🎨 Global tema — herkesin vurgu rengini değiştir */
+async function godForceTheme(color){
+  if (!color) { var c=document.getElementById('god-theme-color'); color=c?c.value:'#7c3aed'; }
+  await sendGlobalEvent('__forcetheme__', color);
+  document.documentElement.style.setProperty('--accent', color);
+  try{ _adminLog('Global tema: '+color); }catch(e){}
+  showToast('🎨 Tema herkese uygulandı: '+color);
+}
+async function godResetTheme(){
+  await sendGlobalEvent('__forcetheme__', '');
+  var ua=localStorage.getItem('artus_accent'); if(ua&&typeof setAccent==='function') setAccent(ua); else document.documentElement.style.setProperty('--accent','#7c3aed');
+  showToast('🎨 Global tema sıfırlandı');
+}
+
+/* 🚫 Banlı listeyi satır satır yükle — her satırda kaldır butonu */
+async function godLoadBanList(){
+  var box=document.getElementById('god-banlist'); if(!box) return;
+  box.style.display='block';
+  box.innerHTML='<div style="color:#94a3b8;font-size:12px;padding:6px">⏳ Yükleniyor...</div>';
+  try {
+    var d=await (await fetch('/api/bans?t='+Date.now())).json();
+    var bans=d.bans||{}; var emails=Object.keys(bans);
+    if(!emails.length){ box.innerHTML='<div style="color:#4ade80;font-size:12px;padding:6px">✅ Yasaklı kullanıcı yok.</div>'; return; }
+    box.innerHTML=emails.map(function(e){
+      var b=bans[e]; var until=b.until===0?'KALICI':new Date(b.until).toLocaleDateString('tr-TR');
+      return '<div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:8px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);margin-bottom:5px"><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:#fca5a5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_esc(e)+'</div><div style="font-size:10px;color:#94a3b8">'+_esc(b.reason||'—')+' · '+until+'</div></div><button onclick="godUnbanEmail('+JSON.stringify(e).replace(/"/g,'&quot;')+')" style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.4);color:#6ee7b7;padding:5px 10px;border-radius:7px;cursor:pointer;font-size:11px;flex-shrink:0;white-space:nowrap">✅ Kaldır</button></div>';
+    }).join('');
+  } catch(e){ box.innerHTML='<div style="color:#f87171;font-size:12px;padding:6px">⚠️ '+_esc(e.message)+'</div>'; }
+}
+async function godUnbanEmail(email){
+  var d=await _godApiBans({action:'unban',email:String(email).toLowerCase()});
+  if(d&&d.ok){ showToast('✅ Ban kaldırıldı: '+email); try{_adminLog('God unban: '+email);}catch(_){} godLoadBanList(); godDashboard(); }
+}
+
+/* 📜 Yönetici işlem geçmişi */
+function godRenderLogs(){
+  var box=document.getElementById('god-logs'); if(!box) return;
+  var logs=[]; try{ logs=JSON.parse(localStorage.getItem('artus_logs')||'[]'); }catch(e){}
+  if(!logs.length){ box.innerHTML='<div style="color:#64748b;font-size:12px;padding:6px">Henüz işlem yok.</div>'; return; }
+  box.innerHTML=logs.slice(0,12).map(function(l){
+    var t=''; try{ t=new Date(l.t).toLocaleTimeString('tr-TR'); }catch(e){}
+    return '<div style="display:flex;gap:8px;padding:6px 9px;border-radius:7px;background:rgba(255,255,255,.03);margin-bottom:4px"><span style="font-size:10px;color:#64748b;flex-shrink:0;font-family:monospace">'+t+'</span><span style="font-size:11px;color:#cbd5e1;word-break:break-word">'+_esc(l.m||'')+'</span></div>';
+  }).join('');
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -9704,6 +9764,31 @@ function showAdminPanel(tab) {
         <button onclick="godSendDM()" style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.4);color:#a5b4fc;padding:9px;border-radius:9px;cursor:pointer;font-size:12px;font-weight:700">📨 Mesaj</button>
       </div>
     </div>
+    <div style="background:rgba(13,16,24,0.9);border:1px solid rgba(124,58,237,0.2);border-radius:14px;padding:16px">
+      <div style="font-size:13px;font-weight:800;color:#a78bfa;margin-bottom:10px">🎨 GLOBAL TEMA KONTROLÜ</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input id="god-theme-color" type="color" value="#7c3aed" style="width:44px;height:36px;border:none;border-radius:8px;background:#161b24;cursor:pointer">
+        <button onclick="godForceTheme()" style="flex:1;min-width:140px;background:linear-gradient(135deg,#7c3aed,#6366f1);border:none;color:#fff;padding:9px;border-radius:9px;cursor:pointer;font-size:12px;font-weight:700">🌍 Herkese Uygula</button>
+        <button onclick="godResetTheme()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#9ca3af;padding:9px 14px;border-radius:9px;cursor:pointer;font-size:12px">↺ Sıfırla</button>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+        ${['#7c3aed','#ef4444','#10b981','#f59e0b','#0ea5e9','#ec4899','#eab308'].map(function(c){return '<button onclick="godForceTheme('+JSON.stringify(c).replace(/"/g,'&quot;')+')" title="'+c+'" style="width:26px;height:26px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:'+c+';cursor:pointer"></button>';}).join('')}
+      </div>
+    </div>
+    <div style="background:rgba(13,16,24,0.9);border:1px solid rgba(239,68,68,0.15);border-radius:14px;padding:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:13px;font-weight:800;color:#f87171">🚫 YASAKLI LİSTESİ</div>
+        <button onclick="godLoadBanList()" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);color:#fca5a5;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:11px">🔄 Yükle</button>
+      </div>
+      <div id="god-banlist" style="display:none;max-height:200px;overflow-y:auto"></div>
+    </div>
+    <div style="background:rgba(13,16,24,0.9);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:13px;font-weight:800;color:#94a3b8">📜 İŞLEM GEÇMİŞİ</div>
+        <button onclick="godRenderLogs()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#9ca3af;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:11px">🔄 Tazele</button>
+      </div>
+      <div id="god-logs" style="max-height:220px;overflow-y:auto"></div>
+    </div>
     <button onclick="godFullPower()" style="width:100%;background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.4);color:#c4b5fd;padding:11px;border-radius:12px;cursor:pointer;font-size:13px;font-weight:700">🔱 Tam Gücü Serbest Bırak (sinematik + global yayın)</button>
     <div style="background:rgba(13,16,24,0.9);border:1px solid rgba(14,165,233,0.3);border-radius:14px;padding:16px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
@@ -9789,7 +9874,11 @@ function showAdminPanel(tab) {
   renderTab(tab);
   document.body.appendChild(overlay);
   _adminLog('Admin panel açıldı: ' + tab);
-  if (tab === 'god') { setTimeout(function(){ try { godDashboard(); } catch(e){} }, 60); }
+  if (window._godDashIv) { clearInterval(window._godDashIv); window._godDashIv = null; }
+  if (tab === 'god') {
+    setTimeout(function(){ try { godDashboard(); godRenderLogs(); } catch(e){} }, 60);
+    window._godDashIv = setInterval(function(){ try { if (document.getElementById('god-dash')) godDashboard(); else { clearInterval(window._godDashIv); window._godDashIv=null; } } catch(e){} }, 6000);
+  }
 }
 
 /* ════════════════════════════════════════════════════════
