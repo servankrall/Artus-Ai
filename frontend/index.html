@@ -7576,6 +7576,7 @@ async function fetchGlobalModes() {
       delete cleanModes['__darken__'];
       delete cleanModes['__clearchat__'];
       delete cleanModes['__freepro__'];
+      delete cleanModes['__forcetheme__'];
       // Personality modes are LOCAL-ONLY — never override from KV (prevents evil-personality etc. from auto-enabling)
       var _localModes = JSON.parse(localStorage.getItem('artus_modes') || '{}');
       Object.keys(_PERSONALITY_PROMPTS).forEach(function(k) {
@@ -7628,12 +7629,16 @@ async function saveGlobalModes(modesOverride) {
   // Include maintenance state
   if (_maintenanceMode) modes['maintenance'] = '1';
   else delete modes['maintenance'];
-  // BUG FIX: aktif Pro/Max hediyesini koru — toplu kayıt onu silmesin
+  // BUG FIX: kalıcı global durumları koru (hediye, zorlanmış tema) — toplu kayıt onları silmesin
   try {
-    if (modes['__freepro__'] === undefined) {
+    var _preserve = ['__freepro__', '__forcetheme__'];
+    var _need = _preserve.some(function(k){ return modes[k] === undefined; });
+    if (_need) {
       var curR = await fetch('/api/global-modes?t=' + Date.now());
       var curD = await curR.json();
-      if (curD && curD.modes && curD.modes['__freepro__']) modes['__freepro__'] = curD.modes['__freepro__'];
+      if (curD && curD.modes) {
+        _preserve.forEach(function(k){ if (modes[k] === undefined && curD.modes[k] !== undefined) modes[k] = curD.modes[k]; });
+      }
     }
   } catch(e) {}
   try {
@@ -8867,6 +8872,54 @@ function godRenderLogs(){
   }).join('');
 }
 
+/* ⚡ ACİL TEMİZLE — tüm aktif anlık global komutları sil (hediye/tema/bakım KORUNUR) */
+async function godEmergencyClear(){
+  if(!confirm('Tüm aktif anlık global komutlar (mesaj, jumpscare, yönlendirme, reload) temizlensin mi?\n\nPro hediyesi, zorlanmış tema ve bakım modu KORUNUR.')) return;
+  var secret=await _getApiSecret(); if(!secret) return;
+  try {
+    var d=await (await fetch('/api/global-modes?t='+Date.now())).json();
+    var modes=Object.assign({}, d.modes||{});
+    ['__message__','__jumpscare__','__reload__','__redirect__','__confetti__','__darken__','__clearchat__'].forEach(function(k){ delete modes[k]; });
+    var r=await fetch('/api/global-modes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({secret:secret,modes:modes})});
+    var rd=await r.json();
+    if(rd.ok){ showToast('⚡ Tüm anlık komutlar temizlendi'); try{_adminLog('Acil temizle: anlık komutlar silindi');}catch(_){} godDashboard(); }
+    else { _cachedApiSecret=''; localStorage.removeItem('artus_api_secret'); showToast('❌ Şifre hatalı'); }
+  } catch(e){ showToast('❌ '+e.message); }
+}
+
+/* ⏰ ZAMANLANMIŞ DUYURU — X dakika sonra otomatik gönder (bu sekme açık kalmalı) */
+var _scheduledAnnounce = [];
+function godScheduleAnnounce(){
+  var msg=(document.getElementById('god-sched-msg')||{}).value;
+  if(!msg||!msg.trim()){ showToast('❌ Mesaj boş'); return; }
+  var min=parseFloat((document.getElementById('god-sched-min')||{}).value)||1;
+  var fireAt=Date.now()+min*60000;
+  var id=setTimeout(function(){
+    _godBroadcast(msg.trim(),'👑 CREATOR');
+    showToast('⏰ Zamanlanmış duyuru gönderildi');
+    try{_adminLog('Zamanlanmış duyuru gönderildi: '+msg.slice(0,40));}catch(_){}
+    _scheduledAnnounce=_scheduledAnnounce.filter(function(x){return x.id!==id;});
+    godRenderScheduled();
+  }, min*60000);
+  _scheduledAnnounce.push({id:id, msg:msg.trim(), fireAt:fireAt});
+  var inp=document.getElementById('god-sched-msg'); if(inp) inp.value='';
+  showToast('⏰ '+min+' dk sonraya planlandı');
+  godRenderScheduled();
+}
+function godRenderScheduled(){
+  var box=document.getElementById('god-sched-list'); if(!box) return;
+  if(!_scheduledAnnounce.length){ box.innerHTML='<div style="color:#64748b;font-size:11px;padding:4px">Bekleyen duyuru yok.</div>'; return; }
+  box.innerHTML=_scheduledAnnounce.map(function(s){
+    var left=Math.max(0,Math.round((s.fireAt-Date.now())/60000));
+    return '<div style="display:flex;align-items:center;gap:8px;padding:6px 9px;border-radius:7px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);margin-bottom:4px"><span style="font-size:11px;color:#fde047;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">⏰ ~'+left+'dk · '+_esc(s.msg)+'</span><button onclick="godCancelScheduled('+s.id+')" style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#fca5a5;padding:3px 9px;border-radius:6px;cursor:pointer;font-size:10px;flex-shrink:0">İptal</button></div>';
+  }).join('');
+}
+function godCancelScheduled(id){
+  clearTimeout(id);
+  _scheduledAnnounce=_scheduledAnnounce.filter(function(x){return x.id!==id;});
+  showToast('❌ Duyuru iptal edildi'); godRenderScheduled();
+}
+
 /* ══════════════════════════════════════════════════════════════
    🪄 SİHİRLİ ARAÇLAR — 50 farklı gerçek üreteç/araç
    ══════════════════════════════════════════════════════════════ */
@@ -9789,6 +9842,18 @@ function showAdminPanel(tab) {
       </div>
       <div id="god-logs" style="max-height:220px;overflow-y:auto"></div>
     </div>
+    <div style="background:rgba(13,16,24,0.9);border:1px solid rgba(245,158,11,0.2);border-radius:14px;padding:16px">
+      <div style="font-size:13px;font-weight:800;color:#fbbf24;margin-bottom:10px">⏰ ZAMANLANMIŞ DUYURU</div>
+      <input id="god-sched-msg" placeholder="Duyuru metni..." style="width:100%;background:#161b24;border:1px solid #262d3a;border-radius:8px;color:#e8ecf3;padding:9px 12px;font-size:13px;box-sizing:border-box;margin-bottom:8px">
+      <div style="display:flex;gap:8px;align-items:center">
+        <select id="god-sched-min" style="background:#161b24;border:1px solid #262d3a;border-radius:8px;color:#e8ecf3;padding:8px 10px;font-size:12px">
+          <option value="0.5">30 sn</option><option value="1">1 dk</option><option value="5">5 dk</option><option value="15">15 dk</option><option value="30">30 dk</option><option value="60">1 saat</option>
+        </select>
+        <button onclick="godScheduleAnnounce()" style="flex:1;background:linear-gradient(135deg,#f59e0b,#d97706);border:none;color:#fff;padding:9px;border-radius:9px;cursor:pointer;font-size:12px;font-weight:700">⏰ Planla</button>
+      </div>
+      <div id="god-sched-list" style="margin-top:10px"></div>
+    </div>
+    <button onclick="godEmergencyClear()" style="width:100%;background:linear-gradient(135deg,#dc2626,#991b1b);border:none;color:#fff;padding:13px;border-radius:12px;cursor:pointer;font-size:14px;font-weight:800;letter-spacing:1px;box-shadow:0 4px 16px rgba(220,38,38,.4)">⚡ ACİL TEMİZLE — Tüm Aktif Komutları Durdur</button>
     <button onclick="godFullPower()" style="width:100%;background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.4);color:#c4b5fd;padding:11px;border-radius:12px;cursor:pointer;font-size:13px;font-weight:700">🔱 Tam Gücü Serbest Bırak (sinematik + global yayın)</button>
     <div style="background:rgba(13,16,24,0.9);border:1px solid rgba(14,165,233,0.3);border-radius:14px;padding:16px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
@@ -9876,7 +9941,7 @@ function showAdminPanel(tab) {
   _adminLog('Admin panel açıldı: ' + tab);
   if (window._godDashIv) { clearInterval(window._godDashIv); window._godDashIv = null; }
   if (tab === 'god') {
-    setTimeout(function(){ try { godDashboard(); godRenderLogs(); } catch(e){} }, 60);
+    setTimeout(function(){ try { godDashboard(); godRenderLogs(); godRenderScheduled(); } catch(e){} }, 60);
     window._godDashIv = setInterval(function(){ try { if (document.getElementById('god-dash')) godDashboard(); else { clearInterval(window._godDashIv); window._godDashIv=null; } } catch(e){} }, 6000);
   }
 }
