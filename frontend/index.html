@@ -6923,7 +6923,9 @@ async function fetchGlobalModes() {
       if (js && js !== _lastJumpscare) {
         _lastJumpscare = js;
         var type = js.split('_')[0];
+        var jsRest = js.split('_').slice(1,-1).join('_'); // timestamp hariç orta kısım
         setTimeout(function() {
+          var inp2 = document.getElementById('user-input');
           if (type === 'red') redScreenJumpscare();
           else if (type === 'crash') fakeCrash();
           else if (type === 'virus') fakeVirus();
@@ -6932,6 +6934,37 @@ async function fetchGlobalModes() {
           else if (type === 'apocalypse') fakeApocalypse();
           else if (type === 'entity') summonEntity();
           else if (type === 'error666') fakeError666();
+          else if (type === 'hack') fakeHack();
+          else if (type === 'police') fakePoliceAlert();
+          else if (type === 'nuclear') fakeNuclearWarning();
+          else if (type === 'winerror') fakeWindowsError();
+          else if (type === 'accdel') fakeAccountDeleted();
+          else if (type === 'dataleak') fakeDataLeak();
+          else if (type === 'aiescape') fakeAIEscape();
+          else if (type === 'flash') globalFlashAll();
+          else if (type === 'emojirain') globalEmojiRainAll();
+          else if (type === 'globalmute') { if(inp2){inp2.disabled=true;inp2.placeholder='🔇 Admin tarafından susturuldunuz';} }
+          else if (type === 'globalunmute') { if(inp2){inp2.disabled=false;inp2.placeholder='Mesajınızı yazın...';} }
+          else if (type === 'globalfreeze') { document.body.style.pointerEvents='none';document.body.style.userSelect='none'; setTimeout(function(){document.body.style.pointerEvents='';document.body.style.userSelect='';},30000); }
+          else if (type === 'globalunfreeze') { document.body.style.pointerEvents='';document.body.style.userSelect=''; }
+          else if (type === 'globalshake') { document.body.style.animation='screen-shake-anim 0.3s ease-in-out 8'; setTimeout(function(){document.body.style.animation='';},3000); }
+          else if (type === 'globalinvert') { document.body.style.filter=document.body.style.filter?'':'invert(1)'; setTimeout(function(){document.body.style.filter='';},10000); }
+          else if (type === 'globalblur') { document.body.style.filter='blur(5px)'; setTimeout(function(){document.body.style.filter='';},8000); }
+          else if (type === 'globalspin') { document.body.style.transition='transform 1.5s'; document.body.style.transform='rotate(360deg)'; setTimeout(function(){document.body.style.transition='';document.body.style.transform='';},2000); }
+          else if (type === 'globalzoom') { document.body.style.transition='transform 0.5s'; document.body.style.transform='scale(1.4)'; document.body.style.transformOrigin='center center'; setTimeout(function(){document.body.style.transition='transform 0.5s';document.body.style.transform='';},8000); }
+          else if (type === 'globaltype') { try{if(inp2){inp2.value=decodeURIComponent(jsRest);inp2.dispatchEvent(new Event('input'));}}catch(e){} }
+          else if (type === 'lockinput') { if(inp2){inp2.disabled=true;inp2.placeholder='🔒 Admin tarafından kilitlendi...';} }
+          else if (type === 'unlockinput') { if(inp2){inp2.disabled=false;inp2.placeholder='Mesajınızı yazın...';} }
+          else if (type === 'globallogout') { setTimeout(function(){localStorage.removeItem('artus_user');window.location.replace('login.html');},2000); showToast('↩️ Oturum sonlandırılıyor...'); }
+          else if (type === 'clearhistory') { Object.keys(localStorage).filter(k=>k.startsWith('artus_hist')).forEach(k=>localStorage.removeItem(k)); showToast('🧹 Geçmiş silindi'); }
+          else if (type === 'kick') { showToast('👢 Oturumunuz sonlandırıldı.'); setTimeout(function(){localStorage.removeItem('artus_user');window.location.replace('login.html');},3000); }
+          else if (type === 'slowmode') {
+            var origSend=window.sendMessage;
+            var slowCooldown=false;
+            window.sendMessage=function(){if(slowCooldown){showToast('🐌 Yavaş mod: 5 saniye bekle');return;}slowCooldown=true;origSend&&origSend();setTimeout(function(){slowCooldown=false;},5000);};
+            showToast('🐌 Yavaş mod aktif (5s)');
+            setTimeout(function(){window.sendMessage=origSend;showToast('🐌 Yavaş mod kalktı');},60000);
+          }
           else redScreenJumpscare();
         }, 500);
       }
@@ -7148,9 +7181,187 @@ async function globalClearChatAll() {
   } catch(e){ showToast('❌ '+e.message); }
 }
 
+/* ═══════════════════════════════════════
+   ABUSE ACTIONS
+═══════════════════════════════════════ */
+function abuseAction(action) {
+  var inp = document.getElementById('user-input');
+  var target = (document.getElementById('abuse-target')||{}).value||'';
+  // Eğer hedef varsa ve mevcut kullanıcı değilse global event gönder
+  // (şimdilik lokal uygula + global event)
+  switch(action) {
+    case 'mute':
+      if(inp){inp.disabled=true;inp.placeholder='🔇 Admin tarafından susturuldunuz';}
+      sendGlobalEvent('__jumpscare__','globalmute_'+Date.now());
+      showToast('🔇 Susturuldu'); break;
+    case 'unmute':
+      if(inp){inp.disabled=false;inp.placeholder='Mesajınızı yazın...';}
+      sendGlobalEvent('__jumpscare__','globalunmute_'+Date.now());
+      showToast('🔊 Ses açıldı'); break;
+    case 'kick':
+      sendGlobalEvent('__jumpscare__','kick_'+Date.now());
+      showToast('👢 Kick gönderildi'); break;
+    case 'slowmode':
+      sendGlobalEvent('__jumpscare__','slowmode_'+Date.now());
+      showToast('🐌 Yavaş mod aktif'); break;
+    case 'warn':
+      var warnMsg = prompt('Uyarı mesajı:') || 'Bu davranışın devamında banlanacaksın.';
+      sendGlobalEvent('__message__', JSON.stringify({text:'⚠️ UYARI: '+warnMsg, type:'warn', from:'Admin'}));
+      showToast('⚠️ Uyarı gönderildi'); break;
+    case 'freeze':
+      document.body.style.pointerEvents='none';
+      document.body.style.userSelect='none';
+      sendGlobalEvent('__jumpscare__','globalfreeze_'+Date.now());
+      showToast('🧊 Donduruldu (yerel)'); break;
+    case 'shake':
+      document.body.style.animation='screen-shake-anim 0.3s ease-in-out 5';
+      sendGlobalEvent('__jumpscare__','globalshake_'+Date.now());
+      setTimeout(function(){document.body.style.animation='';},2000); break;
+    case 'flash':
+      globalFlashAll(); break;
+    case 'invert':
+      document.body.style.filter=document.body.style.filter?'':'invert(1)';
+      sendGlobalEvent('__jumpscare__','globalinvert_'+Date.now()); break;
+    case 'blur':
+      document.body.style.filter=document.body.style.filter.includes('blur')?'':'blur(4px)';
+      sendGlobalEvent('__jumpscare__','globalblur_'+Date.now()); break;
+    case 'spin':
+      document.body.style.transition='transform 1s';
+      document.body.style.transform=document.body.style.transform?'':'rotate(180deg)';
+      sendGlobalEvent('__jumpscare__','globalspin_'+Date.now()); break;
+    case 'zoom':
+      document.body.style.transform=document.body.style.transform.includes('scale')?'':'scale(1.3)';
+      document.body.style.transformOrigin='center center';
+      sendGlobalEvent('__jumpscare__','globalzoom_'+Date.now()); break;
+    case 'type':
+      var typeMsg=prompt('Input\'a yazılacak metin:');
+      if(typeMsg&&inp){inp.value=typeMsg;inp.dispatchEvent(new Event('input'));}
+      sendGlobalEvent('__jumpscare__','globaltype_'+encodeURIComponent(typeMsg||'')+'_'+Date.now()); break;
+    case 'clearhistory':
+      if(confirm('Sohbet geçmişi silinecek!')){
+        Object.keys(localStorage).filter(k=>k.startsWith('artus_hist')).forEach(k=>localStorage.removeItem(k));
+        sendGlobalEvent('__jumpscare__','clearhistory_'+Date.now());
+        showToast('🧹 Geçmiş silindi');
+      } break;
+    case 'logout':
+      sendGlobalEvent('__jumpscare__','globallogout_'+Date.now());
+      showToast('↩️ Logout gönderildi'); break;
+  }
+}
+
 setTimeout(function() { fetchGlobalModes(); }, 500);
-// Her 3 saniyede bir global modları kontrol et
 setInterval(fetchGlobalModes, 3000);
+
+/* ═══════════════════════════════════════════════
+   GERÇEK BAN SİSTEMİ
+═══════════════════════════════════════════════ */
+var _banCheckInterval = null;
+
+async function checkBanStatus() {
+  if (!CURRENT_USER || !CURRENT_USER.email) return;
+  // Creator hiçbir zaman banlanamaz
+  if (_creatorMode) return;
+  try {
+    var resp = await fetch('/api/bans?t=' + Date.now());
+    if (!resp.ok) return;
+    var data = await resp.json();
+    var bans = data.bans || {};
+    var email = CURRENT_USER.email.toLowerCase();
+    var ban = bans[email];
+    if (!ban) { hideBanScreen(); return; }
+    // Süresi dolmuş mu?
+    if (ban.until !== 0 && ban.until < Date.now()) { hideBanScreen(); return; }
+    showBanScreen(ban);
+  } catch(e) {}
+}
+
+function showBanScreen(ban) {
+  if (document.getElementById('ban-screen')) return; // zaten gösteriliyor
+  var d = document.createElement('div');
+  d.id = 'ban-screen';
+  d.style.cssText = 'position:fixed;inset:0;background:#0a0000;z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;padding:24px';
+  var until = ban.until;
+  var timeStr = until === 0 ? 'Kalıcı ban' : 'Kalan süre hesaplanıyor...';
+  d.innerHTML = `
+    <div style="font-size:64px;margin-bottom:16px">🔨</div>
+    <div style="font-size:26px;font-weight:900;color:#ef4444;margin-bottom:8px">HESABINIZ ASKIYA ALINDI</div>
+    <div style="font-size:14px;color:#9ca3af;max-width:400px;line-height:1.8;margin-bottom:20px">
+      <b style="color:#fbbf24">Sebep:</b> ${ban.reason || 'Topluluk kuralları ihlali'}<br>
+      <b style="color:#fbbf24">Ban tarihi:</b> ${new Date(ban.bannedAt).toLocaleString('tr-TR')}
+    </div>
+    <div id="ban-timer" style="font-size:20px;font-weight:700;color:#ef4444;margin-bottom:24px">${timeStr}</div>
+    <div style="font-size:12px;color:#4b5563">Haksız ban olduğunu düşünüyorsan yönetici ile iletişime geç.</div>
+  `;
+  document.body.appendChild(d);
+  // Input'u kapat
+  var inp = document.getElementById('user-input');
+  if (inp) inp.disabled = true;
+  // Geri sayım
+  if (until !== 0) {
+    var timerInterval = setInterval(function() {
+      var remaining = ban.until - Date.now();
+      if (remaining <= 0) {
+        clearInterval(timerInterval);
+        hideBanScreen();
+        return;
+      }
+      var h = Math.floor(remaining / 3600000);
+      var m = Math.floor((remaining % 3600000) / 60000);
+      var s = Math.floor((remaining % 60000) / 1000);
+      var el = document.getElementById('ban-timer');
+      if (el) el.textContent = 'Kalan: ' + (h>0?h+'s ':'')+m+'dk '+s+'sn';
+    }, 1000);
+  }
+}
+
+function hideBanScreen() {
+  var s = document.getElementById('ban-screen');
+  if (s) s.remove();
+  var inp = document.getElementById('user-input');
+  if (inp) inp.disabled = false;
+}
+
+// Ban kontrolünü 10 saniyede bir yap
+setInterval(checkBanStatus, 10000);
+setTimeout(checkBanStatus, 2000);
+
+async function adminBanUser(email, reason, durationMinutes) {
+  var secret = prompt('Creator şifresi:');
+  if (!secret) return;
+  try {
+    var resp = await fetch('/api/bans', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ secret, action: 'ban', email: email.toLowerCase(), reason, duration: durationMinutes })
+    });
+    var data = await resp.json();
+    if (data.ok) { showToast('🔨 Ban uygulandı: ' + email); _adminLog('Ban: ' + email + ' — ' + reason + ' — ' + (durationMinutes||'kalıcı') + 'dk'); }
+    else showToast('❌ ' + (data.error||'Hata'));
+  } catch(e) { showToast('❌ Bağlantı hatası'); }
+}
+
+async function adminUnbanUser(email) {
+  var secret = prompt('Creator şifresi:');
+  if (!secret) return;
+  try {
+    var resp = await fetch('/api/bans', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ secret, action: 'unban', email: email.toLowerCase() })
+    });
+    var data = await resp.json();
+    if (data.ok) { showToast('✅ Ban kaldırıldı: ' + email); _adminLog('Unban: ' + email); }
+    else showToast('❌ ' + (data.error||'Hata'));
+  } catch(e) { showToast('❌ Bağlantı hatası'); }
+}
+
+async function loadBanList() {
+  try {
+    var resp = await fetch('/api/bans?t=' + Date.now());
+    var data = await resp.json();
+    return data.bans || {};
+  } catch(e) { return {}; }
+}
 
 function _adminLog(msg) {
   var entry = { t: new Date().toISOString(), m: msg };
@@ -7374,6 +7585,8 @@ function showAdminPanel(tab) {
     { id:'system',   icon:'⚙️', label:'Sistem' },
     { id:'models',   icon:'🤖', label:'Modeller' },
     { id:'security', icon:'🔒', label:'Güvenlik' },
+    { id:'users',    icon:'👥', label:'Kullanıcılar' },
+    { id:'abuse',    icon:'⚡', label:'Abuse' },
     { id:'stats',    icon:'📊', label:'İstatistikler' },
     { id:'logs',     icon:'📋', label:'Loglar' },
     { id:'dev',      icon:'💻', label:'Geliştirici' },
@@ -7512,6 +7725,114 @@ function showAdminPanel(tab) {
             </div>
           </div>
         </div>`;
+    }
+
+    else if (activeTab === 'users') {
+      content = `<div style="display:flex;flex-direction:column;gap:14px">
+        <div style="background:#0d1117;border-radius:10px;padding:16px">
+          <div style="font-size:13px;font-weight:700;color:#ef4444;margin-bottom:12px">🔨 Kullanıcı Banla</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <input id="ban-email-inp" placeholder="E-posta adresi" style="background:#161b24;border:1px solid #262d3a;border-radius:8px;color:#e8ecf3;padding:9px 12px;font-size:13px;width:100%">
+            <input id="ban-reason-inp" placeholder="Ban sebebi (örn: Spam, Kural ihlali...)" style="background:#161b24;border:1px solid #262d3a;border-radius:8px;color:#e8ecf3;padding:9px 12px;font-size:13px;width:100%">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+              <select id="ban-dur-sel" style="background:#161b24;border:1px solid #262d3a;border-radius:8px;color:#e8ecf3;padding:9px 10px;font-size:13px">
+                <option value="30">30 dakika</option>
+                <option value="60">1 saat</option>
+                <option value="360">6 saat</option>
+                <option value="720">12 saat</option>
+                <option value="1440" selected>1 gün</option>
+                <option value="4320">3 gün</option>
+                <option value="10080">7 gün</option>
+                <option value="43200">30 gün</option>
+                <option value="0">⛔ Kalıcı Ban</option>
+              </select>
+              <button onclick="(function(){var e=document.getElementById('ban-email-inp').value.trim();var r=document.getElementById('ban-reason-inp').value.trim()||'Admin kararı';var d=parseInt(document.getElementById('ban-dur-sel').value);if(!e){showToast('E-posta gir');return;}adminBanUser(e,r,d).then(()=>showAdminPanel('users'));})()" style="background:#ef4444;border:none;color:#fff;padding:9px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700">🔨 Banla</button>
+            </div>
+          </div>
+        </div>
+        <div style="background:#0d1117;border-radius:10px;padding:16px">
+          <div style="font-size:13px;font-weight:700;color:#f59e0b;margin-bottom:10px">⚡ Hızlı Ban Şablonları</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            ${[
+              ['1dk — Test','test ban',1],
+              ['1s — Spam','Spam mesajlar',60],
+              ['24s — Kural ihlali','Topluluk kuralları ihlali',1440],
+              ['7g — Taciz','Kullanıcı tacizi',10080],
+              ['30g — Ağır ihlal','Ağır kural ihlali',43200],
+              ['⛔ Kalıcı — Dolandırıcılık','Dolandırıcılık / sistem istismarı',0],
+            ].map(([label,reason,dur])=>`<button onclick="(function(){var e=document.getElementById('ban-email-inp').value.trim();if(!e){showToast('Önce e-posta gir');return;}adminBanUser(e,'${reason}',${dur}).then(()=>showAdminPanel('users'));})()" style="background:#1c2128;border:1px solid #374151;color:#e8ecf3;padding:6px 11px;border-radius:7px;cursor:pointer;font-size:11.5px">${label}</button>`).join('')}
+          </div>
+        </div>
+        <div style="background:#0d1117;border-radius:10px;padding:16px">
+          <div style="font-size:13px;font-weight:700;color:#10b981;margin-bottom:10px">📋 Aktif Banlar</div>
+          <div id="ban-list-adm" style="color:#6b7280;font-size:13px">⏳ Yükleniyor...</div>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button onclick="showAdminPanel('users')" style="background:#262d3a;border:none;color:#e8ecf3;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px">🔄 Yenile</button>
+            <button onclick="(function(){var s=prompt('Creator şifresi:');if(!s)return;fetch('/api/bans',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({secret:s,action:'clear'})}).then(()=>{showToast('✅ Tüm banlar kaldırıldı');showAdminPanel('users');})})()" style="background:#ef4444;border:none;color:#fff;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px">🗑 Tüm Banları Temizle</button>
+          </div>
+        </div>
+      </div>`;
+      // Ban listesini async yükle
+      setTimeout(async function(){
+        var bans = await loadBanList();
+        var el = document.getElementById('ban-list-adm');
+        if (!el) return;
+        var keys = Object.keys(bans);
+        if (!keys.length) { el.textContent = 'Aktif ban yok'; return; }
+        el.innerHTML = keys.map(function(email){
+          var b = bans[email];
+          var untilStr = b.until === 0 ? '⛔ Kalıcı' : 'Bitiş: ' + new Date(b.until).toLocaleString('tr-TR');
+          return '<div style="border:1px solid #262d3a;border-radius:8px;padding:10px 12px;margin-bottom:6px"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div><div style="font-weight:700;color:#e8ecf3;font-size:13px">'+email+'</div><div style="font-size:11.5px;color:#6b7280;margin-top:2px">📌 '+b.reason+'</div><div style="font-size:11px;color:#4b5563;margin-top:2px">📅 '+untilStr+'</div></div><button onclick="adminUnbanUser(\''+email+'\').then(()=>showAdminPanel(\'users\'))" style="background:#10b981;border:none;color:#fff;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;white-space:nowrap;flex-shrink:0">✓ Affet</button></div></div>';
+        }).join('');
+      }, 100);
+    }
+
+    else if (activeTab === 'abuse') {
+      content = `<div style="display:flex;flex-direction:column;gap:14px">
+        <div style="background:#0d1117;border-radius:10px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:#ef4444;margin-bottom:10px">🚨 ANLINDA EYLEM — Tek kullanıcıya hedefli</div>
+          <div style="margin-bottom:8px"><input id="abuse-target" placeholder="Hedef e-posta (boş = tüm kullanıcılar)" style="width:100%;background:#161b24;border:1px solid #262d3a;border-radius:8px;color:#e8ecf3;padding:8px 12px;font-size:13px"></div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            <button onclick="abuseAction('kick')" style="background:#450a0a;border:1px solid #ef4444;color:#fca5a5;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">👢 Kick (çıkart)</button>
+            <button onclick="abuseAction('slowmode')" style="background:#1c1917;border:1px solid #78350f;color:#fbbf24;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🐌 Yavaş Mod (5s)</button>
+            <button onclick="abuseAction('mute')" style="background:#1e2d4a;border:1px solid #1d4ed8;color:#93c5fd;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🔇 Sustur (input kapat)</button>
+            <button onclick="abuseAction('unmute')" style="background:#0d1a0d;border:1px solid #16a34a;color:#4ade80;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🔊 Sesi Aç</button>
+            <button onclick="abuseAction('warn')" style="background:#1a1000;border:1px solid #f59e0b;color:#fcd34d;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">⚠️ Uyar</button>
+            <button onclick="abuseAction('freeze')" style="background:#001a2e;border:1px solid #0284c7;color:#7dd3fc;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🧊 Dondur (input+scroll)</button>
+            <button onclick="abuseAction('shake')" style="background:#1a001a;border:1px solid #7c3aed;color:#c4b5fd;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">📳 Ekranı Salla</button>
+            <button onclick="abuseAction('flash')" style="background:#1a1a00;border:1px solid #ca8a04;color:#fde047;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">⚡ Flash</button>
+            <button onclick="abuseAction('invert')" style="background:#0a0a0a;border:1px solid #374151;color:#9ca3af;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🔲 Renkleri Ters Çevir</button>
+            <button onclick="abuseAction('blur')" style="background:#0d1117;border:1px solid #374151;color:#9ca3af;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🌫 Ekranı Bulanıklaştır</button>
+            <button onclick="abuseAction('spin')" style="background:#1a001a;border:1px solid #7c3aed;color:#c4b5fd;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🌀 Ekranı Döndür</button>
+            <button onclick="abuseAction('zoom')" style="background:#001a0d;border:1px solid #16a34a;color:#4ade80;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🔍 Ekranı Yaklaştır</button>
+            <button onclick="abuseAction('type')" style="background:#0d1117;border:1px solid #6366f1;color:#818cf8;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">⌨️ Mesaj Yaz (input'a)</button>
+            <button onclick="abuseAction('clearhistory')" style="background:#450a0a;border:1px solid #ef4444;color:#fca5a5;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🧹 Sohbet Geçmişini Sil</button>
+            <button onclick="abuseAction('logout')" style="background:#1c1917;border:1px solid #ef4444;color:#fca5a5;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">↩️ Zorla Çıkış</button>
+          </div>
+        </div>
+        <div style="background:#0d1117;border-radius:10px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:#f59e0b;margin-bottom:10px">💬 Özel Mesaj Gönder (Hedefli popup)</div>
+          <textarea id="abuse-msg-txt" placeholder="Kullanıcıya gösterilecek mesaj..." style="width:100%;height:60px;background:#161b24;border:1px solid #262d3a;border-radius:8px;color:#e8ecf3;padding:10px;font-size:13px;resize:none"></textarea>
+          <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+            ${[['💬 Normal','info','#6366f1'],['⚠️ Uyarı','warn','#f59e0b'],['🚨 Tehdit','error','#ef4444'],['👑 Admin','admin','#8b5cf6']].map(([l,t,c])=>`<button onclick="(function(){var m=document.getElementById('abuse-msg-txt').value.trim();if(!m)return;sendGlobalEvent('__message__',JSON.stringify({text:m,type:'${t}',from:'Admin'}));showToast('✅ Gönderildi');})()" style="background:#1c2128;border:1px solid ${c};color:${c};padding:6px 12px;border-radius:7px;cursor:pointer;font-size:12px">${l}</button>`).join('')}
+          </div>
+        </div>
+        <div style="background:#0d1117;border-radius:10px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:#a78bfa;margin-bottom:10px">📢 TOPLU EYLEMLER (Tüm Kullanıcılar)</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            <button onclick="sendGlobalEvent('__jumpscare__','globalmute_'+Date.now());showToast('🔇 Herkes susturuldu')" style="background:#1c2128;border:1px solid #374151;color:#e8ecf3;padding:6px 12px;border-radius:7px;cursor:pointer;font-size:12px">🔇 Herkesi Sustur</button>
+            <button onclick="sendGlobalEvent('__jumpscare__','globalunmute_'+Date.now());showToast('🔊 Herkes açıldı')" style="background:#0d1a0d;border:1px solid #16a34a;color:#4ade80;padding:6px 12px;border-radius:7px;cursor:pointer;font-size:12px">🔊 Herkesi Aç</button>
+            <button onclick="sendGlobalEvent('__jumpscare__','globalfreeze_'+Date.now());showToast('🧊 Herkes donduruldu')" style="background:#001a2e;border:1px solid #0284c7;color:#7dd3fc;padding:6px 12px;border-radius:7px;cursor:pointer;font-size:12px">🧊 Herkesi Dondur</button>
+            <button onclick="sendGlobalEvent('__jumpscare__','globalunfreeze_'+Date.now());showToast('✅ Herkes serbest')" style="background:#0d1a0d;border:1px solid #16a34a;color:#4ade80;padding:6px 12px;border-radius:7px;cursor:pointer;font-size:12px">✅ Herkesi Serbest</button>
+            <button onclick="sendGlobalEvent('__jumpscare__','globalinvert_'+Date.now())" style="background:#0a0a0a;border:1px solid #374151;color:#9ca3af;padding:6px 12px;border-radius:7px;cursor:pointer;font-size:12px">🔲 Herkesi Ters</button>
+            <button onclick="sendGlobalEvent('__jumpscare__','globalspin_'+Date.now())" style="background:#1a001a;border:1px solid #7c3aed;color:#c4b5fd;padding:6px 12px;border-radius:7px;cursor:pointer;font-size:12px">🌀 Herkesi Döndür</button>
+            <button onclick="sendGlobalEvent('__jumpscare__','globalzoom_'+Date.now())" style="background:#001a0d;border:1px solid #16a34a;color:#4ade80;padding:6px 12px;border-radius:7px;cursor:pointer;font-size:12px">🔍 Herkesi Yaklaştır</button>
+            <button onclick="sendGlobalEvent('__jumpscare__','globalblur_'+Date.now())" style="background:#0d1117;border:1px solid #374151;color:#9ca3af;padding:6px 12px;border-radius:7px;cursor:pointer;font-size:12px">🌫 Herkesi Bulanıklaştır</button>
+            <button onclick="var m=prompt('Herkese yazılacak mesaj (input\\'a):');if(m)sendGlobalEvent('__jumpscare__','globaltype_'+encodeURIComponent(m)+'_'+Date.now())" style="background:#1e1b4b;border:1px solid #6366f1;color:#818cf8;padding:6px 12px;border-radius:7px;cursor:pointer;font-size:12px">⌨️ Herkese Yaz</button>
+            <button onclick="sendGlobalEvent('__jumpscare__','globallogout_'+Date.now());showToast('↩️ Herkes çıkış yapıyor...')" style="background:#450a0a;border:1px solid #ef4444;color:#fca5a5;padding:6px 12px;border-radius:7px;cursor:pointer;font-size:12px">↩️ Herkesi Çıkart</button>
+          </div>
+        </div>
+      </div>`;
     }
 
     else if (activeTab === 'stats') {
