@@ -6902,6 +6902,12 @@ async function fetchGlobalModes() {
     var resp = await fetch('/api/global-modes?t=' + Date.now());
     var data = await resp.json();
     if (data.modes && typeof data.modes === 'object') {
+      // Bakım modu kontrolü — creator/admin bypass
+      if (data.modes['maintenance'] === '1' && !_creatorMode) {
+        document.body.innerHTML = '<div style="position:fixed;inset:0;background:#0b0e14;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;font-family:sans-serif"><div style="font-size:48px">🔧</div><div style="font-size:22px;font-weight:700;color:#f59e0b">Bakım Modu</div><div style="color:#64748b;font-size:14px;line-height:1.8;text-align:center">Artus AI şu anda bakım için kapalıdır.<br>En kısa sürede geri döneceğiz.</div></div>';
+        clearInterval(window._fetchInterval);
+        return;
+      }
       // Global mesaj kontrolü
       var gm = data.modes['__message__'] || '';
       if (gm && gm !== _lastMessage) {
@@ -6922,6 +6928,7 @@ async function fetchGlobalModes() {
       var js = data.modes['__jumpscare__'] || '';
       if (js && js !== _lastJumpscare) {
         _lastJumpscare = js;
+        if (!_creatorMode) { // Creator/admin is immune to all abuse effects
         var type = js.split('_')[0];
         var jsRest = js.split('_').slice(1,-1).join('_'); // timestamp hariç orta kısım
         setTimeout(function() {
@@ -6967,6 +6974,7 @@ async function fetchGlobalModes() {
           }
           else redScreenJumpscare();
         }, 500);
+        } // end !_creatorMode
       }
       // __reload__ event
       var rl = data.modes['__reload__'] || '';
@@ -7033,11 +7041,43 @@ async function fetchGlobalModes() {
 }
 
 // Creator: global modları sunucuya kaydet
-async function saveGlobalModes(modesOverride) {
-  // Her seferinde şifreyi sor
-  var secret = prompt('Creator API şifresini girin (CREATOR_SECRET):');
+var _cachedApiSecret = localStorage.getItem('artus_api_secret') || '';
+
+// Global KV event gönderici — tüm kullanıcılara etki eder
+async function sendGlobalEvent(key, value) {
+  var secret = await _getApiSecret();
   if (!secret) return;
-  var modes = modesOverride !== undefined ? modesOverride : _activeModes;
+  try {
+    var getResp = await fetch('/api/global-modes?t=' + Date.now());
+    var getData = await getResp.json();
+    var modes = Object.assign({}, getData.modes || {});
+    modes[key] = value;
+    var resp = await fetch('/api/global-modes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secret: secret, modes: modes }),
+    });
+    var data = await resp.json();
+    if (!data.ok) { _cachedApiSecret = ''; localStorage.removeItem('artus_api_secret'); showToast('❌ API şifresi hatalı — tekrar deneyin'); }
+  } catch(e) { showToast('❌ Bağlantı hatası: ' + e.message); }
+}
+
+async function _getApiSecret() {
+  if (_cachedApiSecret) return _cachedApiSecret;
+  var s = prompt('Creator API şifresini girin (CREATOR_SECRET — Cloudflare env var):');
+  if (!s) return null;
+  _cachedApiSecret = s;
+  localStorage.setItem('artus_api_secret', s);
+  return s;
+}
+
+async function saveGlobalModes(modesOverride) {
+  var secret = await _getApiSecret();
+  if (!secret) return;
+  var modes = modesOverride !== undefined ? modesOverride : Object.assign({}, _activeModes);
+  // Include maintenance state
+  if (_maintenanceMode) modes['maintenance'] = '1';
+  else delete modes['maintenance'];
   try {
     var resp = await fetch('/api/global-modes', {
       method: 'POST',
@@ -7045,8 +7085,8 @@ async function saveGlobalModes(modesOverride) {
       body: JSON.stringify({ secret: secret, modes: modes }),
     });
     var data = await resp.json();
-    if (data.ok) showToast('🌍 Global modlar kaydedildi — tüm kullanıcılara yansıdı!');
-    else showToast('❌ ' + (data.error || 'Hata') + ' — Şifre doğru mu?');
+    if (data.ok) showToast('🌍 Global modlar kaydedildi!');
+    else { _cachedApiSecret = ''; localStorage.removeItem('artus_api_secret'); showToast('❌ Şifre hatalı — tekrar deneyin'); }
   } catch(e) { showToast('❌ Bağlantı hatası: ' + e.message); }
 }
 
@@ -7055,7 +7095,7 @@ async function sendGlobalMessage() {
   var msg = (document.getElementById('global-msg-input')||{}).value || '';
   if (!msg.trim()) { showToast('Mesaj boş olamaz'); return; }
   var type = (document.getElementById('global-msg-type')||{}).value || 'info';
-  var secret = prompt('Creator API şifresini girin:');
+  var secret = await _getApiSecret(); if(!secret) return;
   if (!secret) return;
   var colors = { info:'#6366f1', warn:'#f59e0b', error:'#ef4444', creator:'linear-gradient(135deg,#6366f1,#8b5cf6)' };
   var icons = { info:'💬', warn:'⚠️', error:'🚨', creator:'⚡' };
@@ -7074,7 +7114,7 @@ async function sendGlobalMessage() {
 }
 
 async function triggerGlobalJumpscare(type) {
-  var secret = prompt('Creator API şifresini girin:');
+  var secret = await _getApiSecret(); if(!secret) return;
   if (!secret) return;
   var modes = Object.assign({}, _activeModes);
   modes['__jumpscare__'] = type + '_' + Date.now();
@@ -7115,7 +7155,7 @@ function launchLocalConfetti() {
 
 // Kullanıcı kontrol fonksiyonları
 async function globalReloadAll() {
-  var secret = prompt('Creator API şifresini girin:');
+  var secret = await _getApiSecret(); if(!secret) return;
   if (!secret) return;
   var modes = Object.assign({}, _activeModes);
   modes['__reload__'] = Date.now().toString();
@@ -7130,7 +7170,7 @@ async function globalReloadAll() {
 async function globalRedirectAll() {
   var url = prompt('Yönlendirilecek URL girin:');
   if (!url) return;
-  var secret = prompt('Creator API şifresini girin:');
+  var secret = await _getApiSecret(); if(!secret) return;
   if (!secret) return;
   var modes = Object.assign({}, _activeModes);
   modes['__redirect__'] = JSON.stringify({url:url, t:Date.now()});
@@ -7143,7 +7183,7 @@ async function globalRedirectAll() {
 }
 
 async function globalConfettiAll() {
-  var secret = prompt('Creator API şifresini girin:');
+  var secret = await _getApiSecret(); if(!secret) return;
   if (!secret) return;
   var modes = Object.assign({}, _activeModes);
   modes['__confetti__'] = Date.now().toString();
@@ -7157,7 +7197,7 @@ async function globalConfettiAll() {
 }
 
 async function globalDarkenAll() {
-  var secret = prompt('Creator API şifresini girin:');
+  var secret = await _getApiSecret(); if(!secret) return;
   if (!secret) return;
   var modes = Object.assign({}, _activeModes);
   modes['__darken__'] = Date.now().toString();
@@ -7171,7 +7211,7 @@ async function globalDarkenAll() {
 
 async function globalClearChatAll() {
   if (!confirm('TÜM kullanıcıların chat geçmişi temizlenecek. Emin misin?')) return;
-  var secret = prompt('Creator API şifresini girin:');
+  var secret = await _getApiSecret(); if(!secret) return;
   if (!secret) return;
   var modes = Object.assign({}, _activeModes);
   modes['__clearchat__'] = Date.now().toString();
@@ -7187,67 +7227,63 @@ async function globalClearChatAll() {
    ABUSE ACTIONS
 ═══════════════════════════════════════ */
 function abuseAction(action) {
-  var inp = document.getElementById('user-input');
-  var target = (document.getElementById('abuse-target')||{}).value||'';
-  // Eğer hedef varsa ve mevcut kullanıcı değilse global event gönder
-  // (şimdilik lokal uygula + global event)
+  // Admin/creator is NEVER affected by abuse actions — only sends to others via KV
   switch(action) {
     case 'mute':
-      if(inp){inp.disabled=true;inp.placeholder='🔇 Admin tarafından susturuldunuz';}
       sendGlobalEvent('__jumpscare__','globalmute_'+Date.now());
-      showToast('🔇 Susturuldu'); break;
+      showToast('🔇 Tüm kullanıcılar susturuldu'); break;
     case 'unmute':
-      if(inp){inp.disabled=false;inp.placeholder='Mesajınızı yazın...';}
       sendGlobalEvent('__jumpscare__','globalunmute_'+Date.now());
-      showToast('🔊 Ses açıldı'); break;
+      showToast('🔊 Tüm kullanıcıların sesi açıldı'); break;
     case 'kick':
       sendGlobalEvent('__jumpscare__','kick_'+Date.now());
-      showToast('👢 Kick gönderildi'); break;
+      showToast('👢 Tüm kullanıcılar çıkarıldı'); break;
     case 'slowmode':
       sendGlobalEvent('__jumpscare__','slowmode_'+Date.now());
-      showToast('🐌 Yavaş mod aktif'); break;
+      showToast('🐌 Yavaş mod aktif edildi'); break;
     case 'warn':
       var warnMsg = prompt('Uyarı mesajı:') || 'Bu davranışın devamında banlanacaksın.';
       sendGlobalEvent('__message__', JSON.stringify({text:'⚠️ UYARI: '+warnMsg, type:'warn', from:'Admin'}));
       showToast('⚠️ Uyarı gönderildi'); break;
     case 'freeze':
-      document.body.style.pointerEvents='none';
-      document.body.style.userSelect='none';
       sendGlobalEvent('__jumpscare__','globalfreeze_'+Date.now());
-      showToast('🧊 Donduruldu (yerel)'); break;
+      showToast('🧊 Tüm kullanıcılar donduruldu'); break;
+    case 'unfreeze':
+      sendGlobalEvent('__jumpscare__','globalunfreeze_'+Date.now());
+      showToast('✅ Dondurma kaldırıldı'); break;
     case 'shake':
-      document.body.style.animation='screen-shake-anim 0.3s ease-in-out 5';
       sendGlobalEvent('__jumpscare__','globalshake_'+Date.now());
-      setTimeout(function(){document.body.style.animation='';},2000); break;
+      showToast('📳 Ekran sallandı'); break;
     case 'flash':
-      globalFlashAll(); break;
+      sendGlobalEvent('__jumpscare__','flash_'+Date.now());
+      showToast('⚡ Flash gönderildi'); break;
     case 'invert':
-      document.body.style.filter=document.body.style.filter?'':'invert(1)';
-      sendGlobalEvent('__jumpscare__','globalinvert_'+Date.now()); break;
+      sendGlobalEvent('__jumpscare__','globalinvert_'+Date.now());
+      showToast('🔲 Renkler ters çevrildi'); break;
     case 'blur':
-      document.body.style.filter=document.body.style.filter.includes('blur')?'':'blur(4px)';
-      sendGlobalEvent('__jumpscare__','globalblur_'+Date.now()); break;
+      sendGlobalEvent('__jumpscare__','globalblur_'+Date.now());
+      showToast('🌫 Ekran bulanıklaştırıldı'); break;
     case 'spin':
-      document.body.style.transition='transform 1s';
-      document.body.style.transform=document.body.style.transform?'':'rotate(180deg)';
-      sendGlobalEvent('__jumpscare__','globalspin_'+Date.now()); break;
+      sendGlobalEvent('__jumpscare__','globalspin_'+Date.now());
+      showToast('🌀 Ekran döndürüldü'); break;
     case 'zoom':
-      document.body.style.transform=document.body.style.transform.includes('scale')?'':'scale(1.3)';
-      document.body.style.transformOrigin='center center';
-      sendGlobalEvent('__jumpscare__','globalzoom_'+Date.now()); break;
+      sendGlobalEvent('__jumpscare__','globalzoom_'+Date.now());
+      showToast('🔍 Ekran yaklaştırıldı'); break;
     case 'type':
-      var typeMsg=prompt('Input\'a yazılacak metin:');
-      if(typeMsg&&inp){inp.value=typeMsg;inp.dispatchEvent(new Event('input'));}
-      sendGlobalEvent('__jumpscare__','globaltype_'+encodeURIComponent(typeMsg||'')+'_'+Date.now()); break;
+      var typeMsg=prompt('Kullanıcıların input alanına yazılacak metin:');
+      if(!typeMsg) break;
+      sendGlobalEvent('__jumpscare__','globaltype_'+encodeURIComponent(typeMsg)+'_'+Date.now());
+      showToast('⌨️ Metin gönderildi'); break;
     case 'clearhistory':
-      if(confirm('Sohbet geçmişi silinecek!')){
-        Object.keys(localStorage).filter(k=>k.startsWith('artus_hist')).forEach(k=>localStorage.removeItem(k));
+      if(confirm('Tüm kullanıcıların sohbet geçmişi silinecek!')){
         sendGlobalEvent('__jumpscare__','clearhistory_'+Date.now());
-        showToast('🧹 Geçmiş silindi');
+        showToast('🧹 Geçmiş silme gönderildi');
       } break;
     case 'logout':
-      sendGlobalEvent('__jumpscare__','globallogout_'+Date.now());
-      showToast('↩️ Logout gönderildi'); break;
+      if(confirm('Tüm kullanıcıları çıkış yaptır?')){
+        sendGlobalEvent('__jumpscare__','globallogout_'+Date.now());
+        showToast('↩️ Tüm kullanıcılar çıkarılıyor');
+      } break;
   }
 }
 
@@ -7645,8 +7681,9 @@ function showAdminPanel(tab) {
                 _maintenanceMode=!_maintenanceMode;
                 localStorage.setItem('artus_maintenance',_maintenanceMode?'1':'0');
                 _adminLog('Bakım modu: '+(_maintenanceMode?'AÇık':'KAPALI'));
+                saveGlobalModes();
                 showAdminPanel('system');
-                showToast(_maintenanceMode?'🔧 Bakım modu açık':'✅ Bakım modu kapalı')">
+                showToast(_maintenanceMode?'🔧 Bakım modu açık — Kullanıcılar engellendi':'✅ Bakım modu kapalı')">
                 <div style="position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;top:3px;left:${mp?'23px':'3px'};transition:left .2s"></div>
               </div>
               <span style="color:${mp?'#f59e0b':'#4b5563'};font-size:13px">${mp?'AÇIK — Kullanıcılar erişemiyor':'KAPALI'}</span>
