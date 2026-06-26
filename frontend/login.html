@@ -14,12 +14,12 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg:      #0d1117;
-  --surface: #161b22;
-  --border:  #30363d;
-  --accent:  #6366f1;
-  --text:    #e6edf3;
-  --muted:   #7d8590;
+  --bg:      #080b11;
+  --surface: #111520;
+  --border:  #1e2535;
+  --accent:  #7c3aed;
+  --text:    #edf0f7;
+  --muted:   #8896b0;
   --green:   #10b981;
   --red:     #ef4444;
 }
@@ -35,18 +35,19 @@ html, body {
 .stars {
   position: fixed; inset: 0; z-index: 0;
   background:
-    radial-gradient(ellipse at 20% 50%, rgba(124,58,237,0.12) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 20%, rgba(16,185,129,0.06) 0%, transparent 40%),
-    radial-gradient(ellipse at 50% 80%, rgba(124,58,237,0.1) 0%, transparent 40%);
-  animation: drift 20s ease-in-out infinite alternate, shimmer 8s ease-in-out infinite;
-}
-@keyframes shimmer {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.7; }
+    radial-gradient(ellipse at 20% 50%, rgba(124,58,237,0.18) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(99,102,241,0.12) 0%, transparent 40%),
+    radial-gradient(ellipse at 50% 90%, rgba(167,139,250,0.1) 0%, transparent 40%);
+  animation: drift 20s ease-in-out infinite alternate;
 }
 @keyframes drift {
-  0%   { transform: scale(1) translateY(0); }
-  100% { transform: scale(1.05) translateY(-10px); }
+  0%   { transform: scale(1) translateY(0); opacity: 1; }
+  50%  { opacity: 0.85; }
+  100% { transform: scale(1.08) translateY(-12px); opacity: 1; }
+}
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
 }
 
 .grid-overlay {
@@ -67,15 +68,20 @@ html, body {
 }
 
 .card {
-  background: rgba(22,27,34,0.9);
-  border: 1px solid rgba(48,54,61,0.8);
-  border-radius: 20px;
-  padding: 48px 44px 40px;
-  width: 100%; max-width: 420px;
+  background: rgba(17,21,32,0.85);
+  border: 1px solid rgba(124,58,237,0.2);
+  border-radius: 24px;
+  padding: 52px 48px 44px;
+  width: 100%; max-width: 440px;
   display: flex; flex-direction: column;
   align-items: center; gap: 24px;
-  backdrop-filter: blur(20px);
-  box-shadow: 0 0 80px rgba(124,58,237,0.2), 0 32px 64px rgba(0,0,0,0.6);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.06),
+    0 0 80px rgba(124,58,237,0.2),
+    0 32px 64px rgba(0,0,0,0.7),
+    0 1px 0 rgba(255,255,255,0.06) inset;
 }
 
 .logo-wrap {
