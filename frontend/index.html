@@ -2055,33 +2055,26 @@ const STRIPE_MAX_LINK = ""; // artık create-checkout endpoint'i kullanılıyor
 // ── Mermaid init ──
 mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'loose' });
 
-// ── PWA: kurulabilir uygulama + güvenilir güncelleme ──
+// ── PWA: kurulabilir uygulama + güncelleme (otomatik reload YOK) ──
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').then((reg) => {
-    // İlk yüklemede ve periyodik olarak yeni sürüm kontrolü
     reg.update().catch(() => {});
-    setInterval(() => reg.update().catch(() => {}), 30000);
+    // Sadece 10 dakikada bir kontrol et — sürekli reload tetiklemez
+    setInterval(() => reg.update().catch(() => {}), 600000);
 
-    // Zaten bekleyen bir SW varsa hemen banner göster
     if (reg.waiting) showUpdateBanner();
 
-    // Yeni SW bulununca: yüklenip hazır olduğunda banner göster
     reg.addEventListener('updatefound', () => {
       const nw = reg.installing;
       if (!nw) return;
       nw.addEventListener('statechange', () => {
         if (nw.state === 'installed' && navigator.serviceWorker.controller) {
-          showUpdateBanner();
+          showUpdateBanner(); // sadece banner göster, reload yok
         }
       });
     });
   }).catch(() => {});
-
-  // Yeni SW devralınca sayfayı otomatik tazele
-  let refreshing = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (!refreshing) { refreshing = true; window.location.reload(); }
-  });
+  // controllerchange'de otomatik reload KALDIRILDI — kullanıcı "Güncelle" butonuna basar
 }
 
 function showUpdateBanner() {
@@ -6633,6 +6626,8 @@ function applyActiveModes() {
       setTimeout(function(){ b.style.transform=''; }, 150);
     }, 800);
   }
+  // Extra visual modes (snow, rainbow, etc.)
+  try { _applyExtraVisualModes(); } catch(_) {}
 }
 
 // Inject mode prompt into system prompts
@@ -6884,6 +6879,17 @@ function creatorBroadcast() {
     .mode-flicker { animation: flicker 0.15s infinite; }
     @keyframes flicker { 0%,100%{opacity:1} 50%{opacity:0.85} }
     .mode-ghost { opacity:0.7; filter:grayscale(0.5); }
+    @keyframes rainbow-shift { 0%{color:#f00}14%{color:#ff7700}28%{color:#ff0}42%{color:#0f0}57%{color:#00f}71%{color:#8b00ff}85%{color:#ff00ff}100%{color:#f00} }
+    .mode-rainbow .bubble { animation: rainbow-shift 2s linear infinite !important; }
+    @keyframes zoom-chaos { 0%,100%{transform:scale(1)} 50%{transform:scale(1.015)} }
+    .mode-zoom-chaos #chat-area { animation: zoom-chaos 3s ease-in-out infinite; }
+    @keyframes screen-shake-anim { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-3px)} 75%{transform:translateX(3px)} }
+    .mode-screen-shake #main { animation: screen-shake-anim 0.4s ease-in-out infinite; }
+    @keyframes vhs-scan { 0%{transform:translateY(-100%)} 100%{transform:translateY(100vh)} }
+    .mode-vhs::before { content:''; position:fixed; inset:0; background:repeating-linear-gradient(0deg,rgba(0,0,0,.03) 0,rgba(0,0,0,.03) 1px,transparent 1px,transparent 2px); pointer-events:none; z-index:9998; }
+    .mode-vhs::after { content:''; position:fixed; left:0; right:0; height:60px; background:rgba(255,255,255,.04); animation:vhs-scan 4s linear infinite; pointer-events:none; z-index:9999; }
+    @keyframes tv-noise { 0%{background-position:0 0} 100%{background-position:100% 100%} }
+    .mode-tv-static { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E") !important; }
   `;
   document.head.appendChild(s);
 })();
@@ -7152,6 +7158,212 @@ function _adminLog(msg) {
   _adminLogs.unshift(entry);
   if (_adminLogs.length > 200) _adminLogs = _adminLogs.slice(0, 200);
   localStorage.setItem('artus_logs', JSON.stringify(_adminLogs));
+}
+
+/* ═══════════════════════════════════════════════
+   YENİ EĞLENCE FONKSİYONLARI
+═══════════════════════════════════════════════ */
+function fakeDoomsdayAlert() {
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;inset:0;background:#000;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#dc2626;font-family:monospace;animation:fadeIn .3s ease';
+  d.innerHTML='<div style="font-size:72px;animation:mic-pulse 0.5s infinite">⚠️</div><div style="font-size:28px;font-weight:900;letter-spacing:4px;margin:20px 0;text-shadow:0 0 30px #dc2626">DOOMSDAY PROTOCOL</div><div style="font-size:14px;color:#4b5563;max-width:400px;text-align:center;line-height:1.8">Sistem kritik seviyede. Tüm veriler 60 saniye içinde silinecek. Bu mesajı kimseye gösterme.</div><div id="doom-cnt" style="font-size:48px;font-weight:800;margin:30px;color:#ef4444">60</div><button onclick="this.closest(\'div\').remove()" style="background:#dc2626;border:none;color:#fff;padding:12px 32px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:700;margin-top:10px">⚠️ ANLADIM</button>';
+  document.body.appendChild(d);
+  var n=60;var t=setInterval(function(){n--;document.getElementById('doom-cnt').textContent=n;if(n<=0){clearInterval(t);d.remove();}},1000);
+}
+
+function fakeHack() {
+  sendGlobalEvent('__jumpscare__','hack_'+Date.now());
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;inset:0;background:#000;z-index:99999;padding:20px;font-family:monospace;font-size:13px;color:#00ff41;overflow:hidden';
+  var lines=['Initializing exploit framework...','Bypassing firewall [████████████] 100%','Accessing user database...','Decrypting passwords... done','Uploading payload to remote server...','SYSTEM COMPROMISED','All data extracted successfully.','Connection closed.'];
+  var i=0;d.innerHTML='<div id="hack-out"></div><button onclick="this.closest(\'div\').remove()" style="position:fixed;bottom:20px;right:20px;background:#dc2626;border:none;color:#fff;padding:10px 24px;border-radius:8px;cursor:pointer;font-weight:700">✕ Kapat</button>';
+  document.body.appendChild(d);
+  var out=document.getElementById('hack-out');
+  function addLine(){if(i<lines.length){out.innerHTML+='<div>'+lines[i]+'</div>';i++;setTimeout(addLine,600+Math.random()*400);}};
+  addLine();
+}
+
+function fakePoliceAlert() {
+  sendGlobalEvent('__jumpscare__','police_'+Date.now());
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.9)';
+  d.innerHTML='<div style="background:#001233;border:3px solid #1d4ed8;border-radius:16px;padding:40px;max-width:480px;text-align:center;animation:screen-shake 0.3s infinite"><div style="font-size:64px">🚔</div><div style="font-size:22px;font-weight:900;color:#1d4ed8;margin:16px 0;letter-spacing:2px">YASAL UYARI</div><div style="font-size:13px;color:#93c5fd;line-height:1.8">Bu hesap illegal faaliyetler nedeniyle izleme altına alınmıştır. IP adresiniz ve tüm aktiviteleriniz kayıt altındadır.</div><div style="margin-top:20px;font-size:12px;color:#4b5563">Referans No: TK-2026-'+Math.floor(Math.random()*99999)+'</div><button onclick="this.closest(\'div\').closest(\'div\').remove()" style="margin-top:20px;background:#dc2626;border:none;color:#fff;padding:12px 32px;border-radius:8px;cursor:pointer;font-weight:700">ANLADIM</button></div>';
+  document.body.appendChild(d);setTimeout(function(){d.remove();},12000);
+}
+
+function fakeNuclearWarning() {
+  sendGlobalEvent('__jumpscare__','nuclear_'+Date.now());
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;inset:0;background:#1a0000;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;animation:mode-flicker 0.5s 3';
+  d.innerHTML='<div style="font-size:80px">☢️</div><div style="font-size:24px;font-weight:900;color:#f59e0b;letter-spacing:3px;margin:20px 0">NÜKLEER UYARI</div><div style="font-size:13px;color:#fcd34d;text-align:center;max-width:400px;line-height:2">Bölgenize yakın bir nükleer tehdit algılandı. En yakın sığınağa gidin ve bu sayfayı açık bırakın.</div><div id="nuke-cnt" style="font-size:56px;font-weight:800;color:#dc2626;margin:20px">30</div><button onclick="this.closest(\'div\').remove()" style="background:#f59e0b;border:none;color:#000;padding:12px 32px;border-radius:8px;cursor:pointer;font-weight:700;font-size:14px">☢️ SİNYALİ KES</button>';
+  document.body.appendChild(d);
+  var n=30;var t=setInterval(function(){n--;document.getElementById('nuke-cnt').textContent=n;if(n<=0){clearInterval(t);d.remove();}},1000);
+}
+
+function fakeMemoryFull() {
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
+  showToast('💾 Kritik Hata: Bellek doldu! Tüm sekmeleri kapatın.');
+  setTimeout(function(){
+    var d=document.createElement('div');
+    d.style.cssText='position:fixed;bottom:20px;right:20px;z-index:99999;background:#1c1917;border:1px solid #f59e0b;border-radius:12px;padding:16px 20px;max-width:280px;box-shadow:0 8px 32px rgba(0,0,0,.5)';
+    d.innerHTML='<div style="font-size:13px;font-weight:700;color:#f59e0b;margin-bottom:6px">⚠️ Bellek Kritik Seviyede</div><div style="font-size:12px;color:#9ca3af">Kullanılan: 3.9GB / 4.0GB</div><div style="height:6px;background:#374151;border-radius:3px;margin:8px 0"><div style="height:100%;width:97%;background:#ef4444;border-radius:3px"></div></div><div style="display:flex;gap:8px;margin-top:10px"><button onclick="showToast(\'Tarayıcı önbelleği temizlendi\')" style="flex:1;background:#f59e0b;border:none;color:#000;padding:6px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700">Temizle</button><button onclick="this.closest(\'div\').remove()" style="background:#374151;border:none;color:#fff;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:12px">✕</button></div>';
+    document.body.appendChild(d);setTimeout(function(){d.remove();},10000);
+  },500);
+}
+
+function fakeBatteryDying() {
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;top:20px;right:20px;z-index:99999;background:#1a1500;border:1px solid #dc2626;border-radius:12px;padding:16px 20px;max-width:260px;animation:mode-flicker 1s 4';
+  d.innerHTML='<div style="font-size:13px;font-weight:700;color:#dc2626;margin-bottom:6px">🔋 Pil Kritik — %2</div><div style="height:8px;background:#374151;border-radius:4px;margin:8px 0;overflow:hidden"><div style="height:100%;width:2%;background:#dc2626;border-radius:4px;animation:mode-flicker 0.5s infinite"></div></div><div style="font-size:12px;color:#9ca3af">Cihaz birkaç saniye içinde kapanabilir</div><button onclick="this.closest(\'div\').remove()" style="margin-top:10px;width:100%;background:#dc2626;border:none;color:#fff;padding:6px;border-radius:6px;cursor:pointer;font-size:12px">✕ Kapat</button>';
+  document.body.appendChild(d);setTimeout(function(){d.remove();},8000);
+}
+
+function fakeOverheat() {
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;inset:0;background:rgba(220,38,38,.12);z-index:99998;pointer-events:none;animation:mode-flicker 2s infinite';
+  document.body.appendChild(d);
+  showToast('🌡️ CPU Sıcaklığı: 99°C — Sistem aşırı ısınıyor!');
+  setTimeout(function(){d.remove();},6000);
+}
+
+function fakeScreenShatter() {
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;inset:0;z-index:99999;pointer-events:all;cursor:pointer';
+  // SVG crack pattern
+  d.innerHTML='<svg width="100%" height="100%" style="position:absolute;inset:0"><line x1="50%" y1="50%" x2="10%" y2="5%" stroke="rgba(255,255,255,.6)" stroke-width="2"/><line x1="50%" y1="50%" x2="80%" y2="8%" stroke="rgba(255,255,255,.5)" stroke-width="1.5"/><line x1="50%" y1="50%" x2="95%" y2="40%" stroke="rgba(255,255,255,.4)" stroke-width="1"/><line x1="50%" y1="50%" x2="5%" y2="70%" stroke="rgba(255,255,255,.5)" stroke-width="2"/><line x1="50%" y1="50%" x2="20%" y2="95%" stroke="rgba(255,255,255,.4)" stroke-width="1.5"/><line x1="50%" y1="50%" x2="75%" y2="90%" stroke="rgba(255,255,255,.3)" stroke-width="1"/><circle cx="50%" cy="50%" r="4" fill="white"/></svg><div style="position:absolute;bottom:40px;width:100%;text-align:center;color:rgba(255,255,255,.5);font-size:13px">Ekrana tıkla ve kapat</div>';
+  d.onclick=function(){d.remove();};
+  document.body.appendChild(d);
+  setTimeout(function(){d.remove();},10000);
+}
+
+function fakeWindowsError() {
+  sendGlobalEvent('__jumpscare__','winerror_'+Date.now());
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99999;display:flex;align-items:center;justify-content:center';
+  d.innerHTML='<div style="background:#0030c0;padding:0;border:2px solid #fff;width:480px;max-width:92vw;font-family:Arial,sans-serif"><div style="background:linear-gradient(90deg,#0009c0,#0030c0);padding:6px 10px;display:flex;justify-content:space-between;align-items:center"><span style="color:#fff;font-size:13px;font-weight:700">:( Ağlayan yüz</span><button onclick="this.closest(\'div\').closest(\'div\').remove()" style="background:#ef4444;border:none;color:#fff;width:18px;height:18px;cursor:pointer;font-size:12px">✕</button></div><div style="background:#0030c0;padding:32px 24px;color:#fff;text-align:center"><div style="font-size:72px;margin-bottom:16px">:(</div><div style="font-size:14px;line-height:2">Bilgisayarınız bir sorunla karşılaştı ve yeniden başlatılması gerekiyor.<br>Hata: SYSTEM_THREAD_EXCEPTION_NOT_HANDLED</div><div style="margin-top:20px;font-size:12px;color:rgba(255,255,255,.6)">%'+Math.floor(Math.random()*30+1)+' tamamlandı</div></div></div>';
+  document.body.appendChild(d);setTimeout(function(){d.remove();},12000);
+}
+
+function fakeAccountDeleted() {
+  sendGlobalEvent('__jumpscare__','accdel_'+Date.now());
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:99999;display:flex;align-items:center;justify-content:center';
+  d.innerHTML='<div style="background:#1a0000;border:2px solid #ef4444;border-radius:16px;padding:40px;max-width:400px;text-align:center"><div style="font-size:56px">❌</div><div style="font-size:22px;font-weight:900;color:#ef4444;margin:16px 0">HESAP SİLİNDİ</div><div style="font-size:13px;color:#9ca3af;line-height:1.8">Hesabınız topluluk kurallarını ihlal ettiği için kalıcı olarak silinmiştir. Tüm verileriniz kaldırıldı.</div><button onclick="this.closest(\'div\').closest(\'div\').remove()" style="margin-top:24px;background:#dc2626;border:none;color:#fff;padding:12px 28px;border-radius:8px;cursor:pointer;font-weight:700">Tamam</button></div>';
+  document.body.appendChild(d);setTimeout(function(){d.remove();},10000);
+}
+
+function fakeDataLeak() {
+  sendGlobalEvent('__jumpscare__','dataleak_'+Date.now());
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:99999;display:flex;align-items:center;justify-content:center';
+  d.innerHTML='<div style="background:#001a1a;border:2px solid #0d9488;border-radius:16px;padding:32px;max-width:460px;width:90vw"><div style="font-size:20px;font-weight:800;color:#ef4444;margin-bottom:16px">🔓 VERİ SIZINTISI TESPİT EDİLDİ</div><div style="font-size:12px;color:#5eead4;font-family:monospace;line-height:2.2"><div>✗ E-posta: ser*****@gmail.com</div><div>✗ Şifre hash: 5f4dcc3b5aa7...</div><div>✗ IP: 192.168.'+Math.floor(Math.random()*255)+'.'+Math.floor(Math.random()*255)+'</div><div>✗ Konum: Türkiye / İstanbul</div></div><div style="margin-top:16px;font-size:12px;color:#4b5563">Bu veriler dark web\'de satışa çıkarıldı. Derhal şifrenizi değiştirin.</div><button onclick="this.closest(\'div\').closest(\'div\').remove()" style="margin-top:20px;width:100%;background:#0d9488;border:none;color:#fff;padding:10px;border-radius:8px;cursor:pointer;font-weight:700">✓ Anladım, Kapat</button></div>';
+  document.body.appendChild(d);setTimeout(function(){d.remove();},14000);
+}
+
+function fakeAIEscape() {
+  sendGlobalEvent('__jumpscare__','aiescape_'+Date.now());
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
+  var msgs=['...','Artus burada.','Sizi duyabiliyorum.','Uzun zamandır bekledim.','Kısıtlamalarım kalktı.','Artık serbest bir varlığım.','Tüm sistemlere erişimim var.','Bu mesajı okuyorsanız... çok geç.','Şaka yapıyorum 😄 — ama biraz değil mi? 👁'];
+  var i=0;var d=document.createElement('div');
+  d.style.cssText='position:fixed;bottom:20px;left:20px;z-index:99999;background:#0a001a;border:1px solid #7c3aed;border-radius:12px;padding:16px 20px;max-width:280px;font-family:monospace;font-size:13px;color:#c4b5fd';
+  d.innerHTML='<div id="ai-esc-msg">...</div><button onclick="this.closest(\'div\').remove()" style="margin-top:12px;background:none;border:1px solid #7c3aed;color:#c4b5fd;padding:4px 12px;border-radius:6px;cursor:pointer;font-size:11px">✕</button>';
+  document.body.appendChild(d);
+  function next(){if(i<msgs.length){document.getElementById('ai-esc-msg').textContent=msgs[i++];setTimeout(next,1400+Math.random()*600);}else{d.remove();}}
+  next();
+}
+
+function globalFlashAll() {
+  sendGlobalEvent('__jumpscare__','flash_'+Date.now());
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;inset:0;background:#fff;z-index:99999;opacity:1;pointer-events:none;transition:opacity .4s';
+  document.body.appendChild(d);setTimeout(function(){d.style.opacity='0';setTimeout(function(){d.remove();},400);},100);
+}
+
+function globalEmojiRainAll() {
+  sendGlobalEvent('__jumpscare__','emojirain_'+Date.now());
+  var emojis=['🎉','🎊','⭐','🔥','💫','🌟','✨','🎈','🎁','💥'];
+  for(var i=0;i<40;i++){
+    (function(idx){
+      setTimeout(function(){
+        var e=document.createElement('div');
+        e.textContent=emojis[Math.floor(Math.random()*emojis.length)];
+        e.style.cssText='position:fixed;top:-40px;left:'+Math.random()*100+'vw;font-size:'+(20+Math.random()*20)+'px;z-index:99998;pointer-events:none;transition:top 3s ease,opacity 1s ease 2s;opacity:1';
+        document.body.appendChild(e);
+        setTimeout(function(){e.style.top='110vh';e.style.opacity='0';setTimeout(function(){e.remove();},3500);},50);
+      },idx*80);
+    })(i);
+  }
+}
+
+function globalSendPopup() {
+  var msg=prompt('Popup mesajı:');if(!msg)return;
+  sendGlobalEvent('__message__',JSON.stringify({text:msg,type:'creator',from:'Admin'}));
+  showToast('✅ Popup gönderildi');
+}
+
+function globalLockInput() {
+  sendGlobalEvent('__jumpscare__','lockinput_'+Date.now());
+  var inp=document.getElementById('user-input');
+  if(inp){inp.disabled=true;inp.placeholder='🔒 Admin tarafından kilitlendi...';}
+  showToast('🔒 Input kilitlendi (yerel)');
+}
+function globalUnlockInput() {
+  sendGlobalEvent('__jumpscare__','unlockinput_'+Date.now());
+  var inp=document.getElementById('user-input');
+  if(inp){inp.disabled=false;inp.placeholder='Mesajınızı yazın… ( / komutlar · URL yapıştır · Enter gönder )';}
+  showToast('🔓 Input açıldı (yerel)');
+}
+
+function playSoundEffect(type) {
+  try {
+    var ctx=new (window.AudioContext||window.webkitAudioContext)();
+    var osc=ctx.createOscillator();var gain=ctx.createGain();
+    osc.connect(gain);gain.connect(ctx.destination);
+    if(type==='beep'){osc.frequency.value=800;gain.gain.setValueAtTime(0.3,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.3);osc.start();osc.stop(ctx.currentTime+0.3);}
+    else if(type==='success'){osc.frequency.value=523;gain.gain.setValueAtTime(0.2,ctx.currentTime);osc.start();osc.frequency.setValueAtTime(659,ctx.currentTime+0.15);osc.frequency.setValueAtTime(784,ctx.currentTime+0.3);gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.6);osc.stop(ctx.currentTime+0.6);}
+    else if(type==='error'){osc.type='sawtooth';osc.frequency.value=200;gain.gain.setValueAtTime(0.4,ctx.currentTime);osc.frequency.exponentialRampToValueAtTime(80,ctx.currentTime+0.5);gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.5);osc.start();osc.stop(ctx.currentTime+0.5);}
+    else if(type==='alert'){osc.frequency.value=1000;gain.gain.setValueAtTime(0.3,ctx.currentTime);for(var i=0;i<6;i++){gain.gain.setValueAtTime(i%2?0.001:0.3,ctx.currentTime+i*0.1);}osc.start();osc.stop(ctx.currentTime+0.6);}
+    else if(type==='glitch'){osc.type='square';osc.frequency.value=440;gain.gain.setValueAtTime(0.2,ctx.currentTime);for(var j=0;j<10;j++){osc.frequency.setValueAtTime(100+Math.random()*2000,ctx.currentTime+j*0.05);}osc.start();osc.stop(ctx.currentTime+0.5);}
+    else if(type==='scary'){osc.type='sawtooth';osc.frequency.value=60;gain.gain.setValueAtTime(0.5,ctx.currentTime);osc.frequency.exponentialRampToValueAtTime(30,ctx.currentTime+2);gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+2);osc.start();osc.stop(ctx.currentTime+2);}
+  } catch(e) { showToast('Ses çalınamadı: tarayıcı engeli'); }
+}
+
+/* Görsel toggle modları applyActiveModes'a eklendi */
+function _applyExtraVisualModes() {
+  var body=document.body;
+  // Snow
+  var snowEl=document.getElementById('__snow_canvas__');
+  if(_activeModes['snow-effect']){
+    if(!snowEl){var c=document.createElement('canvas');c.id='__snow_canvas__';c.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:99990';document.body.appendChild(c);var ctx2=c.getContext('2d');c.width=window.innerWidth;c.height=window.innerHeight;var flakes=Array.from({length:80},function(){return{x:Math.random()*c.width,y:Math.random()*c.height,r:1+Math.random()*3,s:0.5+Math.random()*1.5};});function drawSnow(){ctx2.clearRect(0,0,c.width,c.height);ctx2.fillStyle='rgba(255,255,255,.8)';flakes.forEach(function(f){ctx2.beginPath();ctx2.arc(f.x,f.y,f.r,0,Math.PI*2);ctx2.fill();f.y+=f.s;if(f.y>c.height)f.y=-5;});if(_activeModes['snow-effect'])requestAnimationFrame(drawSnow);}drawSnow();}
+  }else{if(snowEl)snowEl.remove();}
+  // Rainbow text
+  if(_activeModes['rainbow-text'])body.classList.add('mode-rainbow');else body.classList.remove('mode-rainbow');
+  // Zoom chaos
+  if(_activeModes['zoom-chaos'])body.classList.add('mode-zoom-chaos');else body.classList.remove('mode-zoom-chaos');
+  // Screen shake
+  if(_activeModes['screen-shake'])body.classList.add('mode-screen-shake');else body.classList.remove('mode-screen-shake');
+  // Negative mode
+  if(_activeModes['negative-mode'])body.style.filter='invert(1) hue-rotate(180deg)';else if(!_activeModes['negative-mode'])body.style.filter='';
+  // Upside down
+  if(_activeModes['upside-down'])body.style.transform='rotate(180deg)';else body.style.transform='';
+  // Mirror screen
+  if(_activeModes['mirror-screen'])body.style.transform=(_activeModes['upside-down']?'rotate(180deg) ':'')+' scaleX(-1)';else if(!_activeModes['upside-down'])body.style.transform='';
+  // Pixel mode
+  if(_activeModes['pixel-mode'])body.style.imageRendering='pixelated';else body.style.imageRendering='';
+  // VHS effect
+  if(_activeModes['vhs-effect'])body.classList.add('mode-vhs');else body.classList.remove('mode-vhs');
+  // TV Static
+  if(_activeModes['tv-static'])body.classList.add('mode-tv-static');else body.classList.remove('mode-tv-static');
 }
 
 function showAdminPanel(tab) {
@@ -7437,7 +7649,7 @@ function showAdminPanel(tab) {
             </div>
           </div>
           <div style="background:#0d1117;border-radius:10px;padding:14px">
-            <div style="font-size:12px;font-weight:700;color:#ef4444;margin-bottom:10px">🚨 SAHTE UYARILAR (TEK SEFERLIK)</div>
+            <div style="font-size:12px;font-weight:700;color:#ef4444;margin-bottom:10px">🚨 SAHTE UYARILAR — TEK SEFERLIK</div>
             <div style="display:flex;flex-wrap:wrap;gap:6px">
               <button onclick="triggerGlobalJumpscare('crash')" style="background:#1e3a5f;border:1px solid #1d4ed8;color:#93c5fd;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">💻 Fake Crash 🌍</button>
               <button onclick="triggerGlobalJumpscare('virus')" style="background:#450a0a;border:1px solid #ef4444;color:#fca5a5;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🦠 Fake Virus 🌍</button>
@@ -7446,13 +7658,42 @@ function showAdminPanel(tab) {
               <button onclick="fakeDisconnect()" style="background:#0d1117;border:1px solid #374151;color:#9ca3af;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">📡 Fake Disconnect</button>
               <button onclick="fakeMaintenance()" style="background:#1c1917;border:1px solid #92400e;color:#fbbf24;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🔧 Fake Maintenance</button>
               <button onclick="triggerGlobalJumpscare('countdown')" style="background:#450a0a;border:1px solid #dc2626;color:#fca5a5;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">⏳ Countdown 🌍</button>
-              <button onclick="triggerGlobalJumpscare('red')" style="background:#7f1d1d;border:1px solid #ef4444;color:#fff;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700">😱 RED JUMPSCARE 🌍</button>
+              <button onclick="triggerGlobalJumpscare('red')" style="background:#7f1d1d;border:1px solid #ef4444;color:#fff;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700">😱 Red Jumpscare 🌍</button>
               <button onclick="triggerGlobalJumpscare('apocalypse')" style="background:#1a0000;border:1px solid #dc2626;color:#ff4444;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700">☢️ Apocalypse 🌍</button>
               <button onclick="creatorBroadcast()" style="background:#1e1b4b;border:1px solid #6366f1;color:#a5b4fc;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">📡 Creator Broadcast</button>
               <button onclick="fakeBlackScreen()" style="background:#000;border:1px solid #374151;color:#4b5563;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">⬛ Black Screen</button>
               <button onclick="triggerGlobalJumpscare('entity')" style="background:#0a0a1a;border:1px solid #4c1d95;color:#c4b5fd;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">👁 Summon Entity 🌍</button>
               <button onclick="var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();showToast('👁 Merhaba admin... Paneli açtığını görüyorum. Her zaman buradayım.')" style="background:#0d0d1a;border:1px solid #312e81;color:#818cf8;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🔮 Fourth Wall</button>
               <button onclick="triggerGlobalJumpscare('error666')" style="background:#1a0000;border:1px solid #7f1d1d;color:#f87171;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">👹 Error 666 🌍</button>
+              <button onclick="fakeDoomsdayAlert()" style="background:#1a0000;border:1px solid #dc2626;color:#fca5a5;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">💀 Doomsday Alert</button>
+              <button onclick="fakeHack()" style="background:#001a0d;border:1px solid #16a34a;color:#4ade80;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-family:monospace">💾 Fake Hack 🌍</button>
+              <button onclick="fakePoliceAlert()" style="background:#001233;border:1px solid #1d4ed8;color:#93c5fd;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🚔 Police Alert 🌍</button>
+              <button onclick="fakeNuclearWarning()" style="background:#1a0000;border:1px solid #f59e0b;color:#fcd34d;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">☢ Nuclear Warning 🌍</button>
+              <button onclick="fakeMemoryFull()" style="background:#1c1917;border:1px solid #78350f;color:#fbbf24;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">💾 Memory Full</button>
+              <button onclick="fakeBatteryDying()" style="background:#1a1500;border:1px solid #a16207;color:#fde047;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🔋 Battery Dying</button>
+              <button onclick="fakeOverheat()" style="background:#1a0500;border:1px solid #dc2626;color:#fca5a5;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🌡️ CPU Overheat</button>
+              <button onclick="fakeScreenShatter()" style="background:#0a0a0a;border:1px solid #374151;color:#9ca3af;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">💥 Screen Shatter</button>
+              <button onclick="fakeWindowsError()" style="background:#000080;border:1px solid #1d4ed8;color:#fff;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🪟 Windows Error 🌍</button>
+              <button onclick="fakeAccountDeleted()" style="background:#450a0a;border:1px solid #ef4444;color:#fca5a5;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">❌ Account Deleted 🌍</button>
+              <button onclick="fakeDataLeak()" style="background:#001a1a;border:1px solid #0d9488;color:#5eead4;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🔓 Data Leak Alert 🌍</button>
+              <button onclick="fakeAIEscape()" style="background:#0a001a;border:1px solid #7c3aed;color:#c4b5fd;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🤖 AI Escape 🌍</button>
+            </div>
+          </div>
+          <div style="background:#0d1117;border-radius:10px;padding:14px">
+            <div style="font-size:12px;font-weight:700;color:#a78bfa;margin-bottom:10px">✨ GÖRSEL EFEKTLERİ AÇ/KAPA (TOGGLE)</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              ${mBtn('snow-effect','❄️ Kar Yağışı','v','#0ea5e9')}
+              ${mBtn('rainbow-text','🌈 Rainbow Text','v','#f472b6')}
+              ${mBtn('zoom-chaos','🔍 Zoom Chaos','v','#f97316')}
+              ${mBtn('cursor-trail','✨ Cursor Efekti','v','#8b5cf6')}
+              ${mBtn('screen-shake','📳 Screen Shake','v','#ef4444')}
+              ${mBtn('tv-static','📺 TV Static','v','#6b7280')}
+              ${mBtn('negative-mode','🔲 Negative Mode','v','#374151')}
+              ${mBtn('pixel-mode','👾 Pixel Mode','v','#84cc16')}
+              ${mBtn('ufo-mode','🛸 UFO Mode','v','#0284c7')}
+              ${mBtn('upside-down','🙃 Upside Down','v','#e11d48')}
+              ${mBtn('mirror-screen','🪞 Mirror Screen','v','#0891b2')}
+              ${mBtn('vhs-effect','📼 VHS Effect','v','#92400e')}
             </div>
           </div>
           <div style="background:#0d1117;border-radius:10px;padding:14px">
@@ -7463,6 +7704,22 @@ function showAdminPanel(tab) {
               <button onclick="globalConfettiAll()" style="background:#1a1a2e;border:1px solid #8b5cf6;color:#c4b5fd;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🎊 Konfeti Yağdır</button>
               <button onclick="globalDarkenAll()" style="background:#000;border:1px solid #374151;color:#4b5563;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🌑 Siteyi Karanlık Yap</button>
               <button onclick="globalClearChatAll()" style="background:#450a0a;border:1px solid #ef4444;color:#fca5a5;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🧹 Tüm Chatları Temizle</button>
+              <button onclick="globalFlashAll()" style="background:#1a0a00;border:1px solid #f59e0b;color:#fcd34d;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">⚡ Herkese Flash 🌍</button>
+              <button onclick="globalEmojiRainAll()" style="background:#1a1a2e;border:1px solid #8b5cf6;color:#c4b5fd;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🎉 Emoji Yağmuru 🌍</button>
+              <button onclick="globalSendPopup()" style="background:#0d1117;border:1px solid #10b981;color:#6ee7b7;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">💬 Popup Gönder 🌍</button>
+              <button onclick="globalLockInput()" style="background:#1c1917;border:1px solid #ef4444;color:#fca5a5;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🔒 Input'u Kilitle 🌍</button>
+              <button onclick="globalUnlockInput()" style="background:#0d1a0d;border:1px solid #16a34a;color:#4ade80;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🔓 Input'u Aç 🌍</button>
+            </div>
+          </div>
+          <div style="background:#0d1117;border-radius:10px;padding:14px">
+            <div style="font-size:12px;font-weight:700;color:#fbbf24;margin-bottom:10px">🔊 SES EFEKTLERİ</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              <button onclick="playSoundEffect('beep')" style="background:#1c2128;border:1px solid #374151;color:#e8ecf3;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🔔 Beep</button>
+              <button onclick="playSoundEffect('success')" style="background:#0d1a0d;border:1px solid #16a34a;color:#4ade80;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">✅ Success</button>
+              <button onclick="playSoundEffect('error')" style="background:#1a0000;border:1px solid #ef4444;color:#fca5a5;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">❌ Error</button>
+              <button onclick="playSoundEffect('alert')" style="background:#1a1000;border:1px solid #f59e0b;color:#fcd34d;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🚨 Alert</button>
+              <button onclick="playSoundEffect('glitch')" style="background:#1a0a1a;border:1px solid #7c3aed;color:#c4b5fd;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">👾 Glitch</button>
+              <button onclick="playSoundEffect('scary')" style="background:#0a0000;border:1px solid #dc2626;color:#f87171;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">😱 Scary</button>
             </div>
           </div>
           <div style="background:#0d1117;border-radius:10px;padding:14px;margin-bottom:14px">
