@@ -6986,6 +6986,17 @@ async function fetchGlobalModes() {
           // Only redirect to valid absolute URLs (http/https) — ignore passwords/garbage
           if (rdData.url && (rdData.url.startsWith('http://') || rdData.url.startsWith('https://'))) {
             setTimeout(function(){ location.href = rdData.url; }, 2000);
+          } else if (rdData.url) {
+            // Invalid redirect URL — auto-clean from KV silently
+            (async function(){
+              try {
+                var cur = await fetch('/api/global-modes?t='+Date.now());
+                var curData = await cur.json();
+                var cleanModes = curData.modes || {};
+                delete cleanModes['__redirect__'];
+                await fetch('/api/global-modes', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({secret:_CREATOR_SECRET, modes:cleanModes}) });
+              } catch(e){}
+            })();
           }
         } catch(e) {}
       }

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Clear Redirect</title></head>
+<body style="background:#0d1117;color:#e8ecf3;font-family:monospace;padding:40px;text-align:center">
+<h2>🔧 Redirect Temizleme</h2>
+<p id="status">Temizleniyor...</p>
+<script>
+(async function(){
+  var statusEl = document.getElementById('status');
+  try {
+    // Get current modes
+    var r = await fetch('/api/global-modes?t=' + Date.now());
+    var d = await r.json();
+    var modes = d.modes || {};
+    statusEl.textContent = 'Mevcut redirect: ' + (modes.__redirect__ || '(yok)');
+    delete modes['__redirect__'];
+    delete modes['__reload__'];
+    // Need secret — ask user
+    var secret = prompt('Creator Secret girin:');
+    if (!secret) { statusEl.textContent = 'İptal edildi.'; return; }
+    var r2 = await fetch('/api/global-modes', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({secret: secret, modes: modes})
+    });
+    var d2 = await r2.json();
+    if (d2.ok) {
+      statusEl.style.color = '#10b981';
+      statusEl.textContent = '✅ Redirect temizlendi! 3 saniyede ana sayfaya dönülüyor...';
+      setTimeout(function(){ location.href = '/'; }, 3000);
+    } else {
+      statusEl.style.color = '#ef4444';
+      statusEl.textContent = '❌ Hata: ' + (d2.error || 'Bilinmeyen hata');
+    }
+  } catch(e) {
+    statusEl.style.color = '#ef4444';
+    statusEl.textContent = '❌ ' + e.message;
+  }
+})();
+</script>
+</body>
+</html>
