@@ -7417,6 +7417,11 @@ async function fetchGlobalModes() {
       delete cleanModes['__confetti__'];
       delete cleanModes['__darken__'];
       delete cleanModes['__clearchat__'];
+      // Personality modes are LOCAL-ONLY — never override from KV (prevents evil-personality etc. from auto-enabling)
+      var _localModes = JSON.parse(localStorage.getItem('artus_modes') || '{}');
+      Object.keys(_PERSONALITY_PROMPTS).forEach(function(k) {
+        if (_localModes[k]) cleanModes[k] = _localModes[k]; else delete cleanModes[k];
+      });
       _activeModes = cleanModes;
       localStorage.setItem('artus_modes', JSON.stringify(_activeModes));
       applyActiveModes();
@@ -7459,6 +7464,8 @@ async function saveGlobalModes(modesOverride) {
   var secret = await _getApiSecret();
   if (!secret) return;
   var modes = modesOverride !== undefined ? modesOverride : Object.assign({}, _activeModes);
+  // Strip personality modes — they're local-only, never saved to KV
+  Object.keys(_PERSONALITY_PROMPTS).forEach(function(k) { delete modes[k]; });
   // Include maintenance state
   if (_maintenanceMode) modes['maintenance'] = '1';
   else delete modes['maintenance'];
@@ -8153,6 +8160,55 @@ function _applyExtraVisualModes() {
   if(_activeModes['vhs-effect'])body.classList.add('mode-vhs');else body.classList.remove('mode-vhs');
   // TV Static
   if(_activeModes['tv-static'])body.classList.add('mode-tv-static');else body.classList.remove('mode-tv-static');
+
+  // --- YENİ GÖRSEL EFEKTLER ---
+  // Fireworks
+  var fwInt = window.__fireworks_int__;
+  if(_activeModes['fireworks-effect']){
+    if(!fwInt){window.__fireworks_int__=setInterval(function(){for(var i=0;i<3;i++){var s=document.createElement('div');s.style.cssText='position:fixed;left:'+Math.random()*100+'vw;top:'+Math.random()*60+'vh;width:6px;height:6px;border-radius:50%;background:hsl('+Math.random()*360+'deg,90%,60%);pointer-events:none;z-index:99980;animation:fwBoom 0.8s ease-out forwards';document.body.appendChild(s);setTimeout(function(){s.remove();},800);}},400);if(!document.getElementById('fw-style')){var fs=document.createElement('style');fs.id='fw-style';fs.textContent='@keyframes fwBoom{0%{transform:scale(0);opacity:1}100%{transform:scale(8);opacity:0}}';document.head.appendChild(fs);}}
+  }else{if(fwInt){clearInterval(fwInt);window.__fireworks_int__=null;}}
+
+  // Stars mode
+  var starsEl=document.getElementById('__stars_canvas__');
+  if(_activeModes['stars-mode']){
+    if(!starsEl){var sc=document.createElement('canvas');sc.id='__stars_canvas__';sc.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:99980';document.body.appendChild(sc);var sx=sc.getContext('2d');sc.width=window.innerWidth;sc.height=window.innerHeight;var stars=Array.from({length:120},function(){return{x:Math.random()*sc.width,y:Math.random()*sc.height,r:Math.random()*2,s:0.3+Math.random()};});function drawStars(){sx.clearRect(0,0,sc.width,sc.height);stars.forEach(function(s){sx.beginPath();sx.arc(s.x,s.y,s.r,0,Math.PI*2);sx.fillStyle='rgba(255,255,220,'+( 0.4+Math.random()*0.6)+')';sx.fill();s.x-=s.s;if(s.x<0){s.x=sc.width;s.y=Math.random()*sc.height;}});if(_activeModes['stars-mode'])requestAnimationFrame(drawStars);}drawStars();}
+  }else{if(starsEl)starsEl.remove();}
+
+  // Bubble mode
+  var bubInt=window.__bubble_int__;
+  if(_activeModes['bubble-mode']){
+    if(!bubInt){window.__bubble_int__=setInterval(function(){var b=document.createElement('div');var size=20+Math.random()*40;b.style.cssText='position:fixed;left:'+Math.random()*100+'vw;bottom:-60px;width:'+size+'px;height:'+size+'px;border-radius:50%;border:2px solid rgba(100,200,255,0.5);background:rgba(100,200,255,0.05);pointer-events:none;z-index:99980;animation:bubRise '+(3+Math.random()*4)+'s ease-in forwards';document.body.appendChild(b);setTimeout(function(){b.remove();},7000);},300);if(!document.getElementById('bub-style')){var bs=document.createElement('style');bs.id='bub-style';bs.textContent='@keyframes bubRise{to{bottom:110vh;transform:translateX('+(Math.random()>0.5?'':'-')+'50px)}}';document.head.appendChild(bs);}}
+  }else{if(bubInt){clearInterval(bubInt);window.__bubble_int__=null;}}
+
+  // Heart rain
+  var hrtInt=window.__heart_int__;
+  if(_activeModes['heart-rain']){
+    if(!hrtInt){window.__heart_int__=setInterval(function(){var h=document.createElement('div');h.textContent='❤';h.style.cssText='position:fixed;left:'+Math.random()*100+'vw;top:-30px;font-size:'+(14+Math.random()*20)+'px;pointer-events:none;z-index:99980;animation:hrtFall '+(2+Math.random()*3)+'s linear forwards';document.body.appendChild(h);setTimeout(function(){h.remove();},5000);},200);if(!document.getElementById('hrt-style')){var hs=document.createElement('style');hs.id='hrt-style';hs.textContent='@keyframes hrtFall{to{top:110vh;transform:rotate('+( Math.random()*360)+'deg)}}';document.head.appendChild(hs);}}
+  }else{if(hrtInt){clearInterval(hrtInt);window.__heart_int__=null;}}
+
+  // Fog mode
+  var fogEl=document.getElementById('__fog_el__');
+  if(_activeModes['fog-mode']){
+    if(!fogEl){var fe=document.createElement('div');fe.id='__fog_el__';fe.style.cssText='position:fixed;inset:0;background:linear-gradient(to bottom,rgba(200,210,220,0.0),rgba(180,200,220,0.18));pointer-events:none;z-index:99980;animation:fogMove 8s ease-in-out infinite alternate';document.body.appendChild(fe);if(!document.getElementById('fog-style')){var fogs=document.createElement('style');fogs.id='fog-style';fogs.textContent='@keyframes fogMove{from{opacity:0.3}to{opacity:0.7}}';document.head.appendChild(fogs);}}
+  }else{if(fogEl)fogEl.remove();}
+
+  // Lightning mode
+  var ltInt=window.__lightning_int__;
+  if(_activeModes['lightning-mode']){
+    if(!ltInt){window.__lightning_int__=setInterval(function(){if(Math.random()>0.7){document.body.style.filter='brightness(3)';setTimeout(function(){document.body.style.filter='';},60);}},1200);}
+  }else{if(ltInt){clearInterval(ltInt);window.__lightning_int__=null;if(document.body.style.filter==='brightness(3)')document.body.style.filter='';}}
+
+  // Digital rain
+  var drEl=document.getElementById('__digrain_canvas__');
+  if(_activeModes['digital-rain']){
+    if(!drEl){var dc=document.createElement('canvas');dc.id='__digrain_canvas__';dc.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:99980;opacity:0.35';document.body.appendChild(dc);var dctx=dc.getContext('2d');dc.width=window.innerWidth;dc.height=window.innerHeight;var dcols=Math.floor(dc.width/14);var ddrops=Array(dcols).fill(1);function drawDigRain(){dctx.fillStyle='rgba(0,0,0,0.05)';dctx.fillRect(0,0,dc.width,dc.height);dctx.fillStyle='#0f0';dctx.font='13px monospace';ddrops.forEach(function(y,i){dctx.fillText(String.fromCharCode(0x30A0+Math.random()*96),i*14,y*14);if(y*14>dc.height&&Math.random()>0.975)ddrops[i]=0;ddrops[i]++;});if(_activeModes['digital-rain'])requestAnimationFrame(drawDigRain);}drawDigRain();}
+  }else{if(drEl)drEl.remove();}
+
+  // Aurora borealis
+  var aurEl=document.getElementById('__aurora_el__');
+  if(_activeModes['aurora-mode']){
+    if(!aurEl){var ae=document.createElement('div');ae.id='__aurora_el__';ae.style.cssText='position:fixed;top:0;left:0;right:0;height:40vh;pointer-events:none;z-index:99980;background:linear-gradient(180deg,rgba(100,255,180,0.12),rgba(80,120,255,0.10),transparent);animation:auroraWave 6s ease-in-out infinite alternate';document.body.appendChild(ae);if(!document.getElementById('aurora-style')){var aus=document.createElement('style');aus.id='aurora-style';aus.textContent='@keyframes auroraWave{0%{transform:skewX(0deg) scaleY(1);filter:hue-rotate(0deg)}100%{transform:skewX(3deg) scaleY(1.3);filter:hue-rotate(60deg)}}';document.head.appendChild(aus);}}
+  }else{if(aurEl)aurEl.remove();}
 }
 
 function showAdminPanel(tab) {
@@ -8303,6 +8359,41 @@ function showAdminPanel(tab) {
               <div>🔧 Bakım modu: <span style="color:${_maintenanceMode?'#f59e0b':'#4b5563'}">${_maintenanceMode?'Açık':'Kapalı'}</span></div>
               <div>🚫 Yasaklı sayısı: <span style="color:#e8ecf3">${(JSON.parse(localStorage.getItem('artus_banned')||'[]')).length}</span></div>
               <div>📋 Log sayısı: <span style="color:#e8ecf3">${_adminLogs.length}</span></div>
+            </div>
+          </div>
+          <div style="background:#0d1117;border-radius:10px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#f59e0b;margin-bottom:10px">⚡ GÜVENLİK ABUSE — Anlık Eylemler 🌍</div>
+            <div style="display:flex;flex-wrap:wrap;gap:7px">
+              <button onclick="sendGlobalEvent('__jumpscare__','ip_banned_'+Date.now());showToast('🚫 Sahte IP ban gönderildi')" style="background:#450a0a;border:1px solid #ef4444;color:#fca5a5;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🚫 Sahte IP Ban</button>
+              <button onclick="sendGlobalEvent('__jumpscare__','security_update_'+Date.now());showToast('🔒 Güvenlik uyarısı gönderildi')" style="background:#1a1500;border:1px solid #a16207;color:#fde047;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🔒 Sahte Güvenlik Güncellemesi</button>
+              <button onclick="sendGlobalEvent('__jumpscare__','spy_'+Date.now());showToast('🕵️ Takip uyarısı gönderildi')" style="background:#001a0d;border:1px solid #16a34a;color:#4ade80;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🕵️ Takip Ediliyor Uyarısı</button>
+              <button onclick="sendGlobalEvent('__jumpscare__','survey_'+Date.now());showToast('📋 Sahte anket gönderildi')" style="background:#1e2d4a;border:1px solid #3b82f6;color:#93c5fd;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">📋 Sahte Zorunlu Anket</button>
+              <button onclick="sendGlobalEvent('__jumpscare__','ai_overload_'+Date.now());showToast('🤖 AI aşırı yük gönderildi')" style="background:#001a1a;border:1px solid #0d9488;color:#5eead4;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🤖 AI Sistem Aşırı Yük</button>
+              <button onclick="sendGlobalEvent('__jumpscare__','countdown_delete_'+Date.now());showToast('💣 Geri sayım gönderildi')" style="background:#450a0a;border:1px solid #dc2626;color:#fca5a5;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">💣 Hesap Silme Geri Sayım</button>
+              <button onclick="fakeDataLeak();sendGlobalEvent('__jumpscare__','dataleak_'+Date.now())" style="background:#001a1a;border:1px solid #0d9488;color:#5eead4;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🔓 Veri Sızıntısı Uyarısı 🌍</button>
+              <button onclick="sendGlobalEvent('__jumpscare__','tos_'+Date.now());showToast('📜 TOS uyarısı gönderildi')" style="background:#1a1500;border:1px solid #d97706;color:#fbbf24;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">📜 Sahte TOS Güncelleme</button>
+              <button onclick="sendGlobalEvent('__jumpscare__','mindread_'+Date.now());showToast('🧠 Zihin okuma gönderildi')" style="background:#0a001a;border:1px solid #7c3aed;color:#c4b5fd;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🧠 Zihin Okuma</button>
+              <button onclick="sendGlobalEvent('__jumpscare__','analyzing_'+Date.now());showToast('📊 Analiz gönderildi')" style="background:#001a0d;border:1px solid #0d9488;color:#5eead4;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">📊 Kişilik Analizi</button>
+            </div>
+          </div>
+          <div style="background:#0d1117;border-radius:10px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#a78bfa;margin-bottom:10px">🔐 SİSTEM KİLİTLEME</div>
+            <div style="display:flex;flex-wrap:wrap;gap:7px">
+              <button onclick="sendGlobalEvent('__jumpscare__','globalmute_'+Date.now());showToast('🔇 Herkes susturuldu')" style="background:#1e2d4a;border:1px solid #1d4ed8;color:#93c5fd;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🔇 Herkesi Sustur 🌍</button>
+              <button onclick="sendGlobalEvent('__jumpscare__','globalfreeze_'+Date.now());showToast('🧊 Herkes donduruldu')" style="background:#001a2e;border:1px solid #0284c7;color:#7dd3fc;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🧊 Herkesi Dondur 🌍</button>
+              <button onclick="sendGlobalEvent('__jumpscare__','globallogout_'+Date.now());showToast('↩️ Herkes çıkarılıyor')" style="background:#450a0a;border:1px solid #ef4444;color:#fca5a5;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">↩️ Herkesi Zorla Çıkar 🌍</button>
+              <button onclick="if(confirm('Tüm KV modlarını sıfırla?'))sendGlobalEvent.__proto__&&(async function(){var s=await _getApiSecret();if(!s)return;var r=await fetch('/api/global-modes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({secret:s,modes:{}})});var d=await r.json();if(d.ok)showToast('✅ Tüm KV modları temizlendi');else showToast('❌ Hata');})().catch(function(){})" style="background:#0d1117;border:1px solid #374151;color:#9ca3af;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🧹 Tüm KV Modları Temizle</button>
+              <button onclick="(async function(){var s=await _getApiSecret();if(!s)return;var r=await fetch('/api/global-modes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({secret:s,emergency_clear_redirect:true})});var d=await r.json();if(d.ok)showToast('✅ Redirect temizlendi');else showToast('❌ Hata');})()" style="background:#1a0a00;border:1px solid #f59e0b;color:#fcd34d;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🚫 Redirect Temizle</button>
+              <button onclick="sendGlobalEvent('__jumpscare__','globalunmute_'+Date.now());sendGlobalEvent('__jumpscare__','globalunfreeze_'+Date.now());showToast('✅ Tüm kilitler kaldırıldı')" style="background:#0d1a0d;border:1px solid #16a34a;color:#4ade80;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">✅ Tüm Kilitleri Kaldır 🌍</button>
+            </div>
+          </div>
+          <div style="background:#0d1117;border-radius:10px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#ef4444;margin-bottom:10px">🚨 ACİL EYLEMLER</div>
+            <div style="display:flex;flex-wrap:wrap;gap:7px">
+              <button onclick="if(confirm('TÜM KULLANICILARI YENİLE?'))sendGlobalEvent('__reload__','1').then(function(){showToast('🔄 Tüm kullanıcılar yenileniyor')})" style="background:#1e3a5f;border:1px solid #1d4ed8;color:#93c5fd;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🔄 Tüm Kullanıcıları Yenile 🌍</button>
+              <button onclick="if(confirm('ACİL BAKIM MODU?')){_maintenanceMode=true;localStorage.setItem('artus_maintenance','1');saveGlobalModes();showToast('🔧 Acil bakım modu aktif')}" style="background:#1a0a00;border:1px solid #f59e0b;color:#fcd34d;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700">🔧 Acil Bakım Modu</button>
+              <button onclick="if(confirm('Kırmızı ekranı tüm kullanıcılara gönder?'))sendGlobalEvent('__jumpscare__','red_'+Date.now()).then(function(){showToast('😱 Kırmızı ekran gönderildi')})" style="background:#7f1d1d;border:1px solid #ef4444;color:#fca5a5;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700">😱 Kırmızı Ekran 🌍</button>
+              <button onclick="if(confirm('GERÇEK BAN sistemi sayfasına git?'))showAdminPanel('users')" style="background:#0d1117;border:1px solid #6366f1;color:#818cf8;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🔨 Kullanıcı Banla →</button>
             </div>
           </div>
         </div>`;
