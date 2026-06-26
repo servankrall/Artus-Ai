@@ -8487,6 +8487,78 @@ var _godPowers = [
   {e:'🌟',l:'Tüm Etkileri Sıfırla',c:'#9ca3af',fn:function(){ document.body.style.filter='none'; var w=document.getElementById('__watermark__'); if(w)w.remove(); showToast('🌟 Her şey sıfırlandı'); }},
 ];
 function godPower(i){ try{ var p=_godPowers[i]; if(p&&p.fn) p.fn(); }catch(e){ showToast('Hata: '+e.message); } }
+
+/* ══════════════════════════════════════════════════════════════
+   🪄 SİHİRLİ ARAÇLAR — 50 farklı gerçek üreteç/araç
+   ══════════════════════════════════════════════════════════════ */
+function _mr(a){ return a[Math.floor(Math.random()*a.length)]; }
+function _mInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+var _magicTools = [
+  {e:'🔑',l:'Güçlü Şifre',c:'#10b981',fn:function(){ var c='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*'; var s=''; for(var i=0;i<16;i++)s+=c[_mInt(0,c.length-1)]; return s; }},
+  {e:'🆔',l:'UUID Üret',c:'#6366f1',fn:function(){ return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(ch){var r=_mInt(0,15);var v=ch==='x'?r:(r&0x3|0x8);return v.toString(16);}); }},
+  {e:'🔢',l:'PIN Kodu',c:'#f59e0b',fn:function(){ var p=''; for(var i=0;i<6;i++)p+=_mInt(0,9); return p; }},
+  {e:'🧑',l:'Rastgele İsim',c:'#ec4899',fn:function(){ return _mr(['Ada','Ela','Mavi','Deniz','Kuzey','Aras','Doruk','Çınar','Defne','Eylül','Toprak','Bora','Selin','Kaan','Yağmur','Efe','Nehir','Alp','Pera','Mira'])+' '+_mr(['Yıldız','Demir','Kaya','Şahin','Aydın','Çelik','Doğan','Korkmaz','Aslan','Güneş','Deniz','Bulut','Toraman','Ay','Kara']); }},
+  {e:'👤',l:'Kullanıcı Adı',c:'#a855f7',fn:function(){ return _mr(['gizli','hızlı','kara','altın','siber','neon','gece','vahşi','sessiz','efsane'])+'_'+_mr(['kurt','kartal','ejder','panter','şahin','aslan','tilki','baykuş','yılan','kaplan'])+_mInt(10,99); }},
+  {e:'🎨',l:'Renk Paleti',c:'#f43f5e',fn:function(){ var o=''; for(var i=0;i<5;i++){var h='#'+Math.floor(Math.random()*16777215).toString(16).padStart(6,'0');o+=h+'  ';} return o.trim(); }},
+  {e:'🌈',l:'Tek Hex Renk',c:'#8b5cf6',fn:function(){ return '#'+Math.floor(Math.random()*16777215).toString(16).padStart(6,'0').toUpperCase(); }},
+  {e:'🔴',l:'RGB Renk',c:'#ef4444',fn:function(){ return 'rgb('+_mInt(0,255)+', '+_mInt(0,255)+', '+_mInt(0,255)+')'; }},
+  {e:'📄',l:'Lorem Ipsum',c:'#6b7280',fn:function(){ var w='lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua enim ad minim veniam quis nostrud'.split(' '); var o=''; for(var i=0;i<30;i++)o+=_mr(w)+' '; return o.trim(); }},
+  {e:'🎲',l:'Zar At (d6)',c:'#22c55e',fn:function(){ return '🎲 '+_mInt(1,6); }},
+  {e:'🎲',l:'Çift Zar',c:'#16a34a',fn:function(){ var a=_mInt(1,6),b=_mInt(1,6); return a+' + '+b+' = '+(a+b); }},
+  {e:'🪙',l:'Yazı / Tura',c:'#eab308',fn:function(){ return _mr(['🪙 YAZI','🪙 TURA']); }},
+  {e:'🔟',l:'Rastgele Sayı',c:'#0ea5e9',fn:function(){ var r=prompt('Aralık (min,max):','1,100'); if(!r)return null; var p=r.split(',').map(Number); return ''+_mInt(p[0]||1,p[1]||100); }},
+  {e:'📣',l:'Slogan Üret',c:'#f97316',fn:function(){ return _mr(['Geleceği bugün yaşa','Sınırları aş','Hayalini kodla','Farkı sen yarat','Daha hızlı, daha akıllı','Senin gücün, senin kuralların','Düşün. Üret. Kazan.','Sıradanlığa veda et']); }},
+  {e:'🚀',l:'Proje Kod Adı',c:'#7c3aed',fn:function(){ return 'Proje '+_mr(['Anka','Kuasar','Nebula','Titan','Orion','Vega','Atlas','Zenit','Kıvılcım','Fırtına','Gölge','Şafak']); }},
+  {e:'⚽',l:'Takım Adı',c:'#10b981',fn:function(){ return _mr(['Vahşi','Yıldız','Demir','Gece','Altın','Siber'])+' '+_mr(['Kartallar','Kurtlar','Ejderler','Aslanlar','Panterler','Şahinler'])+' FK'; }},
+  {e:'📧',l:'Sahte E-posta',c:'#3b82f6',fn:function(){ return _mr(['ali','veli','zeynep','can','ece','mert'])+_mInt(10,999)+'@'+_mr(['ornek.com','mail.net','test.org','demo.io']); }},
+  {e:'🏦',l:'Sahte IBAN (TR)',c:'#64748b',fn:function(){ var n='TR'; for(var i=0;i<24;i++)n+=_mInt(0,9); return n.replace(/(.{4})/g,'$1 ').trim(); }},
+  {e:'🏙️',l:'Rastgele Şehir',c:'#0891b2',fn:function(){ return _mr(['İstanbul','Ankara','İzmir','Bursa','Antalya','Trabzon','Konya','Gaziantep','Eskişehir','Mardin','Rize','Muğla']); }},
+  {e:'🌍',l:'Rastgele Ülke',c:'#22c55e',fn:function(){ return _mr(['Japonya','Brezilya','Kanada','İzlanda','Yeni Zelanda','Mısır','Norveç','Peru','Tayland','Fas','Portekiz','Avustralya']); }},
+  {e:'🔐',l:'Base64 Kodla',c:'#a78bfa',fn:function(){ var t=prompt('Metin:'); if(t===null)return null; try{return btoa(unescape(encodeURIComponent(t)));}catch(e){return 'Hata';} }},
+  {e:'🔓',l:'Base64 Çöz',c:'#c084fc',fn:function(){ var t=prompt('Base64:'); if(t===null)return null; try{return decodeURIComponent(escape(atob(t)));}catch(e){return 'Geçersiz';} }},
+  {e:'🔄',l:'Metni Ters Çevir',c:'#f43f5e',fn:function(){ var t=prompt('Metin:'); if(t===null)return null; return t.split('').reverse().join(''); }},
+  {e:'🔠',l:'BÜYÜK Harf',c:'#0ea5e9',fn:function(){ var t=prompt('Metin:'); if(t===null)return null; return t.toLocaleUpperCase('tr'); }},
+  {e:'🔡',l:'küçük harf',c:'#38bdf8',fn:function(){ var t=prompt('Metin:'); if(t===null)return null; return t.toLocaleLowerCase('tr'); }},
+  {e:'🔢',l:'Kelime/Harf Say',c:'#6366f1',fn:function(){ var t=prompt('Metin:'); if(t===null)return null; var w=t.trim()?t.trim().split(/\s+/).length:0; return w+' kelime, '+t.length+' karakter'; }},
+  {e:'🌀',l:'ROT13 Şifrele',c:'#7c3aed',fn:function(){ var t=prompt('Metin:'); if(t===null)return null; return t.replace(/[a-zA-Z]/g,function(c){return String.fromCharCode((c<='Z'?90:122)>=(c=c.charCodeAt(0)+13)?c:c-26);}); }},
+  {e:'💻',l:'Binary\'e Çevir',c:'#16a34a',fn:function(){ var t=prompt('Metin:'); if(t===null)return null; return t.split('').map(function(c){return c.charCodeAt(0).toString(2).padStart(8,'0');}).join(' '); }},
+  {e:'📡',l:'Mors Koduna',c:'#0d9488',fn:function(){ var t=prompt('Metin:'); if(t===null)return null; var M={a:'.-',b:'-...',c:'-.-.',d:'-..',e:'.',f:'..-.',g:'--.',h:'....',i:'..',j:'.---',k:'-.-',l:'.-..',m:'--',n:'-.',o:'---',p:'.--.',q:'--.-',r:'.-.',s:'...',t:'-',u:'..-',v:'...-',w:'.--',x:'-..-',y:'-.--',z:'--..','1':'.----','2':'..---','3':'...--','4':'....-','5':'.....','6':'-....','7':'--...','8':'---..','9':'----.','0':'-----',' ':'/'}; return t.toLowerCase().split('').map(function(c){return M[c]||'';}).join(' '); }},
+  {e:'🔗',l:'URL Slug Yap',c:'#3b82f6',fn:function(){ var t=prompt('Başlık:'); if(t===null)return null; return t.toLowerCase().replace(/ş/g,'s').replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,''); }},
+  {e:'🤖',l:'Leetspeak',c:'#22c55e',fn:function(){ var t=prompt('Metin:'); if(t===null)return null; return t.replace(/[aeiostAEIOST]/g,function(c){return {a:'4',e:'3',i:'1',o:'0',s:'5',t:'7',A:'4',E:'3',I:'1',O:'0',S:'5',T:'7'}[c];}); }},
+  {e:'😀',l:'Emoji Kombo',c:'#f59e0b',fn:function(){ var em=['🚀','🔥','⭐','💎','🌈','⚡','🎉','👑','🦄','🌙','☀️','🍀','🎯','💜','🪐']; var o=''; for(var i=0;i<5;i++)o+=_mr(em); return o; }},
+  {e:'😂',l:'Rastgele Şaka',c:'#fbbf24',fn:function(){ return _mr(['Programcı neden karanlıktan korkmaz? Çünkü ışığı (light) kapatabilir.','Bilgisayar neden üşümüş? Çünkü pencereleri (Windows) açık kalmış.','En sevdiğim tuş hangisi? Tabii ki Enter — her şeye giriş yapar.','Wi-Fi ile neden kavga ettim? Bağlantımız koptu.','RAM ne dedi? "Unutma beni" — ama unuttu.']); }},
+  {e:'💪',l:'Motivasyon Sözü',c:'#10b981',fn:function(){ return _mr(['Bugün dünden daha güçlüsün.','Küçük adımlar büyük yollar açar.','Başlamak, bitirmenin yarısıdır.','Korkun, yapamayacağın değil; denemediğin olsun.','Disiplin, motivasyonun bittiği yerde başlar.','Hayalin kadar büyüksün.']); }},
+  {e:'🧠',l:'İlginç Bilgi',c:'#a855f7',fn:function(){ return _mr(['Bal asla bozulmaz.','Ahtapotun üç kalbi vardır.','Bir bulut milyonlarca ton ağırlığında olabilir.','Muz aslında bir çilek türü değildir ama çilek de meyve değildir.','İnsan beyni günde ~70.000 düşünce üretir.','Bal arıları yüzlerini tanıyabilir.']); }},
+  {e:'♈',l:'Burç Yorumu',c:'#f43f5e',fn:function(){ return _mr(['Bugün şansın açık, cesur ol.','Beklenmedik bir haber kapıda.','Sabırlı olursan kazanırsın.','Bir dostun sana sürpriz yapacak.','Maddi konularda dikkatli ol.','İçgüdülerine güven, doğru yoldasın.']); }},
+  {e:'☕',l:'Kahve Falı',c:'#92400e',fn:function(){ return _mr(['Falında bir yol görünüyor — yeni bir başlangıç.','Bir kuş var, müjdeli haber gelecek.','Kalp şekli — duygusal bir gelişme yakın.','Para kesesi — bereket kapıda.','Bir göz — biri seni izliyor (iyi anlamda).','Dağ silüeti — büyük bir hedefe ulaşacaksın.']); }},
+  {e:'🃏',l:'Kart Çek',c:'#dc2626',fn:function(){ return _mr(['♠','♥','♦','♣'])+_mr(['A','2','3','4','5','6','7','8','9','10','J','Q','K']); }},
+  {e:'🍽️',l:'Yemek Öner',c:'#ea580c',fn:function(){ return _mr(['Mantı','İskender','Karnıyarık','Lahmacun','Mercimek çorbası','Kuru fasulye + pilav','Menemen','Köfte','Pide','İmam bayıldı']); }},
+  {e:'🎬',l:'Film Öner',c:'#6366f1',fn:function(){ return _mr(['Inception','Interstellar','The Matrix','Forrest Gump','Parasite','Gladiator','Whiplash','Joker','Fight Club','The Prestige']); }},
+  {e:'💱',l:'Para Birimi',c:'#16a34a',fn:function(){ return _mr(['₺ Türk Lirası','$ Dolar','€ Euro','£ Sterlin','¥ Yen','₿ Bitcoin','₽ Ruble','₹ Rupi']); }},
+  {e:'🕐',l:'Tarih & Saat',c:'#0ea5e9',fn:function(){ return new Date().toLocaleString('tr-TR'); }},
+  {e:'🎆',l:'Yeni Yıla Kalan',c:'#f59e0b',fn:function(){ var now=new Date(); var ny=new Date(now.getFullYear()+1,0,1); var d=Math.ceil((ny-now)/86400000); return d+' gün kaldı'; }},
+  {e:'🎂',l:'Yaş Hesapla',c:'#ec4899',fn:function(){ var y=prompt('Doğum yılın:'); if(!y)return null; return (new Date().getFullYear()-parseInt(y))+' yaşındasın'; }},
+  {e:'📖',l:'Okuma Süresi',c:'#6b7280',fn:function(){ var t=prompt('Metni yapıştır:'); if(t===null)return null; var w=t.trim().split(/\s+/).length; return w+' kelime ≈ '+Math.max(1,Math.ceil(w/200))+' dk okuma'; }},
+  {e:'🔤',l:'Sayı → Yazı',c:'#a78bfa',fn:function(){ var n=prompt('Sayı (0-999):'); if(n===null)return null; n=parseInt(n)||0; var b=['sıfır','bir','iki','üç','dört','beş','altı','yedi','sekiz','dokuz'],o=['','on','yirmi','otuz','kırk','elli','altmış','yetmiş','seksen','doksan']; if(n<10)return b[n]; if(n<100)return (o[Math.floor(n/10)]+' '+(n%10?b[n%10]:'')).trim(); var yuz=Math.floor(n/100); return ((yuz>1?b[yuz]+' ':'')+'yüz '+(n%100?(o[Math.floor(n%100/10)]+' '+(n%10?b[n%10]:'')):'')).trim(); }},
+  {e:'🎡',l:'Çark Çevir',c:'#f43f5e',fn:function(){ var r=prompt('Seçenekler (virgülle):','Evet,Hayır,Belki'); if(!r)return null; return '🎯 '+_mr(r.split(',').map(function(s){return s.trim();}).filter(Boolean)); }},
+  {e:'🖼️',l:'Rastgele Avatar',c:'#8b5cf6',fn:function(){ var c=document.createElement('canvas'); c.width=c.height=100; var x=c.getContext('2d'); x.fillStyle='hsl('+_mInt(0,360)+',70%,55%)'; x.fillRect(0,0,100,100); x.fillStyle='#fff'; x.font='bold 50px sans-serif'; x.textAlign='center'; x.fillText(_mr('ABCDEFGHJKMNPRSTUVYZ'.split('')),50,68); var w=window.open(); if(w)w.document.write('<img src="'+c.toDataURL()+'" style="image-rendering:pixelated;width:300px">'); return 'Avatar yeni sekmede açıldı'; }},
+  {e:'📝',l:'Hızlı Not Kaydet',c:'#10b981',fn:function(){ var t=prompt('Not:'); if(!t)return null; var n=JSON.parse(localStorage.getItem('artus_quick_notes')||'[]'); n.push({t:t,d:new Date().toLocaleString('tr-TR')}); localStorage.setItem('artus_quick_notes',JSON.stringify(n)); return 'Kaydedildi ('+n.length+' not)'; }},
+  {e:'📚',l:'Notları Göster',c:'#0ea5e9',fn:function(){ var n=JSON.parse(localStorage.getItem('artus_quick_notes')||'[]'); if(!n.length)return 'Henüz not yok'; return n.map(function(x,i){return (i+1)+'. ['+x.d+'] '+x.t;}).join('\n'); }},
+];
+function magicRun(i){
+  var out=document.getElementById('magic-out');
+  try{
+    var p=_magicTools[i]; if(!p)return;
+    var res=p.fn();
+    if(res===null){ return; }
+    if(out){ out.value=res; out.style.display='block'; }
+  }catch(e){ if(out){ out.value='Hata: '+e.message; out.style.display='block'; } }
+}
+function _renderMagicGrid(){
+  return _magicTools.map(function(p,i){
+    return '<button onclick="magicRun('+i+')" title="'+p.l+'" style="display:flex;flex-direction:column;align-items:center;gap:5px;background:rgba(13,16,24,0.7);border:1px solid '+p.c+'55;border-radius:12px;padding:11px 6px;cursor:pointer;transition:all .18s" onmouseover="this.style.transform=\'translateY(-3px)\';this.style.borderColor=\''+p.c+'\';this.style.boxShadow=\'0 6px 18px '+p.c+'44\'" onmouseout="this.style.transform=\'none\';this.style.borderColor=\''+p.c+'55\';this.style.boxShadow=\'none\'"><span style="font-size:22px">'+p.e+'</span><span style="font-size:10px;font-weight:600;color:#cbd5e1;text-align:center;line-height:1.2">'+p.l+'</span></button>';
+  }).join('');
+}
 function _renderGodGrid(){
   return _godPowers.map(function(p,i){
     return '<button onclick="godPower('+i+')" title="'+p.l+'" style="display:flex;flex-direction:column;align-items:center;gap:5px;background:rgba(13,16,24,0.7);border:1px solid '+p.c+'55;border-radius:12px;padding:11px 6px;cursor:pointer;transition:all .18s" onmouseover="this.style.transform=\'translateY(-3px)\';this.style.borderColor=\''+p.c+'\';this.style.boxShadow=\'0 6px 18px '+p.c+'44\'" onmouseout="this.style.transform=\'none\';this.style.borderColor=\''+p.c+'55\';this.style.boxShadow=\'none\'"><span style="font-size:22px">'+p.e+'</span><span style="font-size:10px;font-weight:600;color:#cbd5e1;text-align:center;line-height:1.2">'+p.l+'</span></button>';
@@ -8514,6 +8586,7 @@ function showAdminPanel(tab) {
     { id:'lab',      icon:'🧪', label:'Deney Lab' },
     { id:'live',     icon:'🌐', label:'Canlı Durum' },
     { id:'god', icon:'👑', label:'GOD MODE' },
+    { id:'magic', icon:'🪄', label:'Sihirli Araçlar' },
   ];
 
   var overlay = document.createElement('div');
@@ -9306,6 +9379,25 @@ function showAdminPanel(tab) {
         <button onclick="sendGlobalEvent('__jumpscare__','hypnosis_'+Date.now());showToast('🌀 Hipnoz başladı')" style="background:#0a001a;border:1px solid #7c3aed;color:#c4b5fd;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🌀 Hipnoz Et</button>
         <button onclick="(async function(){var s=await _getApiSecret();if(!s)return;await fetch('/api/global-modes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({secret:s,modes:{}})});showToast('🧹 KV temizlendi');})();" style="background:#1a0a00;border:1px solid #ca8a04;color:#fde047;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🧹 KV Temizle</button>
       </div>
+    </div>
+  </div>`;
+    }
+    else if (activeTab === 'magic') {
+      content = `<div style="display:flex;flex-direction:column;gap:16px">
+    <div style="background:linear-gradient(135deg,rgba(124,58,237,0.18),rgba(14,165,233,0.1));border:1px solid rgba(124,58,237,0.35);border-radius:14px;padding:18px;text-align:center">
+      <div style="font-size:40px;margin-bottom:6px">🪄</div>
+      <div style="font-size:18px;font-weight:900;color:#e8ecf3;margin-bottom:4px">Sihirli Araçlar</div>
+      <div style="font-size:12px;color:#818cf8">50 farklı gerçek üreteç & araç — bir karta tıkla, sonucu aşağıda gör</div>
+    </div>
+    <div style="background:rgba(13,16,24,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px">${_renderMagicGrid()}</div>
+    </div>
+    <div style="background:rgba(13,16,24,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:13px;font-weight:700;color:#4ade80">📤 SONUÇ</div>
+        <button onclick="var o=document.getElementById('magic-out');if(o.value)navigator.clipboard.writeText(o.value).then(function(){showToast('📋 Kopyalandı')})" style="background:#0d1a0d;border:1px solid #16a34a;color:#4ade80;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px">📋 Kopyala</button>
+      </div>
+      <textarea id="magic-out" readonly placeholder="Bir araca tıkla, sonuç burada belirecek..." style="width:100%;min-height:90px;background:#0a0e14;border:1px solid #1c2128;border-radius:10px;color:#7dd3fc;padding:12px;font-size:13px;font-family:monospace;resize:vertical;box-sizing:border-box"></textarea>
     </div>
   </div>`;
     }
