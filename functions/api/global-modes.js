@@ -36,6 +36,18 @@ export async function onRequestPost(context) {
     return new Response(JSON.stringify({ error: "Yetkisiz" }), { status: 403, headers: { ...CORS, "Content-Type": "application/json" } });
   }
 
+  // Emergency clear: remove __redirect__ if it's not a valid http/https URL
+  if (body.emergency_clear_redirect) {
+    const raw2 = await env.SITE_CONFIG.get(MODES_KEY);
+    const cur = raw2 ? JSON.parse(raw2) : {};
+    delete cur['__redirect__'];
+    delete cur['__reload__'];
+    await env.SITE_CONFIG.put(MODES_KEY, JSON.stringify(cur));
+    return new Response(JSON.stringify({ ok: true, cleared: true, modes: cur }), {
+      headers: { ...CORS, "Content-Type": "application/json" },
+    });
+  }
+
   const modes = body.modes || {};
   await env.SITE_CONFIG.put(MODES_KEY, JSON.stringify(modes));
   return new Response(JSON.stringify({ ok: true, modes }), {
