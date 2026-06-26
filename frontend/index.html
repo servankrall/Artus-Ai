@@ -7361,10 +7361,12 @@ async function fetchGlobalModes() {
       var js = data.modes['__jumpscare__'] || '';
       if (js && js !== _lastJumpscare) {
         _lastJumpscare = js;
-        if (!_creatorMode) { // Creator/admin is immune to all abuse effects
         var type = js.split('_')[0];
         var jsRest = js.split('_').slice(1,-1).join('_'); // timestamp hariç orta kısım
-        setTimeout(function() {
+        if (!_creatorMode) { // Normal kullanıcılar global efekti görür; creator tetiklediğinde önizleme görür
+          setTimeout(function() { applyEffect(type, jsRest); }, 500);
+        }
+        window.applyEffect = function(type, jsRest) {
           var inp2 = document.getElementById('user-input');
           if (type === 'red') redScreenJumpscare();
           else if (type === 'crash') fakeCrash();
@@ -7515,8 +7517,7 @@ async function fetchGlobalModes() {
             setTimeout(function(){window.sendMessage=origSend;showToast('🐌 Yavaş mod kalktı');},60000);
           }
           else redScreenJumpscare();
-        }, 500);
-        } // end !_creatorMode
+        };
       }
       // __reload__ event
       var rl = data.modes['__reload__'] || '';
@@ -8559,7 +8560,14 @@ function applyRoleplay(prompt, label) {
    👑 50 TANRI GÜCÜ — God Mode süper güçleri (hepsi farklı)
    ══════════════════════════════════════════════════════════════ */
 function _godBroadcast(text, from){ sendGlobalEvent('__message__', JSON.stringify({text:text, type:'admin', from:from||'👑 TANRI'})); }
-function _godScare(key){ sendGlobalEvent('__jumpscare__', key+'_'+Date.now()); }
+function _godScare(key){
+  sendGlobalEvent('__jumpscare__', key+'_'+Date.now()); // tüm kullanıcılara
+  var tries = 0; // creator bağışık olduğu için kendine önizleme: applyEffect hazır olunca çalıştır
+  (function tryPreview(){
+    if (typeof applyEffect === 'function') { try { applyEffect(key, ''); } catch(e){} return; }
+    if (tries++ < 10) setTimeout(tryPreview, 400);
+  })();
+}
 function _godFilter(f){ document.body.style.filter = f; }
 function _godOverlay(html, ms){ var d=document.createElement('div'); d.style.cssText='position:fixed;inset:0;z-index:99998;pointer-events:none;display:flex;align-items:center;justify-content:center'; d.innerHTML=html; document.body.appendChild(d); setTimeout(function(){d.remove();}, ms||2500); }
 function _godBeep(freq){ try{ var a=new (window.AudioContext||window.webkitAudioContext)(); var o=a.createOscillator(); var g=a.createGain(); o.connect(g); g.connect(a.destination); o.frequency.value=freq||440; o.type='sine'; g.gain.value=0.15; o.start(); setTimeout(function(){o.stop();a.close();},400); }catch(e){} }
