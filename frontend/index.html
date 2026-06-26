@@ -1505,35 +1505,37 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
         <!-- Free -->
         <div class="plan-col">
           <div class="plan-label free-lbl">🆓 Ücretsiz</div>
-          <div class="plan-feature ok">Chat modu</div>
-          <div class="plan-feature ok">Llama 3.1 8B</div>
           <div class="plan-feature ok">20 mesaj/gün</div>
-          <div class="plan-feature no">Omni Code</div>
-          <div class="plan-feature no">Omni Design</div>
-          <div class="plan-feature no">Tüm modeller</div>
-          <div class="plan-feature no">Öncelikli destek</div>
+          <div class="plan-feature ok">Temel AI sohbet</div>
+          <div class="plan-feature ok">Web araması</div>
+          <div class="plan-feature no">Görsel üretme</div>
+          <div class="plan-feature no">Ses modu</div>
+          <div class="plan-feature no">Derin araştırma</div>
+          <div class="plan-feature no">Dosya ekleme</div>
+          <div class="plan-feature no">Bellek</div>
         </div>
         <!-- Pro -->
         <div class="plan-col pro-col">
           <div class="popular-badge">EN POPÜLER</div>
           <div class="plan-label pro-lbl">⚡ Pro</div>
-          <div class="plan-feature ok">Tüm modeller</div>
           <div class="plan-feature ok">100 mesaj/gün</div>
-          <div class="plan-feature ok">Omni Code ⚡</div>
-          <div class="plan-feature ok">Omni Design 🎨</div>
-          <div class="plan-feature ok">Öncelikli destek</div>
-          <div class="plan-feature ok">Erken erişim</div>
-          <div class="plan-feature no">Sınırsız mesaj</div>
+          <div class="plan-feature ok">Görsel üretme 🎨</div>
+          <div class="plan-feature ok">Ses modu 🎙️</div>
+          <div class="plan-feature ok">Derin araştırma 🔬</div>
+          <div class="plan-feature ok">Dosya ekleme 📎</div>
+          <div class="plan-feature ok">Bellek özelliği 🧠</div>
+          <div class="plan-feature ok">Öncelikli işlem</div>
+          <div class="plan-feature no">Karşılaştırma modu</div>
         </div>
         <!-- Max -->
         <div class="plan-col" style="border:1.5px solid #f59e0b;background:rgba(234,179,8,.04);position:relative">
           <div class="popular-badge" style="background:linear-gradient(135deg,#f59e0b,#fb923c)">✦ MAX</div>
           <div class="plan-label" style="color:#f59e0b">✦ Max</div>
-          <div class="plan-feature ok">Pro'daki her şey</div>
           <div class="plan-feature ok">Sınırsız mesaj</div>
-          <div class="plan-feature ok">En hızlı modeller</div>
-          <div class="plan-feature ok">Görsel üretimi</div>
-          <div class="plan-feature ok">API erişimi</div>
+          <div class="plan-feature ok">Tüm Pro özellikleri</div>
+          <div class="plan-feature ok">Karşılaştırma modu ⚖️</div>
+          <div class="plan-feature ok">Maksimum token limiti</div>
+          <div class="plan-feature ok">En hızlı yanıt</div>
           <div class="plan-feature ok">7/24 öncelikli destek</div>
           <div class="plan-feature ok">Beta özellikler</div>
         </div>
@@ -1771,13 +1773,13 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
         <div class="input-wrap">
           <button class="input-side-btn" id="btn-attach" title="Dosya ekle — PDF, Word, Excel, CSV, JSON, ses, ZIP, kod, görsel ve daha fazlası" onclick="triggerFileAttach()">＋</button>
           <button class="input-side-btn" id="btn-web" title="Web arama modu" onclick="toggleWebSearch()">🌐</button>
-          <button class="input-side-btn" id="btn-deep-research" title="Derin Araştırma modu" onclick="toggleDeepResearch()">🔬</button>
+          <button class="input-side-btn" id="btn-deep-research" title="Derin Araştırma modu (Pro+ özelliği)" onclick="toggleDeepResearch()">🔬</button>
           <button class="input-side-btn" id="btn-url" title="URL özetle — URL yapıştır ve özetle" onclick="triggerUrlSummarize()">🔗</button>
-          <button class="input-side-btn" id="btn-img-gen" title="Görsel üret (Ctrl+G)" onclick="toggleImgGenMode()">🎨</button>
+          <button class="input-side-btn" id="btn-img-gen" title="Görsel üret (Pro+ özelliği)" onclick="toggleImgGenMode()">🎨</button>
           <button class="input-side-btn" id="btn-enhance" title="Promptu geliştir (✨)" onclick="enhancePrompt()">✨</button>
           <textarea id="user-input" rows="1" placeholder="Mesajınızı yazın… ( / komutlar · URL yapıştır · Enter gönder )"></textarea>
           <button class="input-side-btn" id="btn-mic" onclick="toggleMic()" title="Sesle yaz (Ctrl+M)">🎤</button>
-          <button class="input-side-btn" id="btn-voice" onclick="startVoiceMode()" title="Sesli konuşma modu">🎙️</button>
+          <button class="input-side-btn" id="btn-voice" onclick="startVoiceMode()" title="Sesli konuşma modu (Pro+ özelliği)">🎙️</button>
         </div>
         <button id="btn-send" onclick="sendMessage()" title="Gönder (Enter)" disabled>➤</button>
         <button id="btn-stop" onclick="stopGeneration()" title="Durdur" style="display:none;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:var(--red);width:44px;height:44px;border-radius:14px;cursor:pointer;font-size:16px;display:none;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s;">⏹</button>
@@ -2408,7 +2410,21 @@ async function fetchAISuggestions(responseText, div) {
 }
 
 let deepResearchMode = false;
+function showProModal(tier) {
+  if (tier === 'max') {
+    const card = document.getElementById('pro-modal-card');
+    if (card) card.dataset.highlight = 'max';
+  } else {
+    const card = document.getElementById('pro-modal-card');
+    if (card) card.dataset.highlight = 'pro';
+  }
+  openProModal();
+}
+
 function toggleDeepResearch() {
+  if (!CURRENT_USER || (!CURRENT_USER.pro && !CURRENT_USER.max && !_creatorMode)) {
+    showProModal('pro'); return;
+  }
   deepResearchMode = !deepResearchMode;
   const btn = document.getElementById('btn-deep-research');
   if (btn) btn.style.background = deepResearchMode ? 'rgba(99,102,241,.25)' : '';
@@ -3614,6 +3630,11 @@ async function processAnyFile(file) {
     reader.onerror = () => showToast(`❌ Okunamadı: ${name}`);
     reader.readAsDataURL(file);
     return;
+  }
+
+  // ── Non-image dosyalar Pro+ gerektirir ──────────────────────
+  if (!CURRENT_USER || (!CURRENT_USER.pro && !CURRENT_USER.max && !_creatorMode)) {
+    showToast('📎 Dosya ekleme Pro+ özelliğidir'); showProModal('pro'); return;
   }
 
   // ── PDF ─────────────────────────────────────────────────────
@@ -5127,6 +5148,9 @@ function setTopP(v) { localStorage.setItem('artus_top_p', v); const l=document.g
 ════════════════════════════════════════════════════════ */
 let compareMode = false;
 function toggleCompareMode() {
+  if (!CURRENT_USER || (!CURRENT_USER.max && !_creatorMode)) {
+    showProModal('max'); return;
+  }
   compareMode = !compareMode;
   const item = document.getElementById('tool-compare');
   if (item) item.style.color = compareMode ? 'var(--accent)' : '';
@@ -5347,6 +5371,9 @@ async function enhancePrompt() {
 let voiceActive = false, voiceRecognition = null;
 
 function startVoiceMode() {
+  if (!CURRENT_USER || (!CURRENT_USER.pro && !CURRENT_USER.max && !_creatorMode)) {
+    showProModal('pro'); return;
+  }
   if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
     showToast('Tarayıcı sesli modu desteklemiyor'); return;
   }
@@ -5431,6 +5458,9 @@ function voiceSpeak(text) {
 ════════════════════════════════════════════════════════ */
 let imgGenMode = false;
 function toggleImgGenMode() {
+  if (!CURRENT_USER || (!CURRENT_USER.pro && !CURRENT_USER.max && !_creatorMode)) {
+    showProModal('pro'); return;
+  }
   imgGenMode = !imgGenMode;
   const btn = document.getElementById('btn-img-gen');
   btn.classList.toggle('img-active', imgGenMode);
@@ -5653,6 +5683,9 @@ function getMemory() {
 function saveMemory(list) { localStorage.setItem('artus_memory', JSON.stringify(list)); }
 
 function addMemory() {
+  if (!CURRENT_USER || (!CURRENT_USER.pro && !CURRENT_USER.max && !_creatorMode)) {
+    showToast('🧠 Bellek özelliği Pro+ gerektirir'); showProModal('pro'); return;
+  }
   const inp = document.getElementById('mem-input');
   const val = inp ? inp.value.trim() : '';
   if (!val) return;
