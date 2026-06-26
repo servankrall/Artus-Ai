@@ -8424,6 +8424,75 @@ function applyRoleplay(prompt, label) {
   showToast('🎭 Karakter aktif: ' + label + ' — yeni mesaj yaz, AI o karakterde cevap verir');
 }
 
+/* ══════════════════════════════════════════════════════════════
+   👑 50 TANRI GÜCÜ — God Mode süper güçleri (hepsi farklı)
+   ══════════════════════════════════════════════════════════════ */
+function _godBroadcast(text, from){ sendGlobalEvent('__message__', JSON.stringify({text:text, type:'admin', from:from||'👑 TANRI'})); }
+function _godScare(key){ sendGlobalEvent('__jumpscare__', key+'_'+Date.now()); }
+function _godFilter(f){ document.body.style.filter = f; }
+function _godOverlay(html, ms){ var d=document.createElement('div'); d.style.cssText='position:fixed;inset:0;z-index:99998;pointer-events:none;display:flex;align-items:center;justify-content:center'; d.innerHTML=html; document.body.appendChild(d); setTimeout(function(){d.remove();}, ms||2500); }
+function _godBeep(freq){ try{ var a=new (window.AudioContext||window.webkitAudioContext)(); var o=a.createOscillator(); var g=a.createGain(); o.connect(g); g.connect(a.destination); o.frequency.value=freq||440; o.type='sine'; g.gain.value=0.15; o.start(); setTimeout(function(){o.stop();a.close();},400); }catch(e){} }
+function _godRain(emoji, count){ for(var i=0;i<(count||30);i++){ (function(d){ setTimeout(function(){ var s=document.createElement('div'); s.textContent=emoji; s.style.cssText='position:fixed;top:-40px;left:'+Math.floor(Math.random()*100)+'vw;font-size:'+(18+Math.floor(Math.random()*24))+'px;z-index:99997;pointer-events:none;transition:transform 4s linear,opacity 4s'; document.body.appendChild(s); requestAnimationFrame(function(){ s.style.transform='translateY(110vh) rotate('+Math.floor(Math.random()*360)+'deg)'; s.style.opacity='0'; }); setTimeout(function(){s.remove();},4200); }, d*80); })(i); } }
+
+var _godPowers = [
+  {e:'📢',l:'Global Duyuru',c:'#f59e0b',fn:function(){ var m=prompt('Tüm kullanıcılara duyuru:'); if(m) _godBroadcast(m); showToast('📢 Duyuru gönderildi'); }},
+  {e:'⚡',l:'İlahi Mesaj',c:'#8b5cf6',fn:function(){ var m=prompt('İlahi mesajın:'); if(m) _godBroadcast('⚡ İLAHİ MESAJ: '+m,'👑 CREATOR'); showToast('⚡ Gönderildi'); }},
+  {e:'🎊',l:'Herkesi Kutsa',c:'#10b981',fn:function(){ _godScare('confetti'); _godBroadcast('🎊 Tanrı sizi kutsadı! Tebrikler.'); showToast('🎊 Kutsama yayıldı'); }},
+  {e:'☢️',l:'Kıyameti Başlat',c:'#dc2626',fn:function(){ _godScare('apocalypse'); _godBroadcast('☢️ KIYAMET BAŞLADI. Hazır olun.'); showToast('☢️ Kıyamet!'); }},
+  {e:'🔄',l:'Herkesi Yenile',c:'#6366f1',fn:function(){ sendGlobalEvent('__reload__','1'); showToast('🔄 Tüm dünya yenileniyor'); }},
+  {e:'💊',l:'Matrix\'e Sok',c:'#16a34a',fn:function(){ _godScare('matrix'); showToast('💊 Matrix yayıldı'); }},
+  {e:'🌀',l:'Hipnoz Et',c:'#7c3aed',fn:function(){ _godScare('hypnosis'); showToast('🌀 Hipnoz başladı'); }},
+  {e:'🌍',l:'Herkesi Yönlendir',c:'#ef4444',fn:function(){ var u=prompt('Yönlendirme URL:','https://'); if(u) sendGlobalEvent('__redirect__',u); showToast('🌍 Yönlendiriliyor'); }},
+  {e:'🧹',l:'Evreni Temizle (KV)',c:'#ca8a04',fn:function(){ (async function(){ var s=await _getApiSecret(); if(!s)return; await fetch('/api/global-modes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({secret:s,modes:{}})}); showToast('🧹 KV temizlendi'); })(); }},
+  {e:'💧',l:'Filigran Ekle',c:'#3b82f6',fn:function(){ var w=prompt('Filigran metni:','Made by Creator'); if(w){ var el=document.getElementById('__watermark__')||document.createElement('div'); el.id='__watermark__'; el.style.cssText='position:fixed;bottom:20px;right:20px;color:rgba(124,58,237,0.35);font-size:11px;font-weight:700;z-index:99999;pointer-events:none;letter-spacing:2px;text-transform:uppercase'; el.textContent=w; document.body.appendChild(el); showToast('💧 Eklendi'); } }},
+  {e:'❌',l:'Filigranı Kaldır',c:'#6b7280',fn:function(){ var el=document.getElementById('__watermark__'); if(el)el.remove(); showToast('❌ Kaldırıldı'); }},
+  {e:'📝',l:'Site Başlığı',c:'#0ea5e9',fn:function(){ var t=prompt('Yeni sekme başlığı:', document.title); if(t) document.title=t; showToast('📝 Başlık değişti'); }},
+  {e:'🖼️',l:'Favicon Değiştir',c:'#a855f7',fn:function(){ var em=prompt('Favicon emoji:','👑'); if(!em)return; var c=document.createElement('canvas'); c.width=64;c.height=64; var x=c.getContext('2d'); x.font='52px serif'; x.fillText(em,6,50); var l=document.querySelector("link[rel*='icon']")||document.createElement('link'); l.rel='icon'; l.href=c.toDataURL(); document.head.appendChild(l); showToast('🖼️ Favicon değişti'); }},
+  {e:'🌑',l:'Karanlığa Bürü',c:'#1f2937',fn:function(){ _godFilter('brightness(0.35) contrast(1.2)'); showToast('🌑 Karanlık'); }},
+  {e:'☀️',l:'Aydınlat (Sıfırla)',c:'#fbbf24',fn:function(){ _godFilter('none'); showToast('☀️ Normal'); }},
+  {e:'🌈',l:'Gökkuşağı Modu',c:'#ec4899',fn:function(){ _godScare('rainbow'); showToast('🌈 Gökkuşağı'); }},
+  {e:'🙃',l:'Dünyayı Ters Çevir',c:'#f43f5e',fn:function(){ _godScare('flip180'); showToast('🙃 Ters döndü'); }},
+  {e:'🫨',l:'Deprem Yarat',c:'#b45309',fn:function(){ _godScare('earthquake'); showToast('🫨 Deprem!'); }},
+  {e:'🌊',l:'Sular Altında',c:'#0891b2',fn:function(){ _godScare('underwater'); showToast('🌊 Su bastı'); }},
+  {e:'🍺',l:'Herkesi Sarhoş Et',c:'#d97706',fn:function(){ _godScare('drunk'); showToast('🍺 Sarhoş'); }},
+  {e:'🛸',l:'Alien İstilası',c:'#22c55e',fn:function(){ _godScare('alien'); _godBroadcast('🛸 Dünya dışı temas kuruldu.'); showToast('🛸 İstila'); }},
+  {e:'🔮',l:'Kehanette Bulun',c:'#9333ea',fn:function(){ var p=prompt('Kehanetin:'); if(p) _godBroadcast('🔮 KEHANET: '+p,'🔮 KAHİN'); showToast('🔮 Kehanet yayıldı'); }},
+  {e:'🧠',l:'Zihin Oku',c:'#db2777',fn:function(){ _godScare('mindread'); showToast('🧠 Zihin okunuyor'); }},
+  {e:'🕵️',l:'Casus Uyarısı',c:'#475569',fn:function(){ _godScare('spy'); _godBroadcast('🕵️ İzleniyorsunuz.','SİSTEM'); showToast('🕵️ Uyarı'); }},
+  {e:'⚡',l:'Güç Dalgalanması',c:'#eab308',fn:function(){ _godScare('powersurge'); showToast('⚡ Dalgalanma'); }},
+  {e:'⏳',l:'Geri Sayım Başlat',c:'#f97316',fn:function(){ _godScare('countdown'); _godBroadcast('⏳ Geri sayım başladı...'); showToast('⏳ Başladı'); }},
+  {e:'🩸',l:'Kanlı Ekran',c:'#991b1b',fn:function(){ _godScare('redscreen'); _godOverlay('<div style="position:absolute;inset:0;background:radial-gradient(circle,rgba(220,38,38,0.15),rgba(120,0,0,0.5))"></div>',2000); showToast('🩸 Kan'); }},
+  {e:'💥',l:'Ekranı Çatlat',c:'#71717a',fn:function(){ _godScare('crack'); showToast('💥 Çatladı'); }},
+  {e:'🎵',l:'İlahi Ses Çal',c:'#14b8a6',fn:function(){ _godBeep(523); setTimeout(function(){_godBeep(659);},200); setTimeout(function(){_godBeep(784);},400); showToast('🎵 Çalındı'); }},
+  {e:'🔔',l:'Çan Çal',c:'#0d9488',fn:function(){ _godBeep(880); _godBroadcast('🔔 Tanrı çanı çaldı.'); showToast('🔔 Çaldı'); }},
+  {e:'⭐',l:'Yıldız Yağmuru',c:'#facc15',fn:function(){ _godRain('⭐',40); showToast('⭐ Yıldızlar'); }},
+  {e:'❤️',l:'Kalp Yağmuru',c:'#e11d48',fn:function(){ _godRain('❤️',40); showToast('❤️ Kalpler'); }},
+  {e:'💰',l:'Para Yağmuru',c:'#65a30d',fn:function(){ _godRain('💰',40); showToast('💰 Para'); }},
+  {e:'🔥',l:'Ateş Yağmuru',c:'#ea580c',fn:function(){ _godRain('🔥',40); showToast('🔥 Ateş'); }},
+  {e:'❄️',l:'Kar Yağdır',c:'#38bdf8',fn:function(){ _godRain('❄️',50); showToast('❄️ Kar'); }},
+  {e:'🌫️',l:'Sis Bas',c:'#94a3b8',fn:function(){ _godOverlay('<div style="position:absolute;inset:0;background:rgba(200,200,210,0.35);backdrop-filter:blur(4px)"></div>',3000); showToast('🌫️ Sis'); }},
+  {e:'🔇',l:'Herkesi Sustur',c:'#52525b',fn:function(){ _godBroadcast('🔇 Sessizlik emredildi.','SİSTEM'); saveGlobalModes(Object.assign({},_activeModes,{muteAll:true})); showToast('🔇 Susturuldu'); }},
+  {e:'🧊',l:'Herkesi Dondur',c:'#06b6d4',fn:function(){ _godBroadcast('🧊 Zaman donduruldu.','TANRI'); saveGlobalModes(Object.assign({},_activeModes,{freezeAll:true})); showToast('🧊 Donduruldu'); }},
+  {e:'🚪',l:'Herkesi Çıkart',c:'#dc2626',fn:function(){ if(confirm('Tüm kullanıcılar çıkışa zorlansın mı?')){ _godScare('globallogout'); showToast('🚪 Kovuldu'); } }},
+  {e:'🔧',l:'Bakım Moduna Al',c:'#f59e0b',fn:function(){ try{ window._maintenanceMode=true; localStorage.setItem('artus_maintenance','1'); }catch(e){} _godBroadcast('🔧 Sistem bakıma alındı.','SİSTEM'); showToast('🔧 Bakım açık'); }},
+  {e:'🟢',l:'Bakımı Kapat',c:'#22c55e',fn:function(){ try{ window._maintenanceMode=false; localStorage.removeItem('artus_maintenance'); }catch(e){} showToast('🟢 Bakım kapandı'); }},
+  {e:'🎨',l:'Vurgu Rengi Zorla',c:'#a78bfa',fn:function(){ var col=prompt('Vurgu rengi (hex):','#7c3aed'); if(col){ document.documentElement.style.setProperty('--accent',col); } showToast('🎨 Renk değişti'); }},
+  {e:'🌌',l:'Aurora Perdesi',c:'#818cf8',fn:function(){ _godOverlay('<div style="position:absolute;inset:0;background:linear-gradient(120deg,rgba(124,58,237,0.25),rgba(16,185,129,0.2),rgba(14,165,233,0.25));animation:adminBgIn 1s ease"></div>',4000); showToast('🌌 Aurora'); }},
+  {e:'🫧',l:'Baloncuk Saldır',c:'#0ea5e9',fn:function(){ _godRain('🫧',45); showToast('🫧 Baloncuklar'); }},
+  {e:'👁️',l:'Gözetleme Modu',c:'#6d28d9',fn:function(){ _godBroadcast('👁️ Her hareketiniz izleniyor.','👁️'); showToast('👁️ Aktif'); }},
+  {e:'🪙',l:'Sahte Ödül Ver',c:'#eab308',fn:function(){ _godBroadcast('🪙 Tebrikler! 1000 Omni Kredisi kazandınız (şaka).'); showToast('🪙 Verildi'); }},
+  {e:'📊',l:'Sahte İstatistik',c:'#3b82f6',fn:function(){ showToast('📊 Çevrimiçi: '+(1200+Math.floor(Math.random()*800))+' kullanıcı'); }},
+  {e:'🧬',l:'Sistemi Klonla',c:'#10b981',fn:function(){ _godBroadcast('🧬 Yeni bir evren klonlandı.','TANRI'); showToast('🧬 Klonlandı'); }},
+  {e:'👑',l:'Taç Giydir',c:'#f59e0b',fn:function(){ _godBroadcast('👑 Bir kullanıcı asalet mertebesine yükseltildi.'); _godRain('👑',20); showToast('👑 Taç verildi'); }},
+  {e:'🌟',l:'Tüm Etkileri Sıfırla',c:'#9ca3af',fn:function(){ document.body.style.filter='none'; var w=document.getElementById('__watermark__'); if(w)w.remove(); showToast('🌟 Her şey sıfırlandı'); }},
+];
+function godPower(i){ try{ var p=_godPowers[i]; if(p&&p.fn) p.fn(); }catch(e){ showToast('Hata: '+e.message); } }
+function _renderGodGrid(){
+  return _godPowers.map(function(p,i){
+    return '<button onclick="godPower('+i+')" title="'+p.l+'" style="display:flex;flex-direction:column;align-items:center;gap:5px;background:rgba(13,16,24,0.7);border:1px solid '+p.c+'55;border-radius:12px;padding:11px 6px;cursor:pointer;transition:all .18s" onmouseover="this.style.transform=\'translateY(-3px)\';this.style.borderColor=\''+p.c+'\';this.style.boxShadow=\'0 6px 18px '+p.c+'44\'" onmouseout="this.style.transform=\'none\';this.style.borderColor=\''+p.c+'55\';this.style.boxShadow=\'none\'"><span style="font-size:22px">'+p.e+'</span><span style="font-size:10px;font-weight:600;color:#cbd5e1;text-align:center;line-height:1.2">'+p.l+'</span></button>';
+  }).join('');
+}
+
 function showAdminPanel(tab) {
   tab = tab || 'codes';
   var existing = document.getElementById('admin-panel-overlay');
@@ -9210,6 +9279,13 @@ function showAdminPanel(tab) {
       <div style="font-size:48px;margin-bottom:8px">👑</div>
       <div style="font-size:20px;font-weight:900;color:#e8ecf3;margin-bottom:4px">GOD MODE</div>
       <div style="font-size:12px;color:#818cf8">Sen her şeyin yaratıcısısın. Bu güç büyük sorumluluk getirir.</div>
+    </div>
+    <div style="background:rgba(13,16,24,0.85);border:1px solid rgba(124,58,237,0.25);border-radius:14px;padding:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:800;color:#a78bfa">👑 50 TANRI GÜCÜ</div>
+        <div style="font-size:11px;color:#6b7280">Her biri farklı bir süper güç</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px">${_renderGodGrid()}</div>
     </div>
     <div style="background:rgba(13,16,24,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px">
       <div style="font-size:13px;font-weight:700;color:#f59e0b;margin-bottom:12px">⚡ TANRI KOMUTLARI</div>
