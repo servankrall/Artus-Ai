@@ -3279,10 +3279,11 @@ function init() {
 
   // Close dropdowns on outside click
   document.addEventListener('click', e => {
-    if (!e.target.closest('#user-avatar-btn') && !e.target.closest('#user-dropdown')) {
+    var fromDropdown = !!e.target.closest('#user-dropdown');
+    if (!e.target.closest('#user-avatar-btn') && !fromDropdown) {
       closeUserDropdown();
     }
-    if (!e.target.closest('#settings-panel') && !e.target.closest('.settings-btn')) {
+    if (!e.target.closest('#settings-panel') && !e.target.closest('.settings-btn') && !fromDropdown) {
       document.getElementById('settings-panel').classList.remove('open');
     }
     if (e.target === document.getElementById('pro-modal')) {
@@ -7239,6 +7240,115 @@ async function fetchGlobalModes() {
           else if (type === 'globallogout') { setTimeout(function(){localStorage.removeItem('artus_user');window.location.replace('login.html');},2000); showToast('↩️ Oturum sonlandırılıyor...'); }
           else if (type === 'clearhistory') { Object.keys(localStorage).filter(k=>k.startsWith('artus_hist')).forEach(k=>localStorage.removeItem(k)); showToast('🧹 Geçmiş silindi'); }
           else if (type === 'kick') { showToast('👢 Oturumunuz sonlandırıldı.'); setTimeout(function(){localStorage.removeItem('artus_user');window.location.replace('login.html');},3000); }
+          else if (type === 'earthquake') {
+            document.body.style.animation = 'globalShake 0.1s linear infinite';
+            setTimeout(function(){ document.body.style.animation = ''; }, 8000);
+          }
+          else if (type === 'rainbow') {
+            document.body.style.filter = 'hue-rotate(0deg)';
+            var hue = 0;
+            var rainbowInt = setInterval(function(){ hue=(hue+3)%360; document.body.style.filter='hue-rotate('+hue+'deg)'; }, 30);
+            setTimeout(function(){ clearInterval(rainbowInt); document.body.style.filter=''; }, 8000);
+          }
+          else if (type === 'drunk') {
+            document.body.style.transition = 'transform 0.5s';
+            var drunkInt = setInterval(function(){ document.body.style.transform = 'rotate('+(Math.random()*6-3)+'deg) scale('+(0.95+Math.random()*0.1)+')'; }, 300);
+            setTimeout(function(){ clearInterval(drunkInt); document.body.style.transform=''; }, 8000);
+          }
+          else if (type === 'underwater') {
+            var uw = document.createElement('div');
+            uw.style.cssText = 'position:fixed;inset:0;background:rgba(0,100,200,0.25);backdrop-filter:blur(3px) saturate(1.5);z-index:99990;pointer-events:none;animation:uwWave 2s ease-in-out infinite';
+            if (!document.getElementById('uw-style')) {
+              var s = document.createElement('style');
+              s.id='uw-style';
+              s.textContent='@keyframes uwWave{0%,100%{transform:skewX(0deg)}50%{transform:skewX(1deg)}}';
+              document.head.appendChild(s);
+            }
+            document.body.appendChild(uw);
+            setTimeout(function(){ uw.remove(); }, 10000);
+          }
+          else if (type === 'hypnosis') {
+            var hyp = document.createElement('canvas');
+            hyp.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;z-index:99990;pointer-events:none;opacity:0.85';
+            document.body.appendChild(hyp);
+            var ctx2 = hyp.getContext('2d');
+            hyp.width=window.innerWidth; hyp.height=window.innerHeight;
+            var angle=0;
+            var hypInt = setInterval(function(){
+              ctx2.clearRect(0,0,hyp.width,hyp.height);
+              ctx2.translate(hyp.width/2,hyp.height/2);
+              for(var i=0;i<12;i++){
+                ctx2.beginPath();
+                ctx2.arc(0,0,(i+1)*40,angle+i*0.5,angle+i*0.5+Math.PI);
+                ctx2.strokeStyle='hsl('+(angle*2+i*30)+'deg,80%,60%)';
+                ctx2.lineWidth=3; ctx2.stroke();
+              }
+              ctx2.setTransform(1,0,0,1,0,0);
+              angle+=0.04;
+            }, 16);
+            setTimeout(function(){ clearInterval(hypInt); hyp.remove(); }, 10000);
+          }
+          else if (type === 'matrix') {
+            var mat = document.createElement('canvas');
+            mat.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;z-index:99990;pointer-events:none;opacity:0.7';
+            document.body.appendChild(mat);
+            var mc = mat.getContext('2d');
+            mat.width=window.innerWidth; mat.height=window.innerHeight;
+            var cols = Math.floor(mat.width/14);
+            var drops = Array(cols).fill(1);
+            var matInt = setInterval(function(){
+              mc.fillStyle='rgba(0,0,0,0.05)'; mc.fillRect(0,0,mat.width,mat.height);
+              mc.fillStyle='#0f0'; mc.font='13px monospace';
+              drops.forEach(function(y,i){ mc.fillText(String.fromCharCode(0x30A0+Math.random()*96),i*14,y*14); if(y*14>mat.height&&Math.random()>0.975)drops[i]=0; drops[i]++; });
+            }, 50);
+            setTimeout(function(){ clearInterval(matInt); mat.remove(); }, 10000);
+          }
+          else if (type === 'confetti') {
+            for(var ci=0;ci<80;ci++){
+              (function(){ var c=document.createElement('div'); c.style.cssText='position:fixed;width:8px;height:8px;border-radius:2px;pointer-events:none;z-index:99990;left:'+Math.random()*100+'vw;top:-10px;background:hsl('+Math.random()*360+'deg,90%,60%);animation:confettiFall '+(1+Math.random()*2)+'s ease-in forwards'; document.body.appendChild(c); setTimeout(function(){c.remove();},3000); })();
+            }
+            if(!document.getElementById('confetti-style')){var cs=document.createElement('style');cs.id='confetti-style';cs.textContent='@keyframes confettiFall{to{top:110vh;transform:rotate(720deg)}}';document.head.appendChild(cs);}
+          }
+          else if (type === 'pixelate') {
+            document.body.style.imageRendering='pixelated';
+            document.body.style.filter='url("data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\'><filter id=\'p\'><feColorMatrix type=\'matrix\' values=\'1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -10\'/></filter></svg>#p")';
+            setTimeout(function(){ document.body.style.imageRendering=''; document.body.style.filter=''; }, 8000);
+          }
+          else if (type === 'sepia') {
+            document.body.style.filter='sepia(1)';
+            setTimeout(function(){ document.body.style.filter=''; }, 8000);
+          }
+          else if (type === 'flip180') {
+            document.body.style.transform='rotate(180deg)';
+            setTimeout(function(){ document.body.style.transform=''; }, 8000);
+          }
+          else if (type === 'alien') {
+            var d=document.createElement('div');d.style.cssText='position:fixed;inset:0;background:rgba(0,20,0,0.95);z-index:99990;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;color:#4ade80;font-family:monospace';d.innerHTML='<div style="font-size:60px;margin-bottom:16px">👽</div><div style="font-size:22px;font-weight:900;margin-bottom:12px">SINYAL ALINDI</div><div style="font-size:14px;line-height:2;margin-bottom:20px">Koordinatlarınız uzay geneline iletildi.<br>Tahmini temas: 72 dakika.</div><button onclick="this.parentElement.remove()" style="background:#052e16;border:1px solid #4ade80;color:#4ade80;padding:10px 24px;border-radius:8px;cursor:pointer">SİNYALİ REDDET</button>';document.body.appendChild(d);setTimeout(function(){d.remove();},15000);
+          }
+          else if (type === 'mindread') {
+            var d=document.createElement('div');d.style.cssText='position:fixed;inset:0;background:rgba(88,28,135,0.95);z-index:99990;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px';d.innerHTML='<div style="font-size:60px;margin-bottom:16px">🧠</div><div style="font-size:22px;font-weight:900;color:#e879f9;margin-bottom:12px">ZİHİN OKUMA BAŞLADI</div><div style="font-size:14px;color:#d8b4fe;max-width:400px;line-height:2;margin-bottom:20px">Nöral bağlantı kuruldu...<br>Düşüncelerin analiz ediliyor.</div><button onclick="this.parentElement.remove()" style="background:#581c87;border:1px solid #a855f7;color:#e879f9;padding:10px 24px;border-radius:8px;cursor:pointer">BAĞLANTIYI KES</button>';document.body.appendChild(d);setTimeout(function(){d.remove();},12000);
+          }
+          else if (type === 'analyzing') {
+            var d=document.createElement('div');d.style.cssText='position:fixed;bottom:20px;right:20px;background:#001a0d;border:1px solid #0d9488;border-radius:12px;padding:16px 20px;z-index:99990;max-width:320px;box-shadow:0 8px 32px rgba(0,0,0,0.5)';d.innerHTML='<div style="color:#5eead4;font-weight:700;margin-bottom:8px">📊 KİŞİLİK ANALİZİ</div><div style="color:#99f6e4;font-size:12px;line-height:1.8">IQ: '+Math.floor(Math.random()*50+100)+'<br>Gizli yetenek: '+ ['Liderlik','Yaratıcılık','Analitik düşünce','Sezgi'][Math.floor(Math.random()*4)]+'<br>Kişilik türü: '+ ['INTJ','ENFP','ISTP','ENFJ'][Math.floor(Math.random()*4)]+'</div><button onclick="this.parentElement.remove()" style="margin-top:10px;background:#042f2e;border:1px solid #0d9488;color:#5eead4;padding:5px 14px;border-radius:6px;cursor:pointer;font-size:11px">KAPAT</button>';document.body.appendChild(d);setTimeout(function(){d.remove();},12000);
+          }
+          else if (type === 'powersurge') {
+            document.body.style.filter='brightness(3)';
+            setTimeout(function(){document.body.style.filter='brightness(0)';},200);
+            setTimeout(function(){document.body.style.filter='brightness(2)';},400);
+            setTimeout(function(){document.body.style.filter='';document.body.style.animation='globalShake 0.1s linear 3';setTimeout(function(){document.body.style.animation='';},300);},600);
+          }
+          else if (type === 'countdown') {
+            var _ap2=document.getElementById('admin-panel-overlay');if(_ap2)_ap2.remove();
+            var d=document.createElement('div');d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:99990;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px';
+            var cnt=10;
+            d.innerHTML='<div style="font-size:22px;font-weight:700;color:#ef4444;margin-bottom:16px">⏳ SİSTEM SAYIMI</div><div style="font-size:80px;font-weight:900;color:#ef4444" id="js-countdown">'+cnt+'</div><div style="font-size:14px;color:#9ca3af;margin-top:12px">Sistem yeniden başlatılıyor...</div>';
+            document.body.appendChild(d);
+            var ci=setInterval(function(){cnt--;var el=document.getElementById('js-countdown');if(el)el.textContent=cnt;if(cnt<=0){clearInterval(ci);d.remove();}},1000);
+            setTimeout(function(){clearInterval(ci);d.remove();},12000);
+          }
+          else if (type === 'spy') {
+            var d=document.createElement('div');d.style.cssText='position:fixed;bottom:20px;right:20px;background:#001a0d;border:1px solid #16a34a;border-radius:12px;padding:16px 20px;z-index:99990;max-width:320px';d.innerHTML='<div style="color:#4ade80;font-weight:700;margin-bottom:6px">🕵️ TAKİP UYARISI</div><div style="color:#86efac;font-size:12px;line-height:1.6">IP adresiniz kaydedildi ve izleniyor.</div><button onclick="this.parentElement.remove()" style="margin-top:10px;background:#052e16;border:1px solid #16a34a;color:#4ade80;padding:5px 14px;border-radius:6px;cursor:pointer;font-size:11px">KAPAT</button>';document.body.appendChild(d);setTimeout(function(){d.remove();},10000);
+          }
           else if (type === 'slowmode') {
             var origSend=window.sendMessage;
             var slowCooldown=false;
@@ -7558,6 +7668,36 @@ function abuseAction(action) {
         sendGlobalEvent('__jumpscare__','globallogout_'+Date.now());
         showToast('↩️ Tüm kullanıcılar çıkarılıyor');
       } break;
+    case 'earthquake':
+      sendGlobalEvent('__jumpscare__','earthquake_'+Date.now());
+      showToast('🌍 Deprem efekti gönderildi'); break;
+    case 'rainbow':
+      sendGlobalEvent('__jumpscare__','rainbow_'+Date.now());
+      showToast('🌈 Rainbow efekt gönderildi'); break;
+    case 'drunk':
+      sendGlobalEvent('__jumpscare__','drunk_'+Date.now());
+      showToast('🍺 Sarhoş modu gönderildi'); break;
+    case 'underwater':
+      sendGlobalEvent('__jumpscare__','underwater_'+Date.now());
+      showToast('🌊 Sualtı efekti gönderildi'); break;
+    case 'hypnosis':
+      sendGlobalEvent('__jumpscare__','hypnosis_'+Date.now());
+      showToast('🌀 Hipnoz gönderildi'); break;
+    case 'matrix':
+      sendGlobalEvent('__jumpscare__','matrix_'+Date.now());
+      showToast('💊 Matrix modu gönderildi'); break;
+    case 'confetti-abuse':
+      sendGlobalEvent('__jumpscare__','confetti_'+Date.now());
+      showToast('🎊 Konfeti gönderildi'); break;
+    case 'pixelate':
+      sendGlobalEvent('__jumpscare__','pixelate_'+Date.now());
+      showToast('👾 Pikselleştirme gönderildi'); break;
+    case 'sepia':
+      sendGlobalEvent('__jumpscare__','sepia_'+Date.now());
+      showToast('📷 Sepya gönderildi'); break;
+    case 'flip180':
+      sendGlobalEvent('__jumpscare__','flip180_'+Date.now());
+      showToast('🙃 Ters çevirme gönderildi'); break;
   }
 }
 
