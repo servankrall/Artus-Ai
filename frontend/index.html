@@ -8554,6 +8554,98 @@ async function godFullPower(){
 }
 
 /* ══════════════════════════════════════════════════════════════
+   🔍 İSTİHBARAT MERKEZİ — sistemin GERÇEK durumunu gösterir
+   ══════════════════════════════════════════════════════════════ */
+function _intelOut(html){ var o=document.getElementById('god-intel-out'); if(o){ o.innerHTML=html; o.style.display='block'; o.scrollTop=0; } }
+function _esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function _ago(ms){ if(!ms) return '—'; var d=Date.now()-ms; if(d<60000) return Math.floor(d/1000)+' sn önce'; if(d<3600000) return Math.floor(d/60000)+' dk önce'; if(d<86400000) return Math.floor(d/3600000)+' sa önce'; return Math.floor(d/86400000)+' gün önce'; }
+
+// 1) O an YAYINDA olan tüm global komutlar/modlar (gerçek KV verisi)
+async function godIntelModes(){
+  _intelOut('<div style="color:#94a3b8;font-size:12px">⏳ KV global durumu çekiliyor...</div>');
+  try {
+    var r = await fetch('/api/global-modes', {cache:'no-store'});
+    var d = await r.json();
+    var modes = d.modes || {};
+    var keys = Object.keys(modes);
+    if (!keys.length) { _intelOut('<div style="color:#4ade80;font-size:13px">✅ Şu an yayında AKTİF hiçbir global komut/mod yok. Sistem temiz.</div>'); return; }
+    var rows = keys.map(function(k){
+      var v = modes[k]; var disp;
+      if (k==='__message__' || (typeof v==='string' && v.charAt(0)==='{')) { try{ var p=JSON.parse(v); disp=(p.text||v); }catch(e){ disp=v; } }
+      else disp = (typeof v==='object'? JSON.stringify(v): String(v));
+      var hot = (k.indexOf('__')===0);
+      return '<div style="display:flex;gap:10px;padding:8px 10px;border-radius:8px;background:'+(hot?'rgba(239,68,68,.1)':'rgba(255,255,255,.03)')+';border:1px solid '+(hot?'rgba(239,68,68,.3)':'rgba(255,255,255,.06)')+';margin-bottom:6px"><span style="font-family:monospace;font-size:11px;color:'+(hot?'#fca5a5':'#a78bfa')+';font-weight:700;flex-shrink:0">'+_esc(k)+'</span><span style="font-size:12px;color:#cbd5e1;word-break:break-word">'+_esc(disp).slice(0,200)+'</span></div>';
+    }).join('');
+    _intelOut('<div style="font-size:12px;color:#fbbf24;font-weight:700;margin-bottom:8px">📡 ŞU AN YAYINDA OLAN '+keys.length+' GLOBAL KOMUT/MOD</div>'+rows);
+  } catch(e){ _intelOut('<div style="color:#f87171">⚠️ Çekilemedi: '+_esc(e.message)+'</div>'); }
+}
+
+// 2) GERÇEK ban listesi — kim, neden, ne zamana kadar
+async function godIntelBans(){
+  _intelOut('<div style="color:#94a3b8;font-size:12px">⏳ Ban listesi çekiliyor...</div>');
+  try {
+    var r = await fetch('/api/bans', {cache:'no-store'});
+    var d = await r.json();
+    var bans = d.bans || {};
+    var emails = Object.keys(bans);
+    if (!emails.length) { _intelOut('<div style="color:#4ade80;font-size:13px">✅ Yasaklı kullanıcı yok.</div>'); return; }
+    var rows = emails.map(function(e){
+      var b = bans[e];
+      var until = b.until===0 ? '<span style="color:#f87171">KALICI</span>' : new Date(b.until).toLocaleString('tr-TR');
+      return '<div style="padding:9px 11px;border-radius:8px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);margin-bottom:6px"><div style="font-size:13px;font-weight:700;color:#fca5a5">🚫 '+_esc(e)+'</div><div style="font-size:11px;color:#94a3b8;margin-top:3px">Sebep: '+_esc(b.reason||'—')+' · Banlandı: '+_ago(b.bannedAt)+' · Bitiş: '+until+'</div></div>';
+    }).join('');
+    _intelOut('<div style="font-size:12px;color:#fbbf24;font-weight:700;margin-bottom:8px">🚫 '+emails.length+' YASAKLI KULLANICI</div>'+rows);
+  } catch(e){ _intelOut('<div style="color:#f87171">⚠️ Çekilemedi: '+_esc(e.message)+'</div>'); }
+}
+
+// 3) GERÇEK API sağlık kontrolü — her uç nokta canlı mı, gecikme kaç ms
+async function godIntelHealth(){
+  _intelOut('<div style="color:#94a3b8;font-size:12px">⏳ Uç noktalar test ediliyor...</div>');
+  var eps = [['/api/global-modes','GET'],['/api/bans','GET'],['/api/pro-status','POST'],['/api/search','POST'],['/api/chat','POST']];
+  var results = await Promise.all(eps.map(async function(ep){
+    var t0 = performance.now();
+    try {
+      var opt = ep[1]==='POST' ? {method:'POST',headers:{'Content-Type':'application/json'},body:'{}'} : {cache:'no-store'};
+      var r = await fetch(ep[0], opt);
+      var ms = Math.round(performance.now()-t0);
+      // 400/403/405 = endpoint AYAKTA ama girdi/yetki reddetti → yine de "up"
+      var up = r.status < 500;
+      return {ep:ep[0], status:r.status, ms:ms, up:up};
+    } catch(e){ return {ep:ep[0], status:'ERR', ms:Math.round(performance.now()-t0), up:false}; }
+  }));
+  var rows = results.map(function(x){
+    var dot = x.up ? '#4ade80' : '#f87171';
+    var lbl = x.up ? 'AYAKTA' : 'ÇÖKTÜ';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 11px;border-radius:8px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);margin-bottom:6px"><span style="width:9px;height:9px;border-radius:50%;background:'+dot+';box-shadow:0 0 8px '+dot+';flex-shrink:0"></span><span style="font-family:monospace;font-size:12px;color:#cbd5e1;flex:1">'+_esc(x.ep)+'</span><span style="font-size:11px;color:'+dot+';font-weight:700">'+lbl+'</span><span style="font-size:11px;color:#64748b">HTTP '+x.status+' · '+x.ms+'ms</span></div>';
+  }).join('');
+  var upN = results.filter(function(x){return x.up;}).length;
+  _intelOut('<div style="font-size:12px;color:#fbbf24;font-weight:700;margin-bottom:8px">❤️ SİSTEM SAĞLIĞI — '+upN+'/'+results.length+' UÇ NOKTA AYAKTA</div>'+rows);
+}
+
+// 4) Oturum tanılama — kendi cihazın/tarayıcın hakkında gerçek bilgi
+function godIntelSession(){
+  var ls=0, lsKeys=0;
+  try { for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); lsKeys++; ls+=(localStorage.getItem(k)||'').length+k.length; } } catch(e){}
+  var info = [
+    ['Tarayıcı', navigator.userAgent.slice(0,80)],
+    ['Dil', navigator.language],
+    ['Platform', navigator.platform||'—'],
+    ['Çevrimiçi', navigator.onLine?'Evet':'Hayır'],
+    ['Ekran', screen.width+'×'+screen.height+' @'+(window.devicePixelRatio||1)+'x'],
+    ['Pencere', window.innerWidth+'×'+window.innerHeight],
+    ['CPU çekirdek', navigator.hardwareConcurrency||'—'],
+    ['Bellek (GB)', navigator.deviceMemory||'—'],
+    ['Dokunmatik', ('ontouchstart' in window)?'Var':'Yok'],
+    ['Saat dilimi', Intl.DateTimeFormat().resolvedOptions().timeZone],
+    ['localStorage', lsKeys+' anahtar · ~'+(ls/1024).toFixed(1)+' KB'],
+    ['Creator modu', (typeof _creatorMode!=='undefined'&&_creatorMode)?'AKTİF':'Kapalı'],
+    ['Aktif model', (typeof currentModel!=='undefined'?currentModel:'—')],
+  ];
+  var rows = info.map(function(x){ return '<div style="display:flex;gap:10px;padding:7px 11px;border-radius:8px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);margin-bottom:5px"><span style="font-size:11px;color:#a78bfa;font-weight:700;width:110px;flex-shrink:0">'+x[0]+'</span><span style="font-size:12px;color:#cbd5e1;word-break:break-word">'+_esc(x[1])+'</span></div>'; }).join('');
+  _intelOut('<div style="font-size:12px;color:#fbbf24;font-weight:700;margin-bottom:8px">🧬 OTURUM TANILAMA (senin cihazın)</div>'+rows);
+}
+
+/* ══════════════════════════════════════════════════════════════
    🪄 SİHİRLİ ARAÇLAR — 50 farklı gerçek üreteç/araç
    ══════════════════════════════════════════════════════════════ */
 function _mr(a){ return a[Math.floor(Math.random()*a.length)]; }
@@ -9429,6 +9521,19 @@ function showAdminPanel(tab) {
       </div>
     </div>
     <button class="god-mega" onclick="godFullPower()">🔱 TAM GÜCÜ SERBEST BIRAK 🔱</button>
+    <div style="background:rgba(13,16,24,0.9);border:1px solid rgba(14,165,233,0.3);border-radius:14px;padding:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:800;color:#38bdf8">🔍 İSTİHBARAT MERKEZİ</div>
+        <div style="font-size:11px;color:#6b7280">Sistemin GERÇEK canlı durumu</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px">
+        <button onclick="godIntelModes()" style="background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.4);color:#c4b5fd;padding:10px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:600">📡 Canlı Yayın Durumu</button>
+        <button onclick="godIntelBans()" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);color:#fca5a5;padding:10px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:600">🚫 Ban Listesi</button>
+        <button onclick="godIntelHealth()" style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.35);color:#6ee7b7;padding:10px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:600">❤️ Sistem Sağlığı</button>
+        <button onclick="godIntelSession()" style="background:rgba(14,165,233,.1);border:1px solid rgba(14,165,233,.35);color:#7dd3fc;padding:10px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:600">🧬 Oturum Tanılama</button>
+      </div>
+      <div id="god-intel-out" style="display:none;max-height:340px;overflow-y:auto;background:#0a0e14;border:1px solid #1c2128;border-radius:10px;padding:12px"></div>
+    </div>
     <div style="background:rgba(13,16,24,0.85);border:1px solid rgba(124,58,237,0.25);border-radius:14px;padding:16px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div style="font-size:13px;font-weight:800;color:#a78bfa">👑 50 TANRI GÜCÜ</div>
