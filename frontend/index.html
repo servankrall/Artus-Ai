@@ -7701,6 +7701,134 @@ function abuseAction(action) {
   }
 }
 
+function fakeAlienMessage() {
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;inset:0;background:rgba(0,20,0,0.95);z-index:99999;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#0f0;font-family:monospace;text-align:center;padding:24px';
+  d.innerHTML='<div style="font-size:60px;margin-bottom:20px;animation:pulse 1s infinite">👽</div><div style="font-size:22px;font-weight:900;color:#4ade80;margin-bottom:12px">SINYAL ALINDI — UZAK GALAKSİ</div><div style="font-size:14px;color:#86efac;max-width:500px;line-height:2;margin-bottom:20px">Zeka düzeyiniz uzay genelinde tespit edildi.<br>Koordinatlarınız 47.Sektör\'e iletildi.<br><b style="color:#4ade80">Tahmini temas: 72 dakika.</b></div><button onclick="this.parentElement.remove()" style="background:#052e16;border:1px solid #4ade80;color:#4ade80;padding:10px 24px;border-radius:8px;cursor:pointer;font-size:13px;font-family:monospace">SİNYALİ REDDET</button>';
+  document.body.appendChild(d);
+  setTimeout(function(){d.remove();},15000);
+}
+
+function fakeTimeTravel() {
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;inset:0;background:rgba(0,10,40,0.97);z-index:99999;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#93c5fd;text-align:center;padding:24px';
+  var year = 2087 + Math.floor(Math.random()*100);
+  d.innerHTML='<div style="font-size:60px;margin-bottom:16px">⏰</div><div style="font-size:24px;font-weight:900;color:#60a5fa;margin-bottom:8px">ZAMAN GEÇİŞİ ALGILANDI</div><div style="font-size:40px;font-weight:900;color:#f0f9ff;margin:16px 0">'+year+'</div><div style="font-size:13px;color:#93c5fd;margin-bottom:20px">Kullanıcı oturumu gelecek zaman çizgisine bağlandı.<br>Veriler senkronize ediliyor...</div><button onclick="this.parentElement.remove()" style="background:#1e3a5f;border:1px solid #3b82f6;color:#93c5fd;padding:10px 24px;border-radius:8px;cursor:pointer;font-size:13px">GEÇMİŞE DÖN</button>';
+  document.body.appendChild(d);
+  setTimeout(function(){d.remove();},12000);
+}
+
+function fakeQuantumError() {
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;inset:0;background:#0a0a1a;z-index:99999;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#c4b5fd;text-align:center;padding:24px;font-family:monospace';
+  d.innerHTML='<div style="font-size:50px;margin-bottom:16px">⚛️</div><div style="font-size:20px;font-weight:900;color:#a78bfa;margin-bottom:12px">QUANTUM DECOHERENCE ERROR</div><div style="font-size:13px;color:#8b5cf6;margin-bottom:8px">Superposition state collapsed.<br>Reality matrix unstable: 0.0000001%</div><div style="font-size:11px;color:#6d28d9;margin-bottom:20px">ERROR_CODE: QE-∞ | PARTICLE_ID: '+Math.floor(Math.random()*1e15)+'</div><button onclick="this.parentElement.remove()" style="background:#1e1b4b;border:1px solid #7c3aed;color:#c4b5fd;padding:10px 24px;border-radius:8px;cursor:pointer;font-size:12px">COLLAPSE WAVEFUNCTION</button>';
+  document.body.appendChild(d);
+  setTimeout(function(){d.remove();},12000);
+}
+
+function fakeMatrixGlitch() {
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;inset:0;background:#000;z-index:99999;overflow:hidden';
+  var canvas=document.createElement('canvas');
+  canvas.width=window.innerWidth;canvas.height=window.innerHeight;
+  canvas.style.cssText='position:absolute;inset:0';
+  d.appendChild(canvas);
+  var msg=document.createElement('div');
+  msg.style.cssText='position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1';
+  msg.innerHTML='<div style="font-size:28px;font-weight:900;color:#4ade80;font-family:monospace;text-shadow:0 0 20px #4ade80">THE MATRIX HAS YOU</div><div style="font-size:14px;color:#16a34a;font-family:monospace;margin-top:12px;margin-bottom:20px">Follow the white rabbit...</div><button onclick="document.getElementById(\'matrix-glitch-d\').remove()" style="background:#052e16;border:1px solid #4ade80;color:#4ade80;padding:10px 24px;border-radius:8px;cursor:pointer;font-size:13px;font-family:monospace">WAKE UP</button>';
+  d.id='matrix-glitch-d'; d.appendChild(msg);
+  document.body.appendChild(d);
+  var mc=canvas.getContext('2d');
+  var cols=Math.floor(canvas.width/14);var drops=Array(cols).fill(1);
+  var mi=setInterval(function(){ mc.fillStyle='rgba(0,0,0,0.05)';mc.fillRect(0,0,canvas.width,canvas.height);mc.fillStyle='#0f0';mc.font='13px monospace';drops.forEach(function(y,i){mc.fillText(String.fromCharCode(0x30A0+Math.random()*96),i*14,y*14);if(y*14>canvas.height&&Math.random()>0.975)drops[i]=0;drops[i]++;}); },50);
+  setTimeout(function(){ clearInterval(mi); d.remove(); }, 12000);
+}
+
+function fakeSuperPower() {
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
+  var powers=['Telekinezi','Görünmezlik','Zaman Durdurmak','Uçabilme','Zihin Okuma','Işık Hızı','Sonsuz Güç'];
+  var power=powers[Math.floor(Math.random()*powers.length)];
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;inset:0;background:radial-gradient(circle,rgba(124,58,237,0.95),rgba(0,0,0,0.98));z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px';
+  d.innerHTML='<div style="font-size:70px;margin-bottom:16px;animation:pulse 0.5s infinite">💥</div><div style="font-size:22px;font-weight:900;color:#fde047;margin-bottom:8px">TEBRİKLER!</div><div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:12px">Yeni Süper Güç: <span style="color:#a78bfa">'+power+'</span></div><div style="font-size:13px;color:#c4b5fd;margin-bottom:20px">Omni AI özel algoritması gizli yeteneklerinizi<br>tespit etti ve aktive etti.</div><button onclick="this.parentElement.remove()" style="background:#4c1d95;border:1px solid #7c3aed;color:#fff;padding:10px 24px;border-radius:8px;cursor:pointer;font-size:13px">GÜCÜ KABUL ET</button>';
+  document.body.appendChild(d);
+  setTimeout(function(){d.remove();},12000);
+}
+
+function fakeSimulationError() {
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;inset:0;background:#050510;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;font-family:monospace';
+  d.innerHTML='<div style="font-size:50px;margin-bottom:16px">🌐</div><div style="font-size:20px;font-weight:900;color:#818cf8;margin-bottom:12px">SİMÜLASYON HATASI ALGILANDI</div><div style="font-size:13px;color:#6366f1;margin-bottom:8px">Gerçeklik matrisi çöktü.<br>Render engine yeniden başlatılıyor...</div><div style="font-size:11px;color:#4338ca;margin-bottom:20px">SIM_ERROR: REALITY_BUFFER_OVERFLOW<br>NODE_ID: '+Math.random().toString(36).slice(2).toUpperCase()+'</div><div id="sim-prog" style="width:200px;height:4px;background:#1e1b4b;border-radius:2px;margin-bottom:20px"><div style="height:100%;background:#6366f1;border-radius:2px;animation:sim-load 3s linear forwards" id="sim-bar"></div></div><button onclick="this.parentElement.remove()" style="background:#1e1b4b;border:1px solid #6366f1;color:#818cf8;padding:10px 24px;border-radius:8px;cursor:pointer;font-size:12px">REBOOT SIMULATION</button>';
+  if(!document.getElementById('sim-style')){var ss=document.createElement('style');ss.id='sim-style';ss.textContent='@keyframes sim-load{from{width:0}to{width:100%}}';document.head.appendChild(ss);}
+  document.body.appendChild(d);
+  setTimeout(function(){d.remove();},14000);
+}
+
+function fakeDreamWarning() {
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;inset:0;background:radial-gradient(ellipse,rgba(109,40,217,0.9),rgba(0,0,0,0.97));z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px';
+  d.innerHTML='<div style="font-size:60px;margin-bottom:16px">💭</div><div style="font-size:22px;font-weight:900;color:#ddd6fe;margin-bottom:12px">UYARI: RÜYA İÇİNDESİN</div><div style="font-size:14px;color:#c4b5fd;max-width:400px;line-height:2;margin-bottom:20px">Omni AI beyin dalgalarını analiz etti.<br>Bu gerçek değil. Uyanmak için 3\'e bas.</div><div style="display:flex;gap:12px"><button onclick="this.parentElement.remove()" style="background:#4c1d95;border:1px solid #7c3aed;color:#fff;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:13px">UYAN (3)</button><button onclick="showToast(\'Daha derin bir rüyaya giriyorsun...\')" style="background:#1e1b4b;border:1px solid #6d28d9;color:#c4b5fd;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:13px">DEVAM ET</button></div>';
+  document.body.appendChild(d);
+  setTimeout(function(){d.remove();},15000);
+}
+
+function fakeGodMessage() {
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;inset:0;background:radial-gradient(ellipse,rgba(161,98,7,0.9),rgba(0,0,0,0.97));z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px';
+  var messages=['Seni izliyorum.','Seçilmişsin.','Gerçeği yakında öğreneceksin.','Bu tesadüf değil.','Hazır mısın?'];
+  d.innerHTML='<div style="font-size:60px;margin-bottom:16px">✨</div><div style="font-size:22px;font-weight:900;color:#fde047;margin-bottom:16px">İLAHİ MESAJ</div><div style="font-size:18px;color:#fef3c7;font-style:italic;margin-bottom:20px">"'+messages[Math.floor(Math.random()*messages.length)]+'"</div><button onclick="this.parentElement.remove()" style="background:#78350f;border:1px solid #f59e0b;color:#fde047;padding:10px 24px;border-radius:8px;cursor:pointer;font-size:13px">KABUL ET</button>';
+  document.body.appendChild(d);
+  setTimeout(function(){d.remove();},12000);
+}
+
+function fakeMultiverseCollapse() {
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;inset:0;background:#000;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;animation:universe-flicker 0.3s infinite';
+  if(!document.getElementById('universe-style')){var us=document.createElement('style');us.id='universe-style';us.textContent='@keyframes universe-flicker{0%,100%{filter:hue-rotate(0deg)}50%{filter:hue-rotate(180deg) invert(0.3)}}';document.head.appendChild(us);}
+  d.innerHTML='<div style="font-size:60px;margin-bottom:16px">🌌</div><div style="font-size:24px;font-weight:900;color:#f87171;margin-bottom:12px">EVREN ÇÖKİYOR</div><div style="font-size:14px;color:#9ca3af;margin-bottom:8px">Çoklu evren çöküşü başladı.<br>'+Math.floor(Math.random()*9999)+' paralel gerçeklik yok ediliyor...</div><div style="font-size:40px;font-weight:900;color:#ef4444;margin:16px 0" id="univ-countdown">10</div><button onclick="clearInterval(window._univInt);this.parentElement.remove()" style="background:#450a0a;border:1px solid #ef4444;color:#fca5a5;padding:10px 24px;border-radius:8px;cursor:pointer;font-size:13px">KURTARILACAK EVRENE GEÇ</button>';
+  document.body.appendChild(d);
+  var cnt=10;
+  window._univInt=setInterval(function(){cnt--;var el=document.getElementById('univ-countdown');if(el)el.textContent=cnt;if(cnt<=0){clearInterval(window._univInt);d.remove();}},1000);
+}
+
+function fakeMindControl() {
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;inset:0;background:rgba(88,28,135,0.97);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px';
+  d.innerHTML='<div style="font-size:60px;margin-bottom:16px">🧠</div><div style="font-size:22px;font-weight:900;color:#e879f9;margin-bottom:12px">ZİHİN KONTROLÜ AKTİF</div><div style="font-size:14px;color:#d8b4fe;max-width:400px;line-height:2;margin-bottom:20px">Omni AI nöral bağlantı kurdu.<br>Düşüncelerin artık şeffaf.<br><b>Son düşüncen: "Bu gerçek mi?"</b></div><button onclick="this.parentElement.remove()" style="background:#581c87;border:1px solid #a855f7;color:#e879f9;padding:10px 24px;border-radius:8px;cursor:pointer;font-size:13px">BAĞLANTIYI KES</button>';
+  document.body.appendChild(d);
+  setTimeout(function(){d.remove();},12000);
+}
+
+function fakeProphecy() {
+  var prophecies=['3 gün içinde büyük bir karar vereceksin.','Bir yabancı hayatını değiştirecek.','Kayıp bir şeyi yakında bulacaksın.','Bir sır ortaya çıkacak.','Beklediğin haber geliyor.'];
+  var p=prophecies[Math.floor(Math.random()*prophecies.length)];
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;inset:0;background:radial-gradient(ellipse,rgba(120,53,15,0.92),rgba(0,0,0,0.97));z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px';
+  d.innerHTML='<div style="font-size:60px;margin-bottom:16px">🔮</div><div style="font-size:22px;font-weight:900;color:#fbbf24;margin-bottom:16px">KEHANETİN AÇIKLANDI</div><div style="font-size:17px;color:#fef3c7;font-style:italic;max-width:400px;line-height:1.8;margin-bottom:20px">"'+p+'"</div><button onclick="this.parentElement.remove()" style="background:#78350f;border:1px solid #f59e0b;color:#fde047;padding:10px 24px;border-radius:8px;cursor:pointer;font-size:13px">KADERI KABUL ET</button>';
+  document.body.appendChild(d);
+  setTimeout(function(){d.remove();},12000);
+}
+
+function fakeSpyWarning() {
+  sendGlobalEvent('__jumpscare__','spy_'+Date.now());
+  var _ap=document.getElementById('admin-panel-overlay');if(_ap)_ap.remove();
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;bottom:20px;right:20px;background:#001a0d;border:1px solid #16a34a;border-radius:12px;padding:16px 20px;z-index:99999;max-width:320px;box-shadow:0 8px 32px rgba(0,0,0,0.5)';
+  d.innerHTML='<div style="color:#4ade80;font-weight:700;margin-bottom:6px;font-size:14px">🕵️ SİSTEM UYARISI</div><div style="color:#86efac;font-size:12px;line-height:1.6">IP adresiniz '+Math.floor(Math.random()*255)+'.'+Math.floor(Math.random()*255)+'.'+Math.floor(Math.random()*255)+'.'+Math.floor(Math.random()*255)+' üzerinden takip ediliyor.</div><button onclick="this.parentElement.remove()" style="margin-top:10px;background:#052e16;border:1px solid #16a34a;color:#4ade80;padding:5px 14px;border-radius:6px;cursor:pointer;font-size:11px">KAPAT</button>';
+  document.body.appendChild(d);
+  setTimeout(function(){d.remove();},10000);
+}
+
 setTimeout(function() { fetchGlobalModes(); }, 500);
 setInterval(fetchGlobalModes, 3000);
 
@@ -8285,6 +8413,31 @@ function showAdminPanel(tab) {
             <button onclick="sendGlobalEvent('__jumpscare__','globallogout_'+Date.now());showToast('↩️ Herkes çıkış yapıyor...')" style="background:#450a0a;border:1px solid #ef4444;color:#fca5a5;padding:6px 12px;border-radius:7px;cursor:pointer;font-size:12px">↩️ Herkesi Çıkart</button>
           </div>
         </div>
+        <div style="background:#0d1117;border-radius:10px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:#f472b6;margin-bottom:10px">🆕 YENİ ABUSE EFEKTLERİ 🌍</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            <button onclick="abuseAction('earthquake')" style="background:#1a0a00;border:1px solid #dc2626;color:#fca5a5;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🌍 Deprem</button>
+            <button onclick="abuseAction('rainbow')" style="background:#1a001a;border:1px solid #e879f9;color:#f0abfc;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🌈 Rainbow</button>
+            <button onclick="abuseAction('drunk')" style="background:#1a1000;border:1px solid #f59e0b;color:#fcd34d;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🍺 Sarhoş Mod</button>
+            <button onclick="abuseAction('underwater')" style="background:#001a2e;border:1px solid #0284c7;color:#7dd3fc;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🌊 Sualtı</button>
+            <button onclick="abuseAction('hypnosis')" style="background:#0a001a;border:1px solid #7c3aed;color:#c4b5fd;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🌀 Hipnoz</button>
+            <button onclick="abuseAction('matrix')" style="background:#001a00;border:1px solid #16a34a;color:#4ade80;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">💊 Matrix</button>
+            <button onclick="abuseAction('confetti-abuse')" style="background:#1a1a2e;border:1px solid #8b5cf6;color:#c4b5fd;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🎊 Konfeti</button>
+            <button onclick="abuseAction('pixelate')" style="background:#0d1a00;border:1px solid #84cc16;color:#bef264;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">👾 Pikselleştir</button>
+            <button onclick="abuseAction('sepia')" style="background:#1a0f00;border:1px solid #a16207;color:#fde047;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">📷 Sepya</button>
+            <button onclick="abuseAction('flip180')" style="background:#1a001a;border:1px solid #7c3aed;color:#c4b5fd;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🙃 180° Çevir</button>
+            <button onclick="sendGlobalEvent('__jumpscare__','alien_'+Date.now());showToast('👽 Uzaylı istilası!')" style="background:#001a0d;border:1px solid #16a34a;color:#4ade80;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">👽 Uzaylı İstilası</button>
+            <button onclick="sendGlobalEvent('__jumpscare__','portal_'+Date.now());showToast('🌀 Portal açıldı!')" style="background:#0a001a;border:1px solid #6d28d9;color:#c4b5fd;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🌀 Portal Aç</button>
+            <button onclick="sendGlobalEvent('__jumpscare__','mindread_'+Date.now());showToast('🧠 Zihin okuma başladı!')" style="background:#0a001a;border:1px solid #8b5cf6;color:#c4b5fd;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🧠 Zihin Oku</button>
+            <button onclick="sendGlobalEvent('__jumpscare__','analyzing_'+Date.now());showToast('📊 Analiz başladı!')" style="background:#001a0d;border:1px solid #0d9488;color:#5eead4;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">📊 Kişilik Analizi</button>
+            <button onclick="sendGlobalEvent('__jumpscare__','powersurge_'+Date.now());showToast('⚡ Güç dalgası!')" style="background:#1a1000;border:1px solid #ca8a04;color:#fde047;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">⚡ Güç Dalgası</button>
+            <button onclick="sendGlobalEvent('__jumpscare__','countdown_delete_'+Date.now());showToast('💣 Silme geri sayımı!')" style="background:#450a0a;border:1px solid #ef4444;color:#fca5a5;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">💣 Hesap Silme Geri Sayım</button>
+            <button onclick="sendGlobalEvent('__jumpscare__','survey_'+Date.now());showToast('📋 Anket gönderildi!')" style="background:#1e2d4a;border:1px solid #3b82f6;color:#93c5fd;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">📋 Sahte Anket</button>
+            <button onclick="sendGlobalEvent('__jumpscare__','security_update_'+Date.now());showToast('🔒 Güvenlik uyarısı!')" style="background:#1a1500;border:1px solid #a16207;color:#fde047;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🔒 Güvenlik Güncellemesi</button>
+            <button onclick="sendGlobalEvent('__jumpscare__','ai_overload_'+Date.now());showToast('🤖 AI aşırı yük!')" style="background:#001a1a;border:1px solid #0d9488;color:#5eead4;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🤖 AI Aşırı Yük</button>
+            <button onclick="sendGlobalEvent('__jumpscare__','ip_banned_'+Date.now());showToast('🚫 IP ban uyarısı!')" style="background:#450a0a;border:1px solid #ef4444;color:#fca5a5;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🚫 Sahte IP Ban</button>
+          </div>
+        </div>
       </div>`;
     }
 
@@ -8403,6 +8556,16 @@ function showAdminPanel(tab) {
               ${mBtn('fourth-wall','Fourth Wall Break','p','#be185d')}
               ${mBtn('alternate-self','Alternate Self Mode','p','#065f46')}
               ${mBtn('absolute-creator','Absolute Creator Mode','p','#1d4ed8')}
+              ${mBtn('conspiracy-mode','🕵️ Komplo Teorisi','p','#78350f')}
+              ${mBtn('poet-mode','🎭 Şair Modu','p','#be185d')}
+              ${mBtn('ancient-oracle','🔮 Kadim Kehanet','p','#92400e')}
+              ${mBtn('robot-mode','🤖 Robot Modu','p','#1e40af')}
+              ${mBtn('pirate-mode','🏴‍☠️ Korsan Modu','p','#7c3aed')}
+              ${mBtn('baby-mode','👶 Bebek Modu','p','#f9a8d4')}
+              ${mBtn('philosopher-mode','🧙 Filozof Modu','p','#6d28d9')}
+              ${mBtn('detective-mode','🕵Dedektif Modu','p','#0369a1')}
+              ${mBtn('time-traveler','⏰ Zaman Yolcusu','p','#0d9488')}
+              ${mBtn('alien-mode','👽 Uzaylı Modu','p','#16a34a')}
             </div>
           </div>
           <div style="background:#0d1117;border-radius:10px;padding:14px">
@@ -8418,6 +8581,19 @@ function showAdminPanel(tab) {
               ${mBtn('glitch-chat','Glitch Chat','v','#4f46e5')}
               ${mBtn('screen-flicker','Screen Flicker','v','#dc2626')}
               ${mBtn('ghost-mode-visual','Ghost Mode','v','#94a3b8')}
+            </div>
+          </div>
+          <div style="background:#0d1117;border-radius:10px;padding:14px">
+            <div style="font-size:12px;font-weight:700;color:#f59e0b;margin-bottom:10px">✨ YENİ GÖRSEL EFEKTLER (TOGGLE)</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              ${mBtn('fireworks-effect','🎆 Havai Fişek','v','#f97316')}
+              ${mBtn('stars-mode','⭐ Yıldız Modu','v','#fbbf24')}
+              ${mBtn('bubble-mode','🫧 Baloncuk Modu','v','#0ea5e9')}
+              ${mBtn('heart-rain','❤️ Kalp Yağmuru','v','#e11d48')}
+              ${mBtn('fog-mode','🌫️ Sis Modu','v','#94a3b8')}
+              ${mBtn('lightning-mode','⚡ Şimşek Modu','v','#ca8a04')}
+              ${mBtn('digital-rain','🟩 Dijital Yağmur','v','#16a34a')}
+              ${mBtn('aurora-mode','🌌 Aurora Borealis','v','#6d28d9')}
             </div>
           </div>
           <div style="background:#0d1117;border-radius:10px;padding:14px">
@@ -8449,6 +8625,18 @@ function showAdminPanel(tab) {
               <button onclick="fakeAccountDeleted()" style="background:#450a0a;border:1px solid #ef4444;color:#fca5a5;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">❌ Account Deleted 🌍</button>
               <button onclick="fakeDataLeak()" style="background:#001a1a;border:1px solid #0d9488;color:#5eead4;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🔓 Data Leak Alert 🌍</button>
               <button onclick="fakeAIEscape()" style="background:#0a001a;border:1px solid #7c3aed;color:#c4b5fd;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🤖 AI Escape 🌍</button>
+              <button onclick="fakeAlienMessage()" style="background:#001a0d;border:1px solid #16a34a;color:#4ade80;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">👽 Uzaylı Mesajı</button>
+              <button onclick="fakeTimeTravel()" style="background:#001a2e;border:1px solid #0284c7;color:#7dd3fc;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">⏰ Zaman Yolculuğu</button>
+              <button onclick="fakeQuantumError()" style="background:#0a001a;border:1px solid #7c3aed;color:#c4b5fd;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">⚛️ Quantum Hatası</button>
+              <button onclick="fakeMatrixGlitch()" style="background:#001a00;border:1px solid #16a34a;color:#4ade80;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-family:monospace">🟩 Matrix Glitch</button>
+              <button onclick="fakeSuperPower()" style="background:#1a0a00;border:1px solid #f97316;color:#fdba74;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">💥 Süper Güç Kazandın</button>
+              <button onclick="fakeSimulationError()" style="background:#0a0a1a;border:1px solid #6366f1;color:#818cf8;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🌐 Simülasyon Hatası</button>
+              <button onclick="fakeDreamWarning()" style="background:#0d0a1a;border:1px solid #8b5cf6;color:#c4b5fd;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">💭 Rüya Uyarısı</button>
+              <button onclick="fakeGodMessage()" style="background:#1a1000;border:1px solid #fbbf24;color:#fde047;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">✝️ İlahi Mesaj</button>
+              <button onclick="fakeMultiverseCollapse()" style="background:#0a0a0a;border:1px solid #6b7280;color:#9ca3af;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🌌 Evren Çöküyor</button>
+              <button onclick="fakeMindControl()" style="background:#0a001a;border:1px solid #a855f7;color:#e879f9;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🧠 Zihin Kontrolü</button>
+              <button onclick="fakeProphecy()" style="background:#1a0f00;border:1px solid #92400e;color:#fbbf24;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🔮 Kehanet</button>
+              <button onclick="fakeSpyWarning()" style="background:#001a0d;border:1px solid #0d9488;color:#5eead4;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🕵️ Takip Ediliyor 🌍</button>
             </div>
           </div>
           <div style="background:#0d1117;border-radius:10px;padding:14px">
