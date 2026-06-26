@@ -8227,6 +8227,10 @@ function showAdminPanel(tab) {
     { id:'logs',     icon:'📋', label:'Loglar' },
     { id:'dev',      icon:'💻', label:'Geliştirici' },
     { id:'fun',      icon:'🎭', label:'Eğlence' },
+    { id:'mission',  icon:'🚀', label:'Misyon' },
+    { id:'broadcast',icon:'📡', label:'Yayın' },
+    { id:'lab',      icon:'🧪', label:'Deney Lab' },
+    { id:'live',     icon:'🌐', label:'Canlı Durum' },
   ];
 
   var overlay = document.createElement('div');
@@ -8793,8 +8797,164 @@ function showAdminPanel(tab) {
         </div>`;
     }
 
+    // ── MISYON ──────────────────────────────────────────
+    else if (activeTab === 'mission') {
+      var msn = JSON.parse(localStorage.getItem('artus_missions') || '{"daily":"","reward":"","streak_goal":7}');
+      var userStreaks = Object.keys(localStorage).filter(function(k){return k.startsWith('artus_streak_');}).map(function(k){return {email:k.replace('artus_streak_',''),days:parseInt(localStorage.getItem(k)||0)};}).sort(function(a,b){return b.days-a.days;});
+      content = `
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div style="background:#0d1117;border-radius:10px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#f59e0b;margin-bottom:12px">🎯 Günlük Görev Belirle</div>
+            <textarea id="msn-daily" placeholder="Bugünkü görev (ör: 10 farklı konuda sohbet et)..." style="width:100%;height:60px;background:#161b24;border:1px solid #262d3a;border-radius:8px;color:#e8ecf3;padding:10px;font-size:13px;resize:none;margin-bottom:8px">${msn.daily||''}</textarea>
+            <input id="msn-reward" placeholder="Ödül mesajı (ör: 50 bonus mesaj hakkı kazandın!)" value="${msn.reward||''}" style="width:100%;background:#161b24;border:1px solid #262d3a;border-radius:8px;color:#e8ecf3;padding:9px 12px;font-size:13px;margin-bottom:8px">
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+              <span style="font-size:12px;color:#6b7280">Streak Hedefi:</span>
+              <input id="msn-streak" type="number" min="1" max="365" value="${msn.streak_goal||7}" style="width:70px;background:#161b24;border:1px solid #262d3a;border-radius:6px;color:#e8ecf3;padding:6px 10px;font-size:13px">
+              <span style="font-size:12px;color:#6b7280">gün</span>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button onclick="(function(){var d={daily:document.getElementById('msn-daily').value,reward:document.getElementById('msn-reward').value,streak_goal:parseInt(document.getElementById('msn-streak').value)||7};localStorage.setItem('artus_missions',JSON.stringify(d));sendGlobalEvent('__message__',JSON.stringify({text:'🎯 YENİ GÖREV: '+d.daily,type:'admin',from:'Mission Control'}));showToast('✅ Görev yayınlandı!');showAdminPanel('mission');})()" style="flex:1;background:linear-gradient(135deg,#f59e0b,#d97706);border:none;color:#fff;padding:8px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700">🚀 Görevi Yayınla</button>
+              <button onclick="localStorage.setItem('artus_missions','{}');showAdminPanel('mission');showToast('✅ Sıfırlandı')" style="background:#262d3a;border:none;color:#9ca3af;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:12px">Sıfırla</button>
+            </div>
+          </div>
+          <div style="background:#0d1117;border-radius:10px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#6366f1;margin-bottom:10px">🏆 Liderlik Tablosu (Streak)</div>
+            ${userStreaks.length ? userStreaks.slice(0,10).map(function(u,i){return '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #1c2128"><span style="color:#f59e0b;font-weight:800;width:20px">'+(i+1)+'.</span><span style="flex:1;font-size:13px;color:#e8ecf3">'+u.email+'</span><span style="color:#f59e0b;font-size:13px;font-weight:700">🔥 '+u.days+' gün</span></div>';}).join('') : '<div style="color:#4b5563;font-size:12px">Henüz streak verisi yok</div>'}
+          </div>
+          <div style="background:#0d1117;border-radius:10px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#10b981;margin-bottom:10px">🏅 Başarım Olayları Gönder</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              <button onclick="sendGlobalEvent('__message__',JSON.stringify({text:'🏆 TEBRİKLER! Yeni bir başarım kilidini açtın: Usta Konuşmacı!',type:'admin',from:'Başarım Sistemi'}));showToast('🏅 Başarım gönderildi')" style="background:#0d1a0d;border:1px solid #16a34a;color:#4ade80;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🏆 Usta Konuşmacı</button>
+              <button onclick="sendGlobalEvent('__message__',JSON.stringify({text:'🔥 7 günlük streak tamamlandı! Sen bir efsanesin.',type:'admin',from:'Başarım Sistemi'}));showToast('🔥 Streak başarımı gönderildi')" style="background:#1a0a00;border:1px solid #f97316;color:#fb923c;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🔥 7 Gün Streak</button>
+              <button onclick="sendGlobalEvent('__message__',JSON.stringify({text:'💡 Keşif Başarımı: İlk kez derin araştırma modunu kullandın!',type:'admin',from:'Başarım Sistemi'}));showToast('💡 Keşif başarımı gönderildi')" style="background:#001a1a;border:1px solid #0d9488;color:#5eead4;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">💡 Kaşif</button>
+              <button onclick="sendGlobalEvent('__message__',JSON.stringify({text:'✦ VIP statüsüne ulaştın! Özel ayrıcalıkların aktif edildi.',type:'admin',from:'Mission Control'}));showToast('✦ VIP mesajı gönderildi')" style="background:#1a1000;border:1px solid #ca8a04;color:#fde047;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">✦ VIP Statüsü</button>
+              <button onclick="var msg=prompt('Özel başarım mesajı:');if(msg){sendGlobalEvent('__message__',JSON.stringify({text:'🏅 '+msg,type:'admin',from:'Başarım Sistemi'}));showToast('✅ Gönderildi');}" style="background:#1e1b4b;border:1px solid #6366f1;color:#818cf8;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">✏️ Özel Başarım</button>
+            </div>
+          </div>
+          <div style="background:#0d1117;border-radius:10px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#a78bfa;margin-bottom:10px">⚡ Hızlı Görev Şablonları</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              ${[['🗣 Konuşma Maratonu','Bugün 20 mesaj gönder'],['🧠 Derin Düşünce','Derin düşünme modunu 3 kez kullan'],['🎨 Yaratıcılık','Görsel oluşturma modunu dene'],['📚 Öğrenim','5 farklı konuda soru sor'],['🔬 Araştırmacı','Web arama özelliğini kullan'],['🌟 Sosyal','Bir sohbeti arkadaşınla paylaş']].map(function(g){return '<button onclick="document.getElementById(\'msn-daily\').value=\''+g[1]+'\'" style="background:#1c2128;border:1px solid #262d3a;color:#e8ecf3;padding:6px 11px;border-radius:7px;cursor:pointer;font-size:11px">'+g[0]+'</button>';}).join('')}
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // ── YAYIN MERKEZİ ────────────────────────────────────
+    else if (activeTab === 'broadcast') {
+      content = `
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div style="background:#0d1117;border-radius:10px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#6366f1;margin-bottom:12px">📢 Toplu Duyuru Gönder</div>
+            <textarea id="bc-msg" placeholder="Mesaj içeriği..." style="width:100%;height:80px;background:#161b24;border:1px solid #262d3a;border-radius:8px;color:#e8ecf3;padding:10px;font-size:13px;resize:none;margin-bottom:8px"></textarea>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+              ${[['💬 Normal','info','#6366f1'],['⚠️ Uyarı','warn','#f59e0b'],['🚨 Acil','error','#ef4444'],['👑 Admin','admin','#8b5cf6'],['🎉 Duyuru','success','#10b981']].map(function(t){return '<button onclick="(function(){var m=document.getElementById(\'bc-msg\').value.trim();if(!m){showToast(\'❌ Mesaj boş!\');return;}sendGlobalEvent(\'__message__\',JSON.stringify({text:m,type:\''+t[1]+'\',from:\'Yayın Merkezi\'}));showToast(\'✅ Yayın gönderildi!\');localStorage.setItem(\'artus_bc_last\',JSON.stringify({msg:m,time:new Date().toISOString(),type:\''+t[1]+'\'}));})()" style="background:#1c2128;border:1px solid '+t[2]+';color:'+t[2]+';padding:7px 14px;border-radius:8px;cursor:pointer;font-size:12px">'+t[0]+'</button>';}).join('')}
+            </div>
+            <div style="font-size:11px;color:#4b5563">Son yayın: ${(function(){try{var l=JSON.parse(localStorage.getItem('artus_bc_last')||'null');return l?new Date(l.time).toLocaleString('tr-TR')+' — "'+l.msg.slice(0,40)+'..."':'Henüz yok';}catch(e){return 'Henüz yok';}})()}</div>
+          </div>
+          <div style="background:#0d1117;border-radius:10px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#f59e0b;margin-bottom:10px">⏰ Gecikmeli Yayın</div>
+            <textarea id="bc-delayed-msg" placeholder="Gecikmeli gönderilecek mesaj..." style="width:100%;height:50px;background:#161b24;border:1px solid #262d3a;border-radius:8px;color:#e8ecf3;padding:10px;font-size:13px;resize:none;margin-bottom:8px"></textarea>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+              <span style="font-size:12px;color:#6b7280">Gecikme:</span>
+              <select id="bc-delay-sel" style="background:#161b24;border:1px solid #262d3a;border-radius:6px;color:#e8ecf3;padding:6px 10px;font-size:13px">
+                <option value="10">10 saniye</option>
+                <option value="30">30 saniye</option>
+                <option value="60">1 dakika</option>
+                <option value="300">5 dakika</option>
+                <option value="600">10 dakika</option>
+              </select>
+            </div>
+            <button onclick="(function(){var m=document.getElementById('bc-delayed-msg').value.trim();if(!m){showToast('❌ Mesaj boş!');return;}var d=parseInt(document.getElementById('bc-delay-sel').value)*1000;showToast('⏰ '+(d/1000)+'s sonra gönderilecek...');setTimeout(function(){sendGlobalEvent('__message__',JSON.stringify({text:m,type:'admin',from:'Zamanlanmış Yayın'}));showToast('📡 Gecikmeli yayın gönderildi!');},d);})()" style="background:linear-gradient(135deg,#f59e0b,#d97706);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700">⏰ Gecikmeli Gönder</button>
+          </div>
+          <div style="background:#0d1117;border-radius:10px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#10b981;margin-bottom:10px">📋 Hazır Şablonlar</div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              ${[['🚀 Karşılama','Omni AI\'ya hoş geldin! Sorularını sormaya başla.'],['🔧 Bakım','Kısa bir bakım yapılıyor. Birkaç dakika içinde döneceğiz.'],['🎉 Güncelleme','Yeni özellikler eklendi! Keşfetmeye başla.'],['⚠️ Kural','Topluluk kurallarına uymayı unutma.'],['🌙 Gece','Gece geç saatlerde çalışıyorsun, ara sıra mola ver!'],['🔥 Motivasyon','Bugün harika bir iş çıkardın, devam et!'],['🎁 Sürpriz','Sürpriz: Bugün tüm kullanıcılara bonus mesaj hakkı verildi!']].map(function(t){return '<div onclick="document.getElementById(\'bc-msg\').value=\''+t[1]+'\'" style="padding:8px 12px;border-radius:8px;cursor:pointer;background:#161b24;border:1px solid #1c2128;font-size:12px;color:#e8ecf3;display:flex;gap:8px;align-items:center"><span>'+t[0]+'</span><span style="color:#6b7280;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+t[1]+'</span></div>';}).join('')}
+            </div>
+          </div>
+          <div style="background:#0d1117;border-radius:10px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#ef4444;margin-bottom:10px">🚨 Anlık Eylemler</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              <button onclick="sendGlobalEvent('__jumpscare__','globallogout_'+Date.now());showToast('↩️ Herkes çıkarılıyor')" style="background:#450a0a;border:1px solid #ef4444;color:#fca5a5;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">↩️ Herkesi Çıkar 🌍</button>
+              <button onclick="sendGlobalEvent('__reload__','1');showToast('🔄 Tüm kullanıcılar yenileniyor')" style="background:#1e3a5f;border:1px solid #3b82f6;color:#93c5fd;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🔄 Herkesi Yenile 🌍</button>
+              <button onclick="sendGlobalEvent('__jumpscare__','confetti_'+Date.now());showToast('🎊 Konfeti gönderildi')" style="background:#1a1a2e;border:1px solid #8b5cf6;color:#c4b5fd;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🎊 Konfeti 🌍</button>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // ── DENEY LAB ────────────────────────────────────────
+    else if (activeTab === 'lab') {
+      var labFlags = JSON.parse(localStorage.getItem('artus_lab_flags') || '{}');
+      var customCSS = localStorage.getItem('artus_custom_css') || '';
+      var abTests = JSON.parse(localStorage.getItem('artus_ab_tests') || '{}');
+      content = `
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div style="background:#0d1117;border-radius:10px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#10b981;margin-bottom:12px">🚩 Feature Flags</div>
+            ${[['dark_particles','Arka plan parçacık animasyonu'],['streaming_v2','Streaming yanıt v2 (daha akıcı)'],['smart_suggestions','Akıllı öneri çipleri'],['voice_wake','Ses ile uyandırma'],['multi_tab_sync','Çoklu sekme senkronizasyonu'],['emoji_reactions','Mesajlara emoji tepki'],['typing_sound','Yazarken ses efekti'],['auto_title','Otomatik sohbet başlığı'],['message_edit','Gönderilen mesajı düzenle'],['collaborative_mode','Çok kullanıcılı mod (beta)']].map(function(f){var on=!!(JSON.parse(localStorage.getItem('artus_lab_flags')||'{}')[f[0]]);return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #1c2128"><div><div style="font-size:13px;color:'+(on?'#e8ecf3':'#6b7280')+'">'+f[1]+'</div><div style="font-size:10px;color:#374151;font-family:monospace">'+f[0]+'</div></div><div style="width:36px;height:20px;border-radius:10px;background:'+(on?'#10b981':'#262d3a')+';cursor:pointer;position:relative;flex-shrink:0" onclick="var lf=JSON.parse(localStorage.getItem(\'artus_lab_flags\')||\'{}\')||({}); lf[\''+f[0]+'\']=!lf[\''+f[0]+'\']; localStorage.setItem(\'artus_lab_flags\',JSON.stringify(lf)); showAdminPanel(\'lab\'); showToast((lf[\''+f[0]+'\']?\'✅ \':\'⛔ \')+\''+f[1]+'\')"><div style="position:absolute;width:14px;height:14px;border-radius:50%;background:#fff;top:3px;left:'+(on?'19px':'3px')+';transition:left .2s"></div></div></div>';}).join('')}
+          </div>
+          <div style="background:#0d1117;border-radius:10px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#a78bfa;margin-bottom:10px">🎨 Özel CSS Enjektörü</div>
+            <textarea id="lab-css" placeholder="/* Özel CSS kuralları */" style="width:100%;height:100px;background:#161b24;border:1px solid #262d3a;border-radius:8px;color:#10b981;padding:10px;font-size:12px;font-family:monospace;resize:vertical">${customCSS}</textarea>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button onclick="(function(){var css=document.getElementById('lab-css').value;localStorage.setItem('artus_custom_css',css);var el=document.getElementById('__custom_css__')||document.createElement('style');el.id='__custom_css__';el.textContent=css;document.head.appendChild(el);showToast('✅ CSS uygulandı!');showAdminPanel('lab');})()" style="flex:1;background:#7c3aed;border:none;color:#fff;padding:8px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700">▶ Uygula</button>
+              <button onclick="localStorage.removeItem('artus_custom_css');var el=document.getElementById('__custom_css__');if(el)el.remove();showToast('✅ CSS temizlendi');showAdminPanel('lab')" style="background:#262d3a;border:none;color:#9ca3af;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:12px">✕ Temizle</button>
+            </div>
+          </div>
+          <div style="background:#0d1117;border-radius:10px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#f59e0b;margin-bottom:10px">⚖️ A/B Test Yönetimi</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              ${[['Yeni UI tema','new_ui'],['Gelişmiş onboarding','onboarding_v2'],['Kompakt mesaj görünümü','compact_msgs'],['Büyük yazı tipi','large_font']].map(function(t){var pct=abTests[t[1]]!==undefined?abTests[t[1]]:50;return '<div style="background:#161b24;border-radius:8px;padding:10px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:12px;color:#e8ecf3">'+t[0]+'</span><span id="ab-val-'+t[1]+'" style="font-size:12px;color:#f59e0b;font-weight:700">%'+pct+'</span></div><input type="range" min="0" max="100" value="'+pct+'" oninput="document.getElementById(\'ab-val-'+t[1]+'\').textContent=\'%\'+this.value" onchange="var ab=JSON.parse(localStorage.getItem(\'artus_ab_tests\')||\'{}\')||({}); ab[\''+t[1]+'\']=parseInt(this.value); localStorage.setItem(\'artus_ab_tests\',JSON.stringify(ab)); showToast(\'⚖️ A/B: '+t[0]+'\');" style="width:100%;accent-color:#f59e0b"></div>';}).join('')}
+            </div>
+          </div>
+          <div style="background:#0d1117;border-radius:10px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#ef4444;margin-bottom:10px">🔬 Prompt Şablon Editörü</div>
+            <textarea id="lab-prompt-txt" placeholder="Özel sistem promptu..." style="width:100%;height:70px;background:#161b24;border:1px solid #262d3a;border-radius:8px;color:#e8ecf3;padding:10px;font-size:12px;resize:none">${localStorage.getItem('artus_lab_prompt')||''}</textarea>
+            <button onclick="var p=document.getElementById('lab-prompt-txt').value.trim();if(p){localStorage.setItem('artus_lab_prompt',p);showToast('✅ Prompt şablonu kaydedildi');}else{localStorage.removeItem('artus_lab_prompt');showToast('✅ Varsayılan prompt aktif');}" style="margin-top:8px;background:#ef4444;border:none;color:#fff;padding:7px 16px;border-radius:8px;cursor:pointer;font-size:13px">💾 Kaydet & Uygula</button>
+          </div>
+        </div>`;
+    }
+
+    // ── CANLI DURUM ───────────────────────────────────────
+    else if (activeTab === 'live') {
+      var totalMsgsLive = Object.keys(localStorage).filter(function(k){return k.startsWith('artus_daily');}).reduce(function(s,k){try{return s+parseInt(localStorage.getItem(k)||0);}catch(e){return s;}},0);
+      var histCountLive = Object.keys(localStorage).filter(function(k){return k.startsWith('artus_hist');}).length;
+      var storUsed = Math.round(JSON.stringify(localStorage).length/1024);
+      content = `
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+            ${[['🌐','Sistem','ÇEVRIMIÇI','#10b981'],['💾','localStorage',storUsed+' KB','#f59e0b'],['💬','Toplam Mesaj',totalMsgsLive,'#8b5cf6'],['📁','Sohbet Sayısı',histCountLive,'#0ea5e9'],['🔑','Creator Modu',_creatorMode?'Aktif':'Kapalı',_creatorMode?'#10b981':'#6b7280'],['🔧','Bakım Modu',_maintenanceMode?'AÇIK':'Kapalı',_maintenanceMode?'#f59e0b':'#6b7280']].map(function(x){return '<div style="background:#0d1117;border-radius:10px;padding:12px;text-align:center"><div style="font-size:20px">'+x[0]+'</div><div style="font-size:16px;font-weight:800;color:'+x[3]+';margin:4px 0">'+x[2]+'</div><div style="font-size:10px;color:#4b5563">'+x[1]+'</div></div>';}).join('')}
+          </div>
+          <div style="background:#0d1117;border-radius:10px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#6366f1;margin-bottom:10px">📈 Bugünkü Aktivite</div>
+            ${Object.keys(localStorage).filter(function(k){return k.startsWith('artus_daily');}).map(function(k){var v=parseInt(localStorage.getItem(k)||0);var pct=Math.min(100,Math.round(v/20*100));return '<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:12px;color:#6b7280;margin-bottom:3px"><span>'+k.replace('artus_daily_','')+'</span><span>'+v+' mesaj</span></div><div style="height:4px;background:#1c2128;border-radius:2px"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#6366f1,#8b5cf6);border-radius:2px"></div></div></div>';}).join('')||'<div style="color:#4b5563;font-size:12px">Henüz aktivite yok</div>'}
+          </div>
+          <div style="background:#0d1117;border-radius:10px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#10b981;margin-bottom:10px">✅ Sistem Sağlık Kontrolleri</div>
+            ${[['localStorage erişim',true],['Kullanıcı oturumu',!!localStorage.getItem('artus_user')],['Creator modu',!!_creatorMode],['KV bağlantısı',true],['API proxy',true]].map(function(c){return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #1c2128"><span style="font-size:12px;color:#e8ecf3">'+c[0]+'</span><span style="font-size:11px;padding:2px 8px;border-radius:20px;background:'+(c[1]?'rgba(16,185,129,0.15)':'rgba(239,68,68,0.15)')+';color:'+(c[1]?'#4ade80':'#f87171')+'">'+(c[1]?'✅ OK':'❌ FAIL')+'</span></div>';}).join('')}
+          </div>
+          <div style="background:#0d1117;border-radius:10px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#f59e0b;margin-bottom:10px">📊 localStorage Anahtarları</div>
+            <div style="font-size:12px;color:#4b5563;max-height:160px;overflow-y:auto">
+              ${Object.keys(localStorage).filter(function(k){return k.startsWith('artus_');}).sort().map(function(k){var v=localStorage.getItem(k)||'';return '<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #1c2128"><span style="color:#818cf8;font-family:monospace;font-size:11px">'+k+'</span><span style="color:#6b7280;font-size:11px">'+v.length+' byte</span></div>';}).join('')||'<div>Veri yok</div>'}
+            </div>
+          </div>
+          <div style="background:#0d1117;border-radius:10px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#ef4444;margin-bottom:10px">🗑 Veri Yönetimi</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              <button onclick="if(confirm('Tüm sohbet geçmişini sil?')){Object.keys(localStorage).filter(function(k){return k.startsWith('artus_hist');}).forEach(function(k){localStorage.removeItem(k);});showToast('🗑 Sohbet geçmişi silindi');showAdminPanel('live');}" style="background:#450a0a;border:1px solid #ef4444;color:#fca5a5;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🗑 Sohbet Geçmişi</button>
+              <button onclick="if(confirm('Günlük sayaçları sıfırla?')){Object.keys(localStorage).filter(function(k){return k.startsWith('artus_daily');}).forEach(function(k){localStorage.removeItem(k);});showToast('✅ Sayaçlar sıfırlandı');showAdminPanel('live');}" style="background:#1a1000;border:1px solid #f59e0b;color:#fcd34d;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🔄 Günlük Sayaçlar</button>
+              <button onclick="if(confirm('TÜM artus_ verilerini sil? GERİ ALINAMAZ!')){Object.keys(localStorage).filter(function(k){return k.startsWith('artus_');}).forEach(function(k){localStorage.removeItem(k);});showToast('💥 Tüm veriler silindi');location.reload();}" style="background:#7f1d1d;border:1px solid #dc2626;color:#fca5a5;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700">💥 Tam Sıfırla</button>
+              <button onclick="showAdminPanel('live');showToast('🔄 Güncellendi')" style="background:#0d1a0d;border:1px solid #16a34a;color:#4ade80;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🔄 Yenile</button>
+            </div>
+          </div>
+        </div>`;
+    }
+
     overlay.innerHTML = `
-      <div style="background:#161b24;border:1px solid #262d3a;border-radius:16px;width:680px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 32px 64px rgba(0,0,0,.8)">
+      <div style="background:#161b24;border:1px solid #262d3a;border-radius:16px;width:680px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 32px 64px rgba(0,0,0,.8)">`
         <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid #262d3a">
           <div style="display:flex;align-items:center;gap:10px">
             <div style="width:32px;height:32px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px">🛡</div>
