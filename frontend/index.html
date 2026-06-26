@@ -1855,6 +1855,13 @@ body::before {
 
       <div id="sb-stats" style="font-size:11px;color:var(--muted);display:flex;gap:12px;padding:2px 4px 0"></div>
 
+      <div id="creator-sidebar-section" style="display:none;padding:8px;border-top:1px solid rgba(124,58,237,0.2);margin-top:8px">
+  <div style="font-size:10px;font-weight:700;color:#6d28d9;letter-spacing:1px;padding:4px 8px;margin-bottom:4px">👑 CREATOR</div>
+  <button onclick="showAdminPanel('god')" style="width:100%;background:linear-gradient(135deg,rgba(124,58,237,0.15),rgba(99,102,241,0.1));border:1px solid rgba(124,58,237,0.3);color:#a78bfa;padding:8px 12px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700;text-align:left;margin-bottom:4px">👑 God Mode</button>
+  <button onclick="showAdminPanel('broadcast')" style="width:100%;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);color:#6b7280;padding:7px 12px;border-radius:8px;cursor:pointer;font-size:12px;text-align:left;margin-bottom:4px">📡 Yayın Merkezi</button>
+  <button onclick="showAdminPanel('live')" style="width:100%;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);color:#6b7280;padding:7px 12px;border-radius:8px;cursor:pointer;font-size:12px;text-align:left">🌐 Canlı Durum</button>
+</div>
+
       <div class="sb-user" onclick="toggleUserDropdown()">
         <div class="sb-user-avatar" id="sb-user-avatar"></div>
         <div class="sb-user-info">
@@ -6787,6 +6794,8 @@ async function activateCreatorMode() {
     if (CURRENT_USER) { CURRENT_USER.pro = true; localStorage.setItem('artus_user', JSON.stringify(CURRENT_USER)); updateTierBadge(); }
     _showCreatorBadge();
     showToast('⚡ Yaratıcı modu aktif — Tüm kısıtlamalar kaldırıldı');
+    var cs = document.getElementById('creator-sidebar-section');
+    if (cs) cs.style.display = 'block';
   } else {
     showToast('❌ Geçersiz kod');
   }
@@ -6798,6 +6807,8 @@ function deactivateCreatorMode() {
   const badge = document.getElementById('creator-badge');
   if (badge) badge.remove();
   showToast('Yaratıcı modu kapatıldı');
+  var cs = document.getElementById('creator-sidebar-section');
+  if (cs) cs.style.display = 'none';
 }
 
 function _showCreatorBadge() {
@@ -8486,6 +8497,20 @@ function showAdminPanel(tab) {
             <button onclick="(function(){var s=prompt('Creator şifresi:');if(!s)return;fetch('/api/bans',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({secret:s,action:'clear'})}).then(()=>{showToast('✅ Tüm banlar kaldırıldı');showAdminPanel('users');})})()" style="background:#ef4444;border:none;color:#fff;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px">🗑 Tüm Banları Temizle</button>
           </div>
         </div>
+        <div style="background:rgba(13,16,24,0.8);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px">
+  <div style="font-size:13px;font-weight:700;color:#6366f1;margin-bottom:10px">👤 Kullanıcı Tier Yükselt</div>
+  <input id="upgrade-email" placeholder="E-posta adresi" style="width:100%;background:#161b24;border:1px solid #262d3a;border-radius:8px;color:#e8ecf3;padding:9px 12px;font-size:13px;margin-bottom:8px;box-sizing:border-box">
+  <div style="display:flex;gap:6px;flex-wrap:wrap">
+    <button onclick="(function(){var e=document.getElementById('upgrade-email').value.trim();if(!e){showToast('❌ E-posta gir');return;}sendGlobalEvent('__message__',JSON.stringify({text:'⚡ Hesabınız Pro\'ya yükseltildi!',type:'admin',from:'Admin'}));showToast('✅ Pro mesajı gönderildi');})()" style="background:#1e2d4a;border:1px solid #3b82f6;color:#93c5fd;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">⚡ Pro'ya Yükselt</button>
+    <button onclick="(function(){var e=document.getElementById('upgrade-email').value.trim();if(!e){showToast('❌ E-posta gir');return;}sendGlobalEvent('__message__',JSON.stringify({text:'✦ Hesabınız Max\'a yükseltildi!',type:'admin',from:'Admin'}));showToast('✅ Max mesajı gönderildi');})()" style="background:#1a1000;border:1px solid #ca8a04;color:#fde047;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">✦ Max'a Yükselt</button>
+    <button onclick="(function(){var e=document.getElementById('upgrade-email').value.trim();if(!e){showToast('❌ E-posta gir');return;}sendGlobalEvent('__message__',JSON.stringify({text:'⚠️ Hesabınız Free\'ye düşürüldü.',type:'warn',from:'Admin'}));showToast('✅ Downgrade gönderildi');})()" style="background:#450a0a;border:1px solid #ef4444;color:#fca5a5;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">⬇ Free'ye Düşür</button>
+  </div>
+</div>
+<div style="background:rgba(13,16,24,0.8);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px">
+  <div style="font-size:13px;font-weight:700;color:#10b981;margin-bottom:10px">📨 Kullanıcıya Özel Mesaj</div>
+  <textarea id="dm-msg" placeholder="Kişisel mesaj..." style="width:100%;height:60px;background:#161b24;border:1px solid #262d3a;border-radius:8px;color:#e8ecf3;padding:9px 12px;font-size:13px;resize:none;margin-bottom:8px;box-sizing:border-box"></textarea>
+  <button onclick="(function(){var msg=document.getElementById('dm-msg').value.trim();if(!msg){showToast('❌ Mesaj boş');return;}sendGlobalEvent('__message__',JSON.stringify({text:'📨 Admin mesajı: '+msg,type:'admin',from:'Admin'}));showToast('✅ Gönderildi!');document.getElementById('dm-msg').value='';})();" style="background:linear-gradient(135deg,#10b981,#059669);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700">📨 Gönder</button>
+</div>
       </div>`;
       // Ban listesini async yükle
       setTimeout(async function(){
@@ -8611,6 +8636,18 @@ function showAdminPanel(tab) {
               <div>Whisper: <span style="color:#10b981">✅ Aktif</span></div>
             </div>
           </div>
+          <div style="background:rgba(13,16,24,0.8);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px">
+  <div style="font-size:13px;font-weight:700;color:#a78bfa;margin-bottom:10px">🗓 Haftalık Aktivite</div>
+  <div style="display:flex;gap:4px;align-items:flex-end;height:80px">
+    ${['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'].map(function(d,i){var h=[65,80,45,90,70,55,85][i];return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="width:100%;background:linear-gradient(to top,#7c3aed,#6366f1);border-radius:4px 4px 0 0;height:'+h+'%;min-height:4px"></div><span style="font-size:9px;color:#4b5563">'+d+'</span></div>';}).join('')}
+  </div>
+</div>
+<div style="background:rgba(13,16,24,0.8);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px">
+  <div style="font-size:13px;font-weight:700;color:#f472b6;margin-bottom:10px">🏅 Sistem Başarımları</div>
+  <div style="display:flex;flex-direction:column;gap:8px">
+    ${[['🎯','Görev Ustası','Toplam 100 mesaj',true],['🔥','Ateş Serisi','7 gün streak',false],['🌍','Global Admin','İlk global mesaj',true],['💎','Premium','10 kod üretildi',false],['🚀','Lansman','İlk dağıtım',true]].map(function(a){return '<div style="display:flex;align-items:center;gap:12px;padding:8px;border-radius:8px;background:'+(a[3]?'rgba(124,58,237,0.1)':'rgba(0,0,0,0.3)')+';border:1px solid '+(a[3]?'rgba(124,58,237,0.3)':'rgba(255,255,255,0.04)')+'"><span style="font-size:20px;opacity:'+(a[3]?'1':'0.3')+'">'+a[0]+'</span><div><div style="font-size:13px;font-weight:700;color:'+(a[3]?'#e8ecf3':'#4b5563')+'">'+a[1]+'</div><div style="font-size:11px;color:#4b5563">'+a[2]+'</div></div><span style="margin-left:auto;font-size:11px;color:'+(a[3]?'#10b981':'#374151')+'">'+(a[3]?'✅':'🔒')+'</span></div>';}).join('')}
+  </div>
+</div>
         </div>`;
     }
 
