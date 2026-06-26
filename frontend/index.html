@@ -7116,27 +7116,46 @@ function launchLocalConfetti() {
 
 // Kullanıcı kontrol fonksiyonları
 async function globalReloadAll() {
-  var secret = prompt('Creator API şifresini girin:');
-  if (!secret) return;
   var modes = Object.assign({}, _activeModes);
   modes['__reload__'] = Date.now().toString();
   try {
-    var resp = await fetch('/api/global-modes', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({secret:secret,modes:modes}) });
+    var resp = await fetch('/api/global-modes', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({secret:_CREATOR_SECRET,modes:modes}) });
     var data = await resp.json();
     if (data.ok) showToast('🔄 Tüm kullanıcılar yenileniyor (3s)!');
     else showToast('❌ ' + (data.error||'Hata'));
   } catch(e){ showToast('❌ '+e.message); }
 }
 
+async function clearGlobalRedirect() {
+  try {
+    // GET current server modes
+    var getResp = await fetch('/api/global-modes?t=' + Date.now());
+    var getData = await getResp.json();
+    var serverModes = getData.modes || {};
+    // Remove redirect key
+    delete serverModes['__redirect__'];
+    // POST cleaned modes back
+    var resp = await fetch('/api/global-modes', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({secret:_CREATOR_SECRET, modes:serverModes}) });
+    var data = await resp.json();
+    if (data.ok) {
+      window._lastRedirect = 'cleared_' + Date.now();
+      showToast('✅ Redirect temizlendi! Kullanıcılar artık yönlendirilmeyecek.');
+    } else { showToast('❌ ' + (data.error||'Hata')); }
+  } catch(e){ showToast('❌ '+e.message); }
+}
+
 async function globalRedirectAll() {
-  var url = prompt('Yönlendirilecek URL girin:');
+  var url = prompt('Yönlendirilecek URL girin (tam URL, örn: https://example.com):');
   if (!url) return;
-  var secret = prompt('Creator API şifresini girin:');
-  if (!secret) return;
+  // Validate: must look like a URL, not a password
+  if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('/')) {
+    showToast('❌ Geçersiz URL — http:// veya https:// ile başlamalı'); return;
+  }
+  if (!confirm('Tüm kullanıcıları şu adrese yönlendir?\n' + url)) return;
   var modes = Object.assign({}, _activeModes);
   modes['__redirect__'] = JSON.stringify({url:url, t:Date.now()});
   try {
-    var resp = await fetch('/api/global-modes', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({secret:secret,modes:modes}) });
+    var resp = await fetch('/api/global-modes', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({secret:_CREATOR_SECRET,modes:modes}) });
     var data = await resp.json();
     if (data.ok) showToast('🚀 Tüm kullanıcılar yönlendiriliyor: '+url);
     else showToast('❌ ' + (data.error||'Hata'));
@@ -8214,6 +8233,7 @@ function showAdminPanel(tab) {
             <div style="display:flex;flex-wrap:wrap;gap:6px">
               <button onclick="globalReloadAll()" style="background:#1e3a5f;border:1px solid #1d4ed8;color:#93c5fd;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🔄 Tüm Kullanıcıları Yenile</button>
               <button onclick="globalRedirectAll()" style="background:#1c1917;border:1px solid #78350f;color:#fcd34d;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🚀 Bakım Sayfasına Yönlendir</button>
+              <button onclick="clearGlobalRedirect()" style="background:#0d1a0d;border:1px solid #16a34a;color:#4ade80;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700">✅ Redirect'i Temizle (ACİL)</button>
               <button onclick="globalConfettiAll()" style="background:#1a1a2e;border:1px solid #8b5cf6;color:#c4b5fd;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🎊 Konfeti Yağdır</button>
               <button onclick="globalDarkenAll()" style="background:#000;border:1px solid #374151;color:#4b5563;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🌑 Siteyi Karanlık Yap</button>
               <button onclick="globalClearChatAll()" style="background:#450a0a;border:1px solid #ef4444;color:#fca5a5;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">🧹 Tüm Chatları Temizle</button>
