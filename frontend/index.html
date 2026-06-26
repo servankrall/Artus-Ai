@@ -7614,6 +7614,14 @@ async function saveGlobalModes(modesOverride) {
   // Include maintenance state
   if (_maintenanceMode) modes['maintenance'] = '1';
   else delete modes['maintenance'];
+  // BUG FIX: aktif Pro/Max hediyesini koru — toplu kayıt onu silmesin
+  try {
+    if (modes['__freepro__'] === undefined) {
+      var curR = await fetch('/api/global-modes?t=' + Date.now());
+      var curD = await curR.json();
+      if (curD && curD.modes && curD.modes['__freepro__']) modes['__freepro__'] = curD.modes['__freepro__'];
+    }
+  } catch(e) {}
   try {
     var resp = await fetch('/api/global-modes', {
       method: 'POST',
@@ -8732,6 +8740,73 @@ function godIntelSession(){
   _intelOut('<div style="font-size:12px;color:#fbbf24;font-weight:700;margin-bottom:8px">🧬 OTURUM TANILAMA (senin cihazın)</div>'+rows);
 }
 
+/* 📊 Canlı durum panosu — gerçek KV + ban verisini özetler */
+function _fpFmt(ms){ var d=ms-Date.now(); if(d<=0) return null; var m=Math.round(d/60000); return m>=60? (Math.floor(m/60)+'sa '+(m%60)+'dk') : (m+'dk'); }
+async function godDashboard(){
+  var box=document.getElementById('god-dash'); if(!box) return;
+  box.innerHTML='<div style="color:#94a3b8;font-size:12px;text-align:center;padding:10px">⏳ Canlı veri çekiliyor...</div>';
+  try {
+    var mr = await Promise.all([ fetch('/api/global-modes?t='+Date.now()).then(function(r){return r.json();}), fetch('/api/bans?t='+Date.now()).then(function(r){return r.json();}) ]);
+    var modes = mr[0].modes || {}; var bans = mr[1].bans || {};
+    var fp=null; if(modes['__freepro__']){ try{ fp=JSON.parse(modes['__freepro__']); }catch(e){} }
+    var giftActive = fp && fp.until>Date.now();
+    var giftTxt = giftActive ? ((fp.tier==='max'?'✦ MAX':'⚡ PRO')+' · '+_fpFmt(fp.until)+' kaldı') : 'Yok';
+    var cmdKeys = Object.keys(modes).filter(function(k){return k.indexOf('__')===0;});
+    var banCount = Object.keys(bans).length;
+    var cards = [
+      ['🎁','Aktif Hediye', giftTxt, giftActive?'#fbbf24':'#64748b'],
+      ['🚫','Yasaklı', banCount+' kullanıcı', banCount?'#f87171':'#4ade80'],
+      ['📡','Yayında Komut', cmdKeys.length+' adet', cmdKeys.length?'#a78bfa':'#64748b'],
+      ['🔧','Bakım', (modes['maintenance']==='1')?'AÇIK':'Kapalı', (modes['maintenance']==='1')?'#fbbf24':'#4ade80'],
+    ];
+    box.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px">'+cards.map(function(c){
+      return '<div style="background:rgba(0,0,0,.3);border:1px solid '+c[3]+'44;border-radius:10px;padding:11px;text-align:center"><div style="font-size:20px">'+c[0]+'</div><div style="font-size:13px;font-weight:800;color:'+c[3]+';margin-top:3px">'+_esc(c[2])+'</div><div style="font-size:10px;color:#94a3b8;margin-top:2px;text-transform:uppercase;letter-spacing:.5px">'+c[1]+'</div></div>';
+    }).join('')+'</div>';
+  } catch(e){ box.innerHTML='<div style="color:#f87171;font-size:12px">⚠️ '+_esc(e.message)+'</div>'; }
+}
+
+/* 👤 Hızlı kullanıcı yönetimi — cached secret kullanır (her seferinde sormaz) */
+async function _godApiBans(payload){
+  var secret = await _getApiSecret(); if(!secret) return null;
+  try {
+    var r = await fetch('/api/bans',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({secret:secret},payload))});
+    var d = await r.json();
+    if(!d.ok && d.error==='Yetkisiz'){ _cachedApiSecret=''; localStorage.removeItem('artus_api_secret'); showToast('❌ Şifre hatalı'); }
+    return d;
+  } catch(e){ showToast('❌ Bağlantı hatası'); return null; }
+}
+async function godQuickBan(){
+  var e=(document.getElementById('god-ban-email')||{}).value; if(!e||!e.trim()){ showToast('❌ E-posta gir'); return; }
+  var dur=parseInt((document.getElementById('god-ban-dur')||{}).value)||0;
+  var reason=(document.getElementById('god-ban-reason')||{}).value||'Yaratıcı kararı';
+  var d=await _godApiBans({action:'ban',email:e.trim().toLowerCase(),reason:reason,duration:dur});
+  if(d&&d.ok){ showToast('🔨 Banlandı: '+e.trim()); try{_adminLog('God ban: '+e+' ('+(dur||'kalıcı')+'dk)');}catch(_){} godDashboard(); }
+}
+async function godQuickUnban(){
+  var e=(document.getElementById('god-ban-email')||{}).value; if(!e||!e.trim()){ showToast('❌ E-posta gir'); return; }
+  var d=await _godApiBans({action:'unban',email:e.trim().toLowerCase()});
+  if(d&&d.ok){ showToast('✅ Ban kaldırıldı: '+e.trim()); try{_adminLog('God unban: '+e);}catch(_){} godDashboard(); }
+}
+async function godSendDM(){
+  var e=(document.getElementById('god-ban-email')||{}).value;
+  var m=prompt('Mesaj (genel yayın olarak gider):'); if(!m) return;
+  _godBroadcast('📨 '+(e&&e.trim()?'('+e.trim()+') ':'')+m,'👑 CREATOR');
+  showToast('📨 Mesaj gönderildi');
+}
+/* ⏱️ Hediye süresini uzat (mevcut bitişe ekler) */
+async function godExtendGift(extraHours){
+  try {
+    var r=await fetch('/api/global-modes?t='+Date.now()); var d=await r.json();
+    var modes=d.modes||{}; var fp=null; if(modes['__freepro__']){ try{fp=JSON.parse(modes['__freepro__']);}catch(e){} }
+    var base = (fp && fp.until>Date.now()) ? fp.until : Date.now();
+    var tier = (fp && fp.tier) ? fp.tier : (window._grantTier||'pro');
+    var until = base + extraHours*3600000;
+    await sendGlobalEvent('__freepro__', JSON.stringify({tier:tier, until:until, t:Date.now()}));
+    _applyFreePro({tier:tier, until:until});
+    showToast('⏱️ Hediye +'+extraHours+' saat uzatıldı'); godDashboard();
+  } catch(e){ showToast('❌ '+e.message); }
+}
+
 /* ══════════════════════════════════════════════════════════════
    🪄 SİHİRLİ ARAÇLAR — 50 farklı gerçek üreteç/araç
    ══════════════════════════════════════════════════════════════ */
@@ -9607,7 +9682,28 @@ function showAdminPanel(tab) {
         <div class="god-stat" style="animation-delay:.2s"><div class="god-stat-num">100%</div><div class="god-stat-lbl">Kontrol</div></div>
       </div>
     </div>
+    <div id="god-dash" style="background:rgba(13,16,24,0.9);border:1px solid rgba(124,58,237,0.25);border-radius:14px;padding:14px"></div>
     <button class="god-mega" onclick="godGrantPro()">🎁 HERKESE PRO / MAX HEDİYE ET 🎁</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <button onclick="godExtendGift(1)" style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);color:#fde047;padding:10px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">⏱️ +1 Saat Uzat</button>
+      <button onclick="godExtendGift(6)" style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);color:#fde047;padding:10px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">⏱️ +6 Saat</button>
+      <button onclick="godRevokePro()" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);color:#fca5a5;padding:10px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">🛑 Geri Al</button>
+    </div>
+    <div style="background:rgba(13,16,24,0.9);border:1px solid rgba(239,68,68,0.2);border-radius:14px;padding:16px">
+      <div style="font-size:13px;font-weight:800;color:#f87171;margin-bottom:10px">👤 HIZLI KULLANICI YÖNETİMİ</div>
+      <input id="god-ban-email" placeholder="kullanici@eposta.com" style="width:100%;background:#161b24;border:1px solid #262d3a;border-radius:8px;color:#e8ecf3;padding:9px 12px;font-size:13px;box-sizing:border-box;margin-bottom:8px">
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input id="god-ban-reason" placeholder="Sebep" style="flex:1;background:#161b24;border:1px solid #262d3a;border-radius:8px;color:#e8ecf3;padding:8px 10px;font-size:12px;box-sizing:border-box">
+        <select id="god-ban-dur" style="background:#161b24;border:1px solid #262d3a;border-radius:8px;color:#e8ecf3;padding:8px 10px;font-size:12px">
+          <option value="60">1 saat</option><option value="1440">1 gün</option><option value="10080">1 hafta</option><option value="0">Kalıcı</option>
+        </select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <button onclick="godQuickBan()" style="background:linear-gradient(135deg,#ef4444,#dc2626);border:none;color:#fff;padding:9px;border-radius:9px;cursor:pointer;font-size:12px;font-weight:700">🔨 Banla</button>
+        <button onclick="godQuickUnban()" style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.4);color:#6ee7b7;padding:9px;border-radius:9px;cursor:pointer;font-size:12px;font-weight:700">✅ Ban Kaldır</button>
+        <button onclick="godSendDM()" style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.4);color:#a5b4fc;padding:9px;border-radius:9px;cursor:pointer;font-size:12px;font-weight:700">📨 Mesaj</button>
+      </div>
+    </div>
     <button onclick="godFullPower()" style="width:100%;background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.4);color:#c4b5fd;padding:11px;border-radius:12px;cursor:pointer;font-size:13px;font-weight:700">🔱 Tam Gücü Serbest Bırak (sinematik + global yayın)</button>
     <div style="background:rgba(13,16,24,0.9);border:1px solid rgba(14,165,233,0.3);border-radius:14px;padding:16px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
@@ -9693,6 +9789,7 @@ function showAdminPanel(tab) {
   renderTab(tab);
   document.body.appendChild(overlay);
   _adminLog('Admin panel açıldı: ' + tab);
+  if (tab === 'god') { setTimeout(function(){ try { godDashboard(); } catch(e){} }, 60); }
 }
 
 /* ════════════════════════════════════════════════════════
