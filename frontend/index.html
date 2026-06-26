@@ -1484,6 +1484,179 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
 /* ══ AKILLı ÖNERİLER ══ */
 .suggestion-chips.ai-chips .suggestion-chip { background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(168,85,247,.08));border-color:rgba(99,102,241,.35); }
 .suggestion-chips.ai-chips .suggestion-chip:hover { border-color:var(--accent);background:rgba(99,102,241,.2); }
+
+/* ══════════════════════════════════════════════
+   100x UI BEAUTIFICATION — ANIMATIONS & EFFECTS
+══════════════════════════════════════════════ */
+
+/* 1. Global Animated Background */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: -1;
+  background:
+    radial-gradient(ellipse at 15% 50%, rgba(124,58,237,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 20%, rgba(99,102,241,0.05) 0%, transparent 40%),
+    radial-gradient(ellipse at 50% 90%, rgba(167,139,250,0.04) 0%, transparent 40%);
+  animation: bgPulse 12s ease-in-out infinite alternate;
+}
+@keyframes bgPulse {
+  0% { opacity: 0.6; transform: scale(1); }
+  100% { opacity: 1; transform: scale(1.05); }
+}
+
+/* 2. Sidebar Logo animation & user avatar glow */
+.sb-logo {
+  animation: logoSpin 20s linear infinite;
+}
+@keyframes logoSpin {
+  0% { background: linear-gradient(135deg, var(--accent), var(--purple)); }
+  25% { background: linear-gradient(225deg, var(--accent), var(--purple)); }
+  50% { background: linear-gradient(315deg, var(--accent), var(--purple)); }
+  75% { background: linear-gradient(45deg, var(--accent), var(--purple)); }
+  100% { background: linear-gradient(135deg, var(--accent), var(--purple)); }
+}
+.sb-user-avatar {
+  box-shadow: 0 0 0 2px #7c3aed, 0 0 12px rgba(124,58,237,0.4);
+}
+
+/* 3. Chat Messages — Entrance Animations */
+@keyframes msgSlideIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes msgSlideInRight {
+  from { opacity: 0; transform: translateX(16px) scale(0.98); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+.msg { animation: msgSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.msg.user { animation: msgSlideInRight 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+/* 4. User Bubble Shimmer */
+.msg.user .bubble { position: relative; overflow: hidden; }
+.msg.user .bubble::after {
+  content: '';
+  position: absolute; inset: 0; border-radius: inherit;
+  background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.08) 50%, transparent 60%);
+  background-size: 200% 100%;
+  animation: bubbleShimmer 3s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes bubbleShimmer {
+  0% { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+
+/* 5. Typing Indicator — Fancy Dots */
+.dot-bounce span {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent);
+  animation: typingBounce 1.2s ease-in-out infinite;
+  box-shadow: 0 0 8px rgba(124,58,237,0.6);
+}
+.dot-bounce span:nth-child(2) { animation-delay: 0.2s; }
+.dot-bounce span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typingBounce {
+  0%,60%,100% { transform: translateY(0) scale(1); opacity: 0.6; }
+  30% { transform: translateY(-8px) scale(1.2); opacity: 1; }
+}
+
+/* 6. Send Button — Pulse glow on hover */
+#btn-send { position: relative; overflow: visible; }
+#btn-send::before {
+  content: '';
+  position: absolute; inset: -3px; border-radius: inherit;
+  background: linear-gradient(135deg, #7c3aed, #6366f1);
+  opacity: 0; filter: blur(8px);
+  transition: opacity 0.3s;
+  z-index: -1;
+}
+#btn-send:hover::before { opacity: 0.6; }
+
+/* 7. Input Wrap — Animated Border */
+.input-wrap { position: relative; }
+.input-wrap::before {
+  content: '';
+  position: absolute; inset: -1px; border-radius: 19px; z-index: -1;
+  background: linear-gradient(90deg, #7c3aed, #6366f1, #a78bfa, #7c3aed);
+  background-size: 300% 100%;
+  opacity: 0; transition: opacity 0.3s;
+  animation: borderGlow 4s linear infinite;
+}
+.input-wrap:focus-within::before { opacity: 1; }
+@keyframes borderGlow {
+  0% { background-position: 0% center; }
+  100% { background-position: 300% center; }
+}
+
+/* 8. Welcome Particles */
+#welcome-particles {
+  position: absolute; inset: 0; pointer-events: none; overflow: hidden; border-radius: inherit;
+}
+.particle {
+  position: absolute; width: 3px; height: 3px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(167,139,250,0.8), transparent);
+  animation: particleFloat linear infinite;
+}
+@keyframes particleFloat {
+  0% { transform: translateY(0) scale(1); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 0.5; }
+  100% { transform: translateY(-200px) scale(0.5); opacity: 0; }
+}
+
+/* 9. Topbar Brand Name Shimmer */
+.brand-name {
+  background-size: 200% auto;
+  animation: brandShimmer 4s linear infinite;
+}
+@keyframes brandShimmer {
+  0% { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+/* 10. Sidebar New Chat Button — Glow Pulse */
+.sb-newchat {
+  animation: newChatGlow 3s ease-in-out infinite;
+}
+@keyframes newChatGlow {
+  0%,100% { box-shadow: 0 4px 20px rgba(124,58,237,.45), 0 1px 0 rgba(255,255,255,.1) inset; }
+  50% { box-shadow: 0 6px 28px rgba(124,58,237,.65), 0 0 20px rgba(124,58,237,.3), 0 1px 0 rgba(255,255,255,.1) inset; }
+}
+
+/* 11. Code Blocks — Better Styling */
+.code-wrap {
+  border-radius: 12px !important;
+  overflow: hidden;
+  border: 1px solid rgba(124,58,237,0.2) !important;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+  margin: 8px 0;
+}
+.code-header {
+  background: linear-gradient(90deg, rgba(124,58,237,0.15), rgba(99,102,241,0.1)) !important;
+  border-bottom: 1px solid rgba(124,58,237,0.15) !important;
+  padding: 8px 14px !important;
+}
+
+/* 12. Scrollbar — Custom Purple */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(124,58,237,0.4); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(124,58,237,0.7); }
+
+/* 13. Toast slide animation */
+@keyframes toastSlide {
+  from { opacity:0; transform:translateX(-50%) translateY(16px) scale(0.95); }
+  to   { opacity:1; transform:translateX(-50%) translateY(0) scale(1); }
+}
+
+/* 15. Bot Avatar Glow Ring */
+.msg.bot .avatar {
+  animation: avatarGlow 3s ease-in-out infinite;
+}
+@keyframes avatarGlow {
+  0%,100% { box-shadow: 0 0 0 2px rgba(124,58,237,0.3), 0 0 12px rgba(124,58,237,0.2); }
+  50% { box-shadow: 0 0 0 3px rgba(124,58,237,0.5), 0 0 20px rgba(124,58,237,0.4); }
+}
 </style>
 </head>
 <body data-mode="chat">
@@ -1744,7 +1917,7 @@ body.light-mode .ctx-item:hover { background:rgba(99,102,241,.07); }
     </div>
 
     <div id="chat-area">
-      <div id="welcome"></div>
+      <div id="welcome" style="position:relative;"><div id="welcome-particles"></div></div>
     </div>
 
     <!-- Typing indicator -->
@@ -4960,9 +5133,26 @@ function applyBubbleStyle(style) {
 let toastTimer = null;
 function showToast(msg) {
   toastEl.textContent = msg;
-  toastEl.classList.add('show');
+  toastEl.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(0);background:rgba(19,23,32,0.95);color:#edf0f7;padding:12px 22px;border-radius:14px;font-size:13.5px;font-weight:500;z-index:99999;max-width:85vw;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.5),0 0 0 1px rgba(255,255,255,0.06);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-left:3px solid #7c3aed;animation:toastSlide 0.4s cubic-bezier(0.34,1.56,0.64,1);pointer-events:none;opacity:1;';
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2500);
+  toastTimer = setTimeout(() => { toastEl.style.opacity = '0'; toastEl.style.transform = 'translateX(-50%) translateY(10px)'; }, 2500);
+}
+
+function initWelcomeParticles() {
+  var container = document.getElementById('welcome-particles');
+  if (!container) return;
+  container.innerHTML = '';
+  for (var i = 0; i < 20; i++) {
+    var p = document.createElement('div');
+    p.className = 'particle';
+    p.style.left = Math.random() * 100 + '%';
+    p.style.bottom = '-10px';
+    p.style.animationDuration = (4 + Math.random() * 8) + 's';
+    p.style.animationDelay = (Math.random() * 8) + 's';
+    var sz = (2 + Math.random() * 3) + 'px';
+    p.style.width = sz; p.style.height = sz;
+    container.appendChild(p);
+  }
 }
 
 /* ═══════════════════════════════════════════════
@@ -6691,6 +6881,7 @@ function applyActiveModes() {
 // Inject mode prompt into system prompts
 var _origBuildSysPrompt = null;
 document.addEventListener('DOMContentLoaded', function() {
+  initWelcomeParticles();
   setTimeout(function() {
     var modePrompt = localStorage.getItem('artus_mode_prompt') || '';
     if (modePrompt && typeof buildSystemPrompt === 'function') {
