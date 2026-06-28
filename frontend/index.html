@@ -3277,7 +3277,7 @@ function init() {
   // Show limit wall if already hit today
   if (CURRENT_USER && !_creatorMode && !CURRENT_USER.max) {
     const isPro = !!CURRENT_USER.pro;
-    const limit = isPro ? 100 : 20;
+    const limit = _effectiveMsgLimit(isPro);
     const lk = 'artus_daily_' + (CURRENT_USER.email || 'anon');
     try {
       const dd = JSON.parse(localStorage.getItem(lk) || '{}');
@@ -4940,7 +4940,7 @@ async function sendMessage() {
   // ── Günlük mesaj limiti (Creator + Max = sınırsız) ──────────────────
   if (CURRENT_USER && !_creatorMode && !CURRENT_USER.max) {
     const isPro = !!CURRENT_USER.pro;
-    const limit = isPro ? 100 : 20;
+    const limit = _effectiveMsgLimit(isPro);
     const today = new Date().toDateString();
     const lk = 'artus_daily_' + (CURRENT_USER.email || 'anon');
     let dd = {}; try { dd = JSON.parse(localStorage.getItem(lk) || '{}'); } catch(_) {}
@@ -7327,6 +7327,16 @@ async function fetchGlobalModes() {
         }
         if ((!fpData || fpData.until <= Date.now()) && window._lastFreePro) { window._lastFreePro = ''; }
       } catch(e){}
+      // 📈 Mesaj limiti boost — herkese geçici daha yüksek günlük limit
+      try {
+        var mbRaw = data.modes['__msgboost__'];
+        var mb = null;
+        if (mbRaw) { try { mb = (typeof mbRaw === 'string') ? JSON.parse(mbRaw) : mbRaw; } catch(e){} }
+        if (mb && mb.until > Date.now()) {
+          window._msgBoost = mb;
+          if (mbRaw !== window._lastMsgBoost) { window._lastMsgBoost = mbRaw; showToast('📈 Mesaj limitin '+mb.limit+'\'e yükseltildi!'); }
+        } else { window._msgBoost = null; if (window._lastMsgBoost) window._lastMsgBoost=''; }
+      } catch(e){}
       // 🎨 Global tema zorlama — creator herkesin vurgu rengini değiştirir
       try {
         var ft = data.modes['__forcetheme__'] || '';
@@ -7578,6 +7588,7 @@ async function fetchGlobalModes() {
       delete cleanModes['__clearchat__'];
       delete cleanModes['__freepro__'];
       delete cleanModes['__forcetheme__'];
+      delete cleanModes['__msgboost__'];
       // Personality modes are LOCAL-ONLY — never override from KV (prevents evil-personality etc. from auto-enabling)
       var _localModes = JSON.parse(localStorage.getItem('artus_modes') || '{}');
       Object.keys(_PERSONALITY_PROMPTS).forEach(function(k) {
@@ -7632,7 +7643,7 @@ async function saveGlobalModes(modesOverride) {
   else delete modes['maintenance'];
   // BUG FIX: kalıcı global durumları koru (hediye, zorlanmış tema) — toplu kayıt onları silmesin
   try {
-    var _preserve = ['__freepro__', '__forcetheme__'];
+    var _preserve = ['__freepro__', '__forcetheme__', '__msgboost__'];
     var _need = _preserve.some(function(k){ return modes[k] === undefined; });
     if (_need) {
       var curR = await fetch('/api/global-modes?t=' + Date.now());
@@ -8835,6 +8846,56 @@ async function godExtendGift(extraHours){
   } catch(e){ showToast('❌ '+e.message); }
 }
 
+// 📈 Geçerli mesaj limiti — aktif boost varsa onu kullan
+function _effectiveMsgLimit(isPro){
+  var base = isPro ? 100 : 20;
+  try { if (window._msgBoost && window._msgBoost.until > Date.now()) return Math.max(base, window._msgBoost.limit||base); } catch(e){}
+  return base;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   🎁 İYİ ŞEYLER — kullanıcılara kısa süreli pozitif ödüller
+   ══════════════════════════════════════════════════════════════ */
+// 🎉 Mutlu Saat: herkese süreli PRO + kutlama + emoji yağmuru (tek tık)
+async function godHappyHour(hours){
+  var until = Date.now() + hours*3600000;
+  await sendGlobalEvent('__freepro__', JSON.stringify({tier:'pro', until:until, t:Date.now()}));
+  _applyFreePro({tier:'pro', until:until});
+  _godBroadcast('🎉 MUTLU SAAT! Önümüzdeki '+hours+' saat boyunca herkes ⚡ PRO! Tüm özellikler açık, keyfini çıkarın! 💜','🎉 OMNI');
+  try { globalEmojiRainAll(); } catch(e){}
+  try{ _adminLog('Mutlu Saat: '+hours+'sa PRO');}catch(_){}
+  showToast('🎉 Mutlu Saat başladı — herkese '+hours+'sa PRO!');
+  godDashboard();
+}
+// 📈 Mesaj limiti boost: free kullanıcılara geçici yüksek limit
+async function godMsgBoost(limit, hours){
+  var until = Date.now() + hours*3600000;
+  await sendGlobalEvent('__msgboost__', JSON.stringify({limit:limit, until:until, t:Date.now()}));
+  window._msgBoost = {limit:limit, until:until};
+  _godBroadcast('📈 Hediye! Önümüzdeki '+hours+' saat boyunca günlük mesaj limitiniz '+limit+'! Bol bol sohbet edin 😊','🎁 OMNI');
+  try{ _adminLog('Mesaj boost: '+limit+' / '+hours+'sa');}catch(_){}
+  showToast('📈 Limit boost: '+limit+' ('+hours+'sa) herkese verildi');
+  godDashboard();
+}
+// 🎊 Sürpriz kutlama — pozitif mesaj + emoji yağmuru (abuse değil)
+async function godSurprise(){
+  var msgs = ['🎊 Sürpriz! İyi ki buradasın. Günün güzel geçsin! 💜','✨ Küçük bir kutlama — Omni ailesinin parçası olduğun için teşekkürler!','🎈 Bugün senin günün! Harika işler başaracaksın.','🌟 Bir gülümseme hediyesi: Seninle gurur duyuyoruz!'];
+  _godBroadcast(_mr(msgs),'🎊 OMNI');
+  try { globalEmojiRainAll(); } catch(e){}
+  showToast('🎊 Sürpriz kutlama gönderildi');
+}
+// 🌟 Günün motivasyonu — herkese ilham veren mesaj
+async function godMotivation(){
+  var q = ['Bugün dünden daha güçlüsün. 💪','Küçük adımlar büyük yollar açar. 🚶‍♂️','Hayalin kadar büyüksün. ✨','Vazgeçmek yok — en karanlık an, şafaktan hemen öncedir. 🌅','Sen yapabilirsin. Buna her zaman inandık. 💜','Bir nefes al, gülümse ve devam et. 🌸'];
+  _godBroadcast('🌟 GÜNÜN SÖZÜ: '+_mr(q),'🌟 OMNI');
+  showToast('🌟 Motivasyon mesajı gönderildi');
+}
+// 💝 Teşekkür hediyesi — kısa pozitif mesaj
+async function godThankYou(){
+  _godBroadcast('💝 Omni ailesi olarak sana teşekkür ederiz. Sevgiyle kullanmaya devam et! 🙏','💝 OMNI');
+  showToast('💝 Teşekkür mesajı gönderildi');
+}
+
 /* 🎨 Global tema — herkesin vurgu rengini değiştir */
 async function godForceTheme(color){
   if (!color) { var c=document.getElementById('god-theme-color'); color=c?c.value:'#7c3aed'; }
@@ -9809,6 +9870,23 @@ function showAdminPanel(tab) {
       <button onclick="godExtendGift(1)" style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);color:#fde047;padding:10px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">⏱️ +1 Saat Uzat</button>
       <button onclick="godExtendGift(6)" style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);color:#fde047;padding:10px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">⏱️ +6 Saat</button>
       <button onclick="godRevokePro()" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);color:#fca5a5;padding:10px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">🛑 Geri Al</button>
+    </div>
+    <div style="background:linear-gradient(135deg,rgba(16,185,129,0.12),rgba(99,102,241,0.08));border:1px solid rgba(16,185,129,0.3);border-radius:14px;padding:16px">
+      <div style="font-size:13px;font-weight:800;color:#34d399;margin-bottom:4px">🎁 İYİ ŞEYLER — Kullanıcı Ödülleri</div>
+      <div style="font-size:11px;color:#6b7280;margin-bottom:12px">Kullanıcılara kısa süreli pozitif sürprizler ver</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+        <button onclick="godHappyHour(1)" style="background:linear-gradient(135deg,#10b981,#059669);border:none;color:#fff;padding:9px 14px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">🎉 Mutlu Saat (1sa PRO)</button>
+        <button onclick="godHappyHour(3)" style="background:linear-gradient(135deg,#10b981,#059669);border:none;color:#fff;padding:9px 14px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">🎉 Mutlu Gün (3sa)</button>
+        <button onclick="godSurprise()" style="background:rgba(236,72,153,.15);border:1px solid rgba(236,72,153,.4);color:#f9a8d4;padding:9px 14px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">🎊 Sürpriz Kutlama</button>
+        <button onclick="godMotivation()" style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);color:#fde047;padding:9px 14px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">🌟 Günün Sözü</button>
+        <button onclick="godThankYou()" style="background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.4);color:#c4b5fd;padding:9px 14px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">💝 Teşekkür</button>
+      </div>
+      <div style="font-size:11px;color:#94a3b8;font-weight:700;margin-bottom:6px">📈 MESAJ LİMİTİ BOOST (ücretsiz kullanıcılara)</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <button onclick="godMsgBoost(50,3)" style="background:rgba(14,165,233,.12);border:1px solid rgba(14,165,233,.4);color:#7dd3fc;padding:8px 12px;border-radius:9px;cursor:pointer;font-size:12px">50 mesaj · 3sa</button>
+        <button onclick="godMsgBoost(100,6)" style="background:rgba(14,165,233,.12);border:1px solid rgba(14,165,233,.4);color:#7dd3fc;padding:8px 12px;border-radius:9px;cursor:pointer;font-size:12px">100 mesaj · 6sa</button>
+        <button onclick="godMsgBoost(500,24)" style="background:rgba(14,165,233,.12);border:1px solid rgba(14,165,233,.4);color:#7dd3fc;padding:8px 12px;border-radius:9px;cursor:pointer;font-size:12px">500 mesaj · 24sa</button>
+      </div>
     </div>
     <div style="background:rgba(13,16,24,0.9);border:1px solid rgba(239,68,68,0.2);border-radius:14px;padding:16px">
       <div style="font-size:13px;font-weight:800;color:#f87171;margin-bottom:10px">👤 HIZLI KULLANICI YÖNETİMİ</div>
