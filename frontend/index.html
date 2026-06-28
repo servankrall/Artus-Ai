@@ -8941,6 +8941,49 @@ async function godLuckyUser(){
   showToast('🍀 Çekiliş yapıldı — '+winner+' kazandı!');
   godDashboard();
 }
+// 🎁 Sürpriz Kutu — her tıkta rastgele farklı bir ödül
+async function godSurpriseBox(){
+  var pick = _mInt(0,4);
+  if (pick===0) { await godHappyHour(1); }
+  else if (pick===1) { await godMsgBoost(100,3); }
+  else if (pick===2) { await godSurprise(); }
+  else if (pick===3) { await godLuckyUser(); }
+  else { await godMotivation(); try{globalEmojiRainAll();}catch(e){} }
+  showToast('🎁 Sürpriz kutu açıldı!');
+}
+// 🌦️ Mevsim Paketi — temaya uygun renk + emoji yağmuru + mesaj
+async function godSeason(season){
+  var map = {
+    kis:   ['#38bdf8','❄️ Kış geldi! Sıcak bir çay al, sohbete devam. Hoş günler! ☕'],
+    bahar: ['#ec4899','🌸 Bahar açtı! Yeni başlangıçlar senin olsun. 🌷'],
+    yaz:   ['#f59e0b','☀️ Yaz keyfi! Güneşli bir gün gibi parlıyorsun. 🏖️'],
+    sonbahar: ['#ea580c','🍂 Sonbahar huzuru. Yaprak dökümü kadar zarif bir gün geçir. 🍁']
+  };
+  var s = map[season] || map.bahar;
+  await sendGlobalEvent('__forcetheme__', s[0]);
+  document.documentElement.style.setProperty('--accent', s[0]);
+  _godBroadcast(s[1], '🌦️ OMNI');
+  try { globalEmojiRainAll(); } catch(e){}
+  try{ _adminLog('Mevsim paketi: '+season);}catch(_){}
+  showToast('🌦️ Mevsim teması uygulandı: '+season);
+}
+// 🗳️ Hızlı Anket/Soru — kullanıcıları etkileşime davet et
+async function godQuickPoll(){
+  var q = prompt('Kullanıcılara sorulacak soru/anket:','Bugün nasılsınız? 😊');
+  if (!q) return;
+  _godBroadcast('🗳️ '+q+'  (Cevabını sohbete yazabilirsin!)', '🗳️ OMNI');
+  showToast('🗳️ Anket yayınlandı');
+}
+// 🎯 Mini Challenge — eğlenceli görev duyurusu + küçük ödül
+async function godChallenge(){
+  var ch = ['🎯 BUGÜNÜN GÖREVİ: AI\'a en yaratıcı sorunu sor! En iyiler ödüllendirilecek 🏆','🎯 CHALLENGE: 5 dakikada bir şiir yazdır ve paylaş! ✍️','🎯 GÖREV: AI ile bir hikaye başlat, nereye gideceğini gör! 📖','🎯 BUGÜN: AI\'a seni güldürmesini iste 😂'];
+  var until = Date.now() + 2*3600000;
+  await sendGlobalEvent('__msgboost__', JSON.stringify({limit:50, until:until, t:Date.now()}));
+  window._msgBoost = {limit:50, until:until};
+  _godBroadcast(_mr(ch)+'  (Bonus: 2 saat 50 mesaj hakkı herkese! 🎁)', '🎯 OMNI');
+  try{ _adminLog('Mini challenge başlatıldı');}catch(_){}
+  showToast('🎯 Challenge başlatıldı + bonus verildi');
+}
 
 /* 🎨 Global tema — herkesin vurgu rengini değiştir */
 async function godForceTheme(color){
@@ -9934,6 +9977,19 @@ function showAdminPanel(tab) {
         <button onclick="godCountdownHappyHour(5,1)" style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);color:#fde047;padding:8px 12px;border-radius:9px;cursor:pointer;font-size:12px">5 dk sonra · 1sa</button>
         <button onclick="godCountdownHappyHour(15,2)" style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);color:#fde047;padding:8px 12px;border-radius:9px;cursor:pointer;font-size:12px">15 dk sonra · 2sa</button>
         <button onclick="godCountdownHappyHour(60,3)" style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);color:#fde047;padding:8px 12px;border-radius:9px;cursor:pointer;font-size:12px">1 saat sonra · 3sa</button>
+      </div>
+      <div style="font-size:11px;color:#94a3b8;font-weight:700;margin-bottom:6px">✨ DAHA FAZLA</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+        <button onclick="godSurpriseBox()" style="background:linear-gradient(135deg,#8b5cf6,#ec4899);border:none;color:#fff;padding:9px 14px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">🎁 Sürpriz Kutu</button>
+        <button onclick="godQuickPoll()" style="background:rgba(14,165,233,.12);border:1px solid rgba(14,165,233,.4);color:#7dd3fc;padding:9px 14px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">🗳️ Hızlı Anket</button>
+        <button onclick="godChallenge()" style="background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.4);color:#6ee7b7;padding:9px 14px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">🎯 Mini Challenge</button>
+      </div>
+      <div style="font-size:11px;color:#94a3b8;font-weight:700;margin-bottom:6px">🌦️ MEVSİM TEMALARI</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <button onclick="godSeason('kis')" style="background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.4);color:#7dd3fc;padding:8px 12px;border-radius:9px;cursor:pointer;font-size:12px">❄️ Kış</button>
+        <button onclick="godSeason('bahar')" style="background:rgba(236,72,153,.12);border:1px solid rgba(236,72,153,.4);color:#f9a8d4;padding:8px 12px;border-radius:9px;cursor:pointer;font-size:12px">🌸 Bahar</button>
+        <button onclick="godSeason('yaz')" style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);color:#fde047;padding:8px 12px;border-radius:9px;cursor:pointer;font-size:12px">☀️ Yaz</button>
+        <button onclick="godSeason('sonbahar')" style="background:rgba(234,88,12,.12);border:1px solid rgba(234,88,12,.4);color:#fdba74;padding:8px 12px;border-radius:9px;cursor:pointer;font-size:12px">🍂 Sonbahar</button>
       </div>
       <div style="font-size:11px;color:#94a3b8;font-weight:700;margin-bottom:6px">📈 MESAJ LİMİTİ BOOST (ücretsiz kullanıcılara)</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px">
