@@ -9812,6 +9812,12 @@ function _renderGodGrid(){
   }).join('');
 }
 
+function _filterAdminTabs(q){
+  q=(q||'').toLowerCase().trim();
+  document.querySelectorAll('#admin-tab-row .admin-tab-btn').forEach(function(b){
+    b.style.display = (!q || (b.dataset.lbl||'').indexOf(q)>=0) ? '' : 'none';
+  });
+}
 function showAdminPanel(tab) {
   tab = tab || 'codes';
   var existing = document.getElementById('admin-panel-overlay');
@@ -11047,8 +11053,11 @@ function showAdminPanel(tab) {
           </div>
           <button onclick="document.getElementById('admin-panel-overlay').remove()" style="background:#262d3a;border:none;color:#e8ecf3;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center">✕</button>
         </div>
-        <div style="display:flex;gap:4px;padding:12px 24px;border-bottom:1px solid #262d3a;overflow-x:auto">
-          ${tabs.map(t=>`<button onclick="showAdminPanel('${t.id}')" style="white-space:nowrap;background:${activeTab===t.id?'linear-gradient(135deg,#7c3aed,#6366f1)':'rgba(255,255,255,0.04)'};border:${activeTab===t.id?'1px solid transparent':'1px solid rgba(255,255,255,0.06)'};color:${activeTab===t.id?'#fff':'#8b94a7'};padding:7px 16px;border-radius:24px;cursor:pointer;font-size:12px;font-weight:${activeTab===t.id?'700':'400'};box-shadow:${activeTab===t.id?'0 4px 16px rgba(124,58,237,0.5)':'none'};transform:${activeTab===t.id?'scale(1.05)':'scale(1)'};transition:all 0.2s">${t.icon} ${t.label}</button>`).join('')}
+        <div style="padding:10px 24px 0;border-bottom:1px solid #262d3a">
+          <input id="admin-tab-search" oninput="_filterAdminTabs(this.value)" placeholder="🔍 Sekme ara... (${tabs.length} sekme)" style="width:100%;background:#0a0e14;border:1px solid #262d3a;border-radius:8px;color:#e8ecf3;padding:7px 12px;font-size:12px;box-sizing:border-box;margin-bottom:8px">
+          <div id="admin-tab-row" style="display:flex;gap:4px;padding-bottom:12px;overflow-x:auto">
+          ${tabs.map(t=>`<button class="admin-tab-btn" data-lbl="${(t.label||'').toLowerCase()} ${t.id}" ${activeTab===t.id?'data-active="1"':''} onclick="showAdminPanel('${t.id}')" style="white-space:nowrap;background:${activeTab===t.id?'linear-gradient(135deg,#7c3aed,#6366f1)':'rgba(255,255,255,0.04)'};border:${activeTab===t.id?'1px solid transparent':'1px solid rgba(255,255,255,0.06)'};color:${activeTab===t.id?'#fff':'#8b94a7'};padding:7px 16px;border-radius:24px;cursor:pointer;font-size:12px;font-weight:${activeTab===t.id?'700':'400'};box-shadow:${activeTab===t.id?'0 4px 16px rgba(124,58,237,0.5)':'none'};transform:${activeTab===t.id?'scale(1.05)':'scale(1)'};transition:all 0.2s">${t.icon} ${t.label}</button>`).join('')}
+          </div>
         </div>
         <div style="flex:1;overflow-y:auto;padding:20px 24px">${content}</div>
       </div>`;
@@ -11057,6 +11066,7 @@ function showAdminPanel(tab) {
   renderTab(tab);
   document.body.appendChild(overlay);
   _adminLog('Admin panel açıldı: ' + tab);
+  setTimeout(function(){ var at=document.querySelector('#admin-tab-row .admin-tab-btn[data-active]'); if(at&&at.scrollIntoView) try{ at.scrollIntoView({inline:'center',block:'nearest'}); }catch(e){} }, 30);
   if (window._godDashIv) { clearInterval(window._godDashIv); window._godDashIv = null; }
   if (tab === 'notes') { setTimeout(function(){ try { todoRender(); noteRender(); } catch(e){} }, 60); }
   if (tab === 'games') { setTimeout(function(){ try { gameGuessReset(); } catch(e){} }, 60); }
