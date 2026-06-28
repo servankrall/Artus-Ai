@@ -7661,6 +7661,18 @@ async function castVote(option){
 setTimeout(checkPoll, 1500);
 setInterval(checkPoll, 6000);
 
+/* 🟢 Çevrimiçi sayacı — heartbeat gönder, gerçek aktif kullanıcı sayısı */
+window._onlineCount = 0;
+async function _heartbeat(){
+  try {
+    var r = await fetch('/api/presence', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:_voterId()})});
+    var d = await r.json();
+    if (typeof d.online === 'number') window._onlineCount = d.online;
+  } catch(e){}
+}
+setTimeout(_heartbeat, 2000);
+setInterval(_heartbeat, 30000);
+
 // Creator: global modları sunucuya kaydet
 var _cachedApiSecret = localStorage.getItem('artus_api_secret') || '';
 
@@ -8845,14 +8857,16 @@ async function godDashboard(){
   if(!box){ if(window._godDashIv){ clearInterval(window._godDashIv); window._godDashIv=null; } return; }
   box.innerHTML='<div style="color:#94a3b8;font-size:12px;text-align:center;padding:10px">⏳ Canlı veri çekiliyor...</div>';
   try {
-    var mr = await Promise.all([ fetch('/api/global-modes?t='+Date.now()).then(function(r){return r.json();}), fetch('/api/bans?t='+Date.now()).then(function(r){return r.json();}) ]);
-    var modes = mr[0].modes || {}; var bans = mr[1].bans || {};
+    var mr = await Promise.all([ fetch('/api/global-modes?t='+Date.now()).then(function(r){return r.json();}), fetch('/api/bans?t='+Date.now()).then(function(r){return r.json();}), fetch('/api/presence?t='+Date.now()).then(function(r){return r.json();}).catch(function(){return {online:0};}) ]);
+    var modes = mr[0].modes || {}; var bans = mr[1].bans || {}; var online = (mr[2]&&mr[2].online)||0;
+    var goEl=document.getElementById('god-online'); if(goEl) goEl.textContent=online;
     var fp=null; if(modes['__freepro__']){ try{ fp=JSON.parse(modes['__freepro__']); }catch(e){} }
     var giftActive = fp && fp.until>Date.now();
     var giftTxt = giftActive ? ((fp.tier==='max'?'✦ MAX':'⚡ PRO')+' · '+_fpFmt(fp.until)+' kaldı') : 'Yok';
     var cmdKeys = Object.keys(modes).filter(function(k){return k.indexOf('__')===0;});
     var banCount = Object.keys(bans).length;
     var cards = [
+      ['🟢','Çevrimiçi', online+' kişi', online?'#4ade80':'#64748b'],
       ['🎁','Aktif Hediye', giftTxt, giftActive?'#fbbf24':'#64748b'],
       ['🚫','Yasaklı', banCount+' kullanıcı', banCount?'#f87171':'#4ade80'],
       ['📡','Yayında Komut', cmdKeys.length+' adet', cmdKeys.length?'#a78bfa':'#64748b'],
@@ -9043,6 +9057,22 @@ async function godChallenge(){
   _godBroadcast(_mr(ch)+'  (Bonus: 2 saat 50 mesaj hakkı herkese! 🎁)', '🎯 OMNI');
   try{ _adminLog('Mini challenge başlatıldı');}catch(_){}
   showToast('🎯 Challenge başlatıldı + bonus verildi');
+}
+
+// 🎵 Neşe Modu — pozitif vibe: mutlu tema + emoji yağmuru + mesaj (PRO yok)
+async function godJoyMode(){
+  var c = _mr(['#22c55e','#06b6d4','#f59e0b','#ec4899']);
+  await sendGlobalEvent('__forcetheme__', c);
+  document.documentElement.style.setProperty('--accent', c);
+  _godBroadcast('🎵 NEŞE MODU AÇIK! Biraz renk, biraz gülümseme — günün güzelleşsin! 🌈😊','🎵 OMNI');
+  try { globalEmojiRainAll(); } catch(e){}
+  showToast('🎵 Neşe modu yayıldı');
+}
+// 👋 Hoş geldin dalgası — sıcak karşılama
+async function godWelcomeWave(){
+  _godBroadcast('👋 Hoş geldin! Omni ailesine katıldığın için çok mutluyuz. İyi sohbetler! 💜','👋 OMNI');
+  try { globalEmojiRainAll(); } catch(e){}
+  showToast('👋 Hoş geldin dalgası gönderildi');
 }
 
 /* 🗳️ CREATOR ANKET KONTROLÜ */
@@ -10098,7 +10128,7 @@ function showAdminPanel(tab) {
       </div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:18px;position:relative;z-index:2">
         <div class="god-stat" style="animation-delay:.05s"><div class="god-stat-num" id="god-uptime">∞</div><div class="god-stat-lbl">Çalışma</div></div>
-        <div class="god-stat" style="animation-delay:.1s"><div class="god-stat-num" id="god-online">${_mInt(840,2400)}</div><div class="god-stat-lbl">Çevrimiçi</div></div>
+        <div class="god-stat" style="animation-delay:.1s"><div class="god-stat-num" id="god-online">${window._onlineCount||'•'}</div><div class="god-stat-lbl">Çevrimiçi</div></div>
         <div class="god-stat" style="animation-delay:.15s"><div class="god-stat-num" id="god-cmds">0</div><div class="god-stat-lbl">Komut</div></div>
         <div class="god-stat" style="animation-delay:.2s"><div class="god-stat-num">100%</div><div class="god-stat-lbl">Kontrol</div></div>
       </div>
@@ -10133,6 +10163,8 @@ function showAdminPanel(tab) {
         <button onclick="godSurpriseBox()" style="background:linear-gradient(135deg,#8b5cf6,#ec4899);border:none;color:#fff;padding:9px 14px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">🎁 Sürpriz Kutu</button>
         <button onclick="godQuickPoll()" style="background:rgba(14,165,233,.12);border:1px solid rgba(14,165,233,.4);color:#7dd3fc;padding:9px 14px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">🗳️ Hızlı Anket</button>
         <button onclick="godChallenge()" style="background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.4);color:#6ee7b7;padding:9px 14px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">🎯 Mini Challenge</button>
+        <button onclick="godJoyMode()" style="background:linear-gradient(135deg,#06b6d4,#22c55e);border:none;color:#fff;padding:9px 14px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">🎵 Neşe Modu</button>
+        <button onclick="godWelcomeWave()" style="background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.4);color:#c4b5fd;padding:9px 14px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">👋 Hoş Geldin Dalgası</button>
       </div>
       <div style="font-size:11px;color:#94a3b8;font-weight:700;margin-bottom:6px">🌦️ MEVSİM TEMALARI</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px">
