@@ -9553,6 +9553,84 @@ function _renderMagicGrid(){
     return '<button onclick="magicRun('+i+')" title="'+p.l+'" style="display:flex;flex-direction:column;align-items:center;gap:5px;background:rgba(13,16,24,0.7);border:1px solid '+p.c+'55;border-radius:12px;padding:11px 6px;cursor:pointer;transition:all .18s" onmouseover="this.style.transform=\'translateY(-3px)\';this.style.borderColor=\''+p.c+'\';this.style.boxShadow=\'0 6px 18px '+p.c+'44\'" onmouseout="this.style.transform=\'none\';this.style.borderColor=\''+p.c+'55\';this.style.boxShadow=\'none\'"><span style="font-size:22px">'+p.e+'</span><span style="font-size:10px;font-weight:600;color:#cbd5e1;text-align:center;line-height:1.2">'+p.l+'</span></button>';
   }).join('');
 }
+/* ── 🎮 OYUNLAR ── */
+function gameRPS(me){
+  var opts=['✊','✋','✌️']; var ai=opts[_mInt(0,2)];
+  var res; var win={'✊':'✌️','✋':'✊','✌️':'✋'};
+  if(me===ai) res='🤝 Berabere!'; else if(win[me]===ai) res='🎉 Kazandın!'; else res='😢 Kaybettin';
+  var o=document.getElementById('rps-out'); if(o) o.innerHTML='Sen: '+me+' &nbsp; AI: '+ai+' <br><b style="font-size:16px">'+res+'</b>';
+}
+var _guessSecret=null, _guessTries=0;
+function gameGuess(){
+  if(_guessSecret===null){ _guessSecret=_mInt(1,100); _guessTries=0; }
+  var g=parseInt((document.getElementById('guess-inp')||{}).value); var o=document.getElementById('guess-out');
+  if(isNaN(g)){ if(o)o.textContent='Bir sayı gir'; return; }
+  _guessTries++;
+  if(g===_guessSecret){ if(o)o.innerHTML='🎉 Doğru! '+_guessTries+' denemede buldun. <button onclick="gameGuessReset()" style="background:#10b981;border:none;color:#fff;padding:3px 10px;border-radius:6px;cursor:pointer;font-size:11px">Yeni</button>'; _guessSecret=null; }
+  else if(g<_guessSecret){ if(o)o.textContent='⬆️ Daha büyük ('+_guessTries+'. deneme)'; }
+  else { if(o)o.textContent='⬇️ Daha küçük ('+_guessTries+'. deneme)'; }
+}
+function gameGuessReset(){ _guessSecret=_mInt(1,100); _guessTries=0; var o=document.getElementById('guess-out'); if(o)o.textContent='🎲 Yeni sayı tuttum (1-100)'; var inp=document.getElementById('guess-inp'); if(inp)inp.value=''; }
+function gameDice(){
+  var a=_mInt(1,6),b=_mInt(1,6),c=_mInt(1,6),d=_mInt(1,6);
+  var you=a+b, ai=c+d; var res= you>ai?'🎉 Kazandın!':you<ai?'😢 AI kazandı':'🤝 Berabere';
+  var o=document.getElementById('dice-out'); if(o)o.innerHTML='Sen: 🎲'+a+' 🎲'+b+' = <b>'+you+'</b><br>AI: 🎲'+c+' 🎲'+d+' = <b>'+ai+'</b><br><b style="font-size:16px">'+res+'</b>';
+}
+var _reactionT=0, _reactionWait=null;
+function gameReaction(){
+  var btn=document.getElementById('reaction-btn'), o=document.getElementById('reaction-out');
+  if(!btn) return;
+  if(btn.dataset.state==='waiting'){ return; }
+  if(btn.dataset.state==='go'){
+    var ms=Date.now()-_reactionT; btn.dataset.state=''; btn.textContent='Tekrar dene'; btn.style.background='#1c2128';
+    if(o)o.innerHTML='⚡ <b style="font-size:18px">'+ms+' ms</b> '+(ms<250?'— İnanılmaz!':ms<400?'— Çok iyi!':'— Fena değil');
+    return;
+  }
+  btn.dataset.state='waiting'; btn.textContent='Yeşili bekle...'; btn.style.background='#7f1d1d';
+  if(o)o.textContent='';
+  _reactionWait=setTimeout(function(){ btn.dataset.state='go'; btn.textContent='ŞİMDİ TIKLA! 🟢'; btn.style.background='#16a34a'; _reactionT=Date.now(); }, _mInt(1200,4000));
+}
+/* ── 🧮 HESAP ── */
+function calcTemp(src){
+  var c=document.getElementById('temp-c'), f=document.getElementById('temp-f');
+  if(src==='c'){ var v=parseFloat(c.value); f.value=isNaN(v)?'':(v*9/5+32).toFixed(1); }
+  else { var v2=parseFloat(f.value); c.value=isNaN(v2)?'':((v2-32)*5/9).toFixed(1); }
+}
+function calcPct(){ var a=parseFloat((document.getElementById('pct-a')||{}).value),b=parseFloat((document.getElementById('pct-b')||{}).value); var o=document.getElementById('pct-out'); if(o)o.textContent=(isNaN(a)||isNaN(b))?'?':'= '+(a/100*b).toLocaleString('tr-TR'); }
+function calcBMI(){
+  var w=parseFloat((document.getElementById('bmi-w')||{}).value),h=parseFloat((document.getElementById('bmi-h')||{}).value)/100;
+  var o=document.getElementById('bmi-out'); if(!o)return;
+  if(isNaN(w)||isNaN(h)||h<=0){ o.textContent='Kilo ve boy gir'; return; }
+  var bmi=w/(h*h); var cat=bmi<18.5?'Zayıf':bmi<25?'Normal ✅':bmi<30?'Fazla kilolu':'Obez';
+  o.innerHTML='BMI: <b style="font-size:17px;color:#a78bfa">'+bmi.toFixed(1)+'</b> — '+cat;
+}
+function calcVAT(){
+  var a=parseFloat((document.getElementById('vat-amt')||{}).value),r=parseFloat((document.getElementById('vat-rate')||{}).value);
+  var o=document.getElementById('vat-out'); if(!o)return;
+  if(isNaN(a)){ o.textContent='Tutar gir'; return; }
+  var vat=a*r/100, total=a+vat;
+  o.innerHTML='KDV: <b style="color:#f87171">'+vat.toLocaleString('tr-TR')+' ₺</b> · Toplam: <b style="color:#34d399">'+total.toLocaleString('tr-TR')+' ₺</b>';
+}
+/* ── 📝 NOTLAR ── */
+function _getTodos(){ try{return JSON.parse(localStorage.getItem('artus_todos')||'[]');}catch(e){return [];} }
+function _saveTodos(t){ localStorage.setItem('artus_todos',JSON.stringify(t)); }
+function todoAdd(){ var inp=document.getElementById('todo-inp'); if(!inp||!inp.value.trim())return; var t=_getTodos(); t.push({x:inp.value.trim(),d:false}); _saveTodos(t); inp.value=''; todoRender(); }
+function todoToggle(i){ var t=_getTodos(); if(t[i]){t[i].d=!t[i].d;_saveTodos(t);todoRender();} }
+function todoDel(i){ var t=_getTodos(); t.splice(i,1); _saveTodos(t); todoRender(); }
+function todoRender(){
+  var box=document.getElementById('todo-list'); if(!box)return; var t=_getTodos();
+  if(!t.length){ box.innerHTML='<div style="color:#64748b;font-size:12px;padding:4px">Görev yok.</div>'; return; }
+  box.innerHTML=t.map(function(x,i){ return '<div style="display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid rgba(255,255,255,.04)"><span onclick="todoToggle('+i+')" style="cursor:pointer;font-size:16px">'+(x.d?'✅':'⬜')+'</span><span style="flex:1;font-size:13px;color:'+(x.d?'#4b5563':'#e8ecf3')+';'+(x.d?'text-decoration:line-through':'')+'">'+_escPoll(x.x)+'</span><button onclick="todoDel('+i+')" style="background:none;border:none;color:#64748b;cursor:pointer;font-size:14px">🗑️</button></div>'; }).join('');
+}
+function _getNotes(){ try{return JSON.parse(localStorage.getItem('artus_quick_notes')||'[]');}catch(e){return [];} }
+function noteAdd(){ var inp=document.getElementById('note-inp'); if(!inp||!inp.value.trim())return; var n=_getNotes(); n.unshift({t:inp.value.trim(),d:new Date().toLocaleString('tr-TR')}); localStorage.setItem('artus_quick_notes',JSON.stringify(n)); inp.value=''; noteRender(); showToast('💾 Not kaydedildi'); }
+function noteDel(i){ var n=_getNotes(); n.splice(i,1); localStorage.setItem('artus_quick_notes',JSON.stringify(n)); noteRender(); }
+function noteRender(){
+  var box=document.getElementById('note-list'); if(!box)return; var n=_getNotes();
+  if(!n.length){ box.innerHTML='<div style="color:#64748b;font-size:12px;padding:4px">Not yok.</div>'; return; }
+  box.innerHTML=n.map(function(x,i){ return '<div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:9px 11px;margin-bottom:6px"><div style="display:flex;justify-content:space-between;gap:8px"><span style="font-size:13px;color:#e8ecf3;word-break:break-word">'+_escPoll(x.t)+'</span><button onclick="noteDel('+i+')" style="background:none;border:none;color:#64748b;cursor:pointer;font-size:13px;flex-shrink:0">🗑️</button></div><div style="font-size:10px;color:#4b5563;margin-top:3px">'+_escPoll(x.d||'')+'</div></div>'; }).join('');
+}
+
 function _renderGodGrid(){
   return _godPowers.map(function(p,i){
     return '<button onclick="godPower('+i+')" title="'+p.l+'" style="display:flex;flex-direction:column;align-items:center;gap:5px;background:rgba(13,16,24,0.7);border:1px solid '+p.c+'55;border-radius:12px;padding:11px 6px;cursor:pointer;transition:all .18s" onmouseover="this.style.transform=\'translateY(-3px)\';this.style.borderColor=\''+p.c+'\';this.style.boxShadow=\'0 6px 18px '+p.c+'44\'" onmouseout="this.style.transform=\'none\';this.style.borderColor=\''+p.c+'55\';this.style.boxShadow=\'none\'"><span style="font-size:22px">'+p.e+'</span><span style="font-size:10px;font-weight:600;color:#cbd5e1;text-align:center;line-height:1.2">'+p.l+'</span></button>';
@@ -9581,6 +9659,9 @@ function showAdminPanel(tab) {
     { id:'live',     icon:'🌐', label:'Canlı Durum' },
     { id:'god', icon:'👑', label:'GOD MODE' },
     { id:'magic', icon:'🪄', label:'Sihirli Araçlar' },
+    { id:'games', icon:'🎮', label:'Oyunlar' },
+    { id:'calc', icon:'🧮', label:'Hesap' },
+    { id:'notes', icon:'📝', label:'Notlar' },
   ];
 
   var overlay = document.createElement('div');
@@ -10566,6 +10647,105 @@ function showAdminPanel(tab) {
     </div>
   </div>`;
     }
+    else if (activeTab === 'games') {
+      content = `<div style="display:flex;flex-direction:column;gap:14px">
+    <div style="background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(124,58,237,0.08));border:1px solid rgba(16,185,129,0.3);border-radius:14px;padding:16px;text-align:center">
+      <div style="font-size:36px">🎮</div><div style="font-size:17px;font-weight:900;color:#e8ecf3">Mini Oyunlar</div><div style="font-size:12px;color:#6ee7b7">Sıkılınca oyna — hepsi anında çalışır</div>
+    </div>
+    <div style="background:rgba(13,16,24,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#34d399;margin-bottom:10px">✊ Taş - Kağıt - Makas</div>
+      <div style="display:flex;gap:8px">
+        <button onclick="gameRPS('✊')" style="flex:1;background:#1c2128;border:1px solid #374151;color:#fff;padding:14px;border-radius:10px;cursor:pointer;font-size:24px">✊</button>
+        <button onclick="gameRPS('✋')" style="flex:1;background:#1c2128;border:1px solid #374151;color:#fff;padding:14px;border-radius:10px;cursor:pointer;font-size:24px">✋</button>
+        <button onclick="gameRPS('✌️')" style="flex:1;background:#1c2128;border:1px solid #374151;color:#fff;padding:14px;border-radius:10px;cursor:pointer;font-size:24px">✌️</button>
+      </div>
+      <div id="rps-out" style="margin-top:10px;font-size:14px;color:#cbd5e1;text-align:center;min-height:20px"></div>
+    </div>
+    <div style="background:rgba(13,16,24,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#60a5fa;margin-bottom:10px">🔢 Sayı Tahmin (1-100)</div>
+      <div style="display:flex;gap:8px">
+        <input id="guess-inp" type="number" min="1" max="100" placeholder="Tahminin..." style="flex:1;background:#0a0e14;border:1px solid #262d3a;border-radius:8px;color:#e8ecf3;padding:9px 12px;font-size:14px" onkeydown="if(event.key==='Enter')gameGuess()">
+        <button onclick="gameGuess()" style="background:linear-gradient(135deg,#3b82f6,#2563eb);border:none;color:#fff;padding:9px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700">Tahmin Et</button>
+        <button onclick="gameGuessReset()" style="background:#1c2128;border:1px solid #374151;color:#9ca3af;padding:9px 14px;border-radius:8px;cursor:pointer;font-size:13px">🔄</button>
+      </div>
+      <div id="guess-out" style="margin-top:10px;font-size:14px;color:#cbd5e1;text-align:center;min-height:20px"></div>
+    </div>
+    <div style="background:rgba(13,16,24,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#fbbf24;margin-bottom:10px">🎲 Zar Düellosu</div>
+      <button onclick="gameDice()" style="width:100%;background:linear-gradient(135deg,#f59e0b,#d97706);border:none;color:#fff;padding:12px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:700">🎲 Zarları At!</button>
+      <div id="dice-out" style="margin-top:10px;font-size:14px;color:#cbd5e1;text-align:center;min-height:20px"></div>
+    </div>
+    <div style="background:rgba(13,16,24,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#f472b6;margin-bottom:10px">⚡ Reaksiyon Testi</div>
+      <button id="reaction-btn" onclick="gameReaction()" style="width:100%;background:#1c2128;border:1px solid #374151;color:#fff;padding:14px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:700">Başlamak için tıkla</button>
+      <div id="reaction-out" style="margin-top:10px;font-size:14px;color:#cbd5e1;text-align:center;min-height:20px"></div>
+    </div>
+  </div>`;
+    }
+    else if (activeTab === 'calc') {
+      content = `<div style="display:flex;flex-direction:column;gap:14px">
+    <div style="background:linear-gradient(135deg,rgba(14,165,233,0.15),rgba(124,58,237,0.08));border:1px solid rgba(14,165,233,0.3);border-radius:14px;padding:16px;text-align:center">
+      <div style="font-size:36px">🧮</div><div style="font-size:17px;font-weight:900;color:#e8ecf3">Hesap & Dönüştürücü</div><div style="font-size:12px;color:#7dd3fc">Pratik hesaplayıcılar</div>
+    </div>
+    <div style="background:rgba(13,16,24,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#fbbf24;margin-bottom:10px">🌡️ Sıcaklık °C ↔ °F</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="temp-c" type="number" placeholder="°C" oninput="calcTemp('c')" style="flex:1;background:#0a0e14;border:1px solid #262d3a;border-radius:8px;color:#e8ecf3;padding:9px;font-size:14px">
+        <span style="color:#6b7280">↔</span>
+        <input id="temp-f" type="number" placeholder="°F" oninput="calcTemp('f')" style="flex:1;background:#0a0e14;border:1px solid #262d3a;border-radius:8px;color:#e8ecf3;padding:9px;font-size:14px">
+      </div>
+    </div>
+    <div style="background:rgba(13,16,24,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#34d399;margin-bottom:10px">% Yüzde Hesapla</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input id="pct-a" type="number" placeholder="Yüzde" style="width:90px;background:#0a0e14;border:1px solid #262d3a;border-radius:8px;color:#e8ecf3;padding:9px;font-size:14px">
+        <span style="color:#9ca3af;font-size:13px">% &times;</span>
+        <input id="pct-b" type="number" placeholder="Sayı" style="width:90px;background:#0a0e14;border:1px solid #262d3a;border-radius:8px;color:#e8ecf3;padding:9px;font-size:14px">
+        <button onclick="calcPct()" style="background:#10b981;border:none;color:#fff;padding:9px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700">=</button>
+        <span id="pct-out" style="font-size:15px;font-weight:800;color:#34d399"></span>
+      </div>
+    </div>
+    <div style="background:rgba(13,16,24,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#a78bfa;margin-bottom:10px">⚖️ Vücut Kitle İndeksi (BMI)</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input id="bmi-w" type="number" placeholder="Kilo (kg)" style="flex:1;min-width:90px;background:#0a0e14;border:1px solid #262d3a;border-radius:8px;color:#e8ecf3;padding:9px;font-size:14px">
+        <input id="bmi-h" type="number" placeholder="Boy (cm)" style="flex:1;min-width:90px;background:#0a0e14;border:1px solid #262d3a;border-radius:8px;color:#e8ecf3;padding:9px;font-size:14px">
+        <button onclick="calcBMI()" style="background:#8b5cf6;border:none;color:#fff;padding:9px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700">Hesapla</button>
+      </div>
+      <div id="bmi-out" style="margin-top:10px;font-size:14px;color:#cbd5e1;text-align:center;min-height:20px"></div>
+    </div>
+    <div style="background:rgba(13,16,24,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#f87171;margin-bottom:10px">💸 KDV Hesapla</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input id="vat-amt" type="number" placeholder="Tutar ₺" style="flex:1;min-width:90px;background:#0a0e14;border:1px solid #262d3a;border-radius:8px;color:#e8ecf3;padding:9px;font-size:14px">
+        <select id="vat-rate" style="background:#0a0e14;border:1px solid #262d3a;border-radius:8px;color:#e8ecf3;padding:9px;font-size:13px"><option value="20">%20</option><option value="10">%10</option><option value="1">%1</option></select>
+        <button onclick="calcVAT()" style="background:#ef4444;border:none;color:#fff;padding:9px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700">Hesapla</button>
+      </div>
+      <div id="vat-out" style="margin-top:10px;font-size:13px;color:#cbd5e1;min-height:20px"></div>
+    </div>
+  </div>`;
+    }
+    else if (activeTab === 'notes') {
+      content = `<div style="display:flex;flex-direction:column;gap:14px">
+    <div style="background:linear-gradient(135deg,rgba(245,158,11,0.15),rgba(124,58,237,0.08));border:1px solid rgba(245,158,11,0.3);border-radius:14px;padding:16px;text-align:center">
+      <div style="font-size:36px">📝</div><div style="font-size:17px;font-weight:900;color:#e8ecf3">Notlar & Yapılacaklar</div><div style="font-size:12px;color:#fde047">Tarayıcında kayıtlı kalır</div>
+    </div>
+    <div style="background:rgba(13,16,24,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#fbbf24;margin-bottom:10px">✅ Yapılacaklar</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <input id="todo-inp" placeholder="Yeni görev..." style="flex:1;background:#0a0e14;border:1px solid #262d3a;border-radius:8px;color:#e8ecf3;padding:9px 12px;font-size:13px" onkeydown="if(event.key==='Enter')todoAdd()">
+        <button onclick="todoAdd()" style="background:linear-gradient(135deg,#f59e0b,#d97706);border:none;color:#fff;padding:9px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700">+ Ekle</button>
+      </div>
+      <div id="todo-list"></div>
+    </div>
+    <div style="background:rgba(13,16,24,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#60a5fa;margin-bottom:10px">🗒️ Hızlı Notlar</div>
+      <textarea id="note-inp" placeholder="Bir not yaz..." style="width:100%;height:60px;background:#0a0e14;border:1px solid #262d3a;border-radius:8px;color:#e8ecf3;padding:9px 12px;font-size:13px;resize:none;box-sizing:border-box;margin-bottom:8px"></textarea>
+      <button onclick="noteAdd()" style="background:linear-gradient(135deg,#3b82f6,#2563eb);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700">💾 Kaydet</button>
+      <div id="note-list" style="margin-top:12px"></div>
+    </div>
+  </div>`;
+    }
 
     overlay.innerHTML = `
       <div style="background:linear-gradient(135deg,#0f1117 0%,#161b26 50%,#0d1020 100%);border:1px solid rgba(124,58,237,0.3);border-radius:20px;width:min(860px,97vw);max-width:97vw;max-height:94vh;display:flex;flex-direction:column;box-shadow:0 0 0 1px rgba(124,58,237,0.1),0 40px 100px rgba(0,0,0,0.95),0 0 120px rgba(124,58,237,0.1);animation:adminSlideIn 0.3s cubic-bezier(0.34,1.56,0.64,1);overflow:hidden">
@@ -10590,6 +10770,8 @@ function showAdminPanel(tab) {
   document.body.appendChild(overlay);
   _adminLog('Admin panel açıldı: ' + tab);
   if (window._godDashIv) { clearInterval(window._godDashIv); window._godDashIv = null; }
+  if (tab === 'notes') { setTimeout(function(){ try { todoRender(); noteRender(); } catch(e){} }, 60); }
+  if (tab === 'games') { setTimeout(function(){ try { gameGuessReset(); } catch(e){} }, 60); }
   if (tab === 'god') {
     setTimeout(function(){ try { godDashboard(); godRenderLogs(); godRenderScheduled(); godReactions(); } catch(e){} }, 60);
     window._godDashIv = setInterval(function(){ try { if (document.getElementById('god-dash')) { godDashboard(); if(document.getElementById('god-poll-results') && document.getElementById('god-poll-results').style.display!=='none') godPollResults(); if(document.getElementById('god-reactions') && document.getElementById('god-reactions').style.display!=='none') godReactions(); } else { clearInterval(window._godDashIv); window._godDashIv=null; } } catch(e){} }, 6000);
