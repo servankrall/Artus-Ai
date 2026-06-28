@@ -7617,6 +7617,7 @@ function _voterId(){
 }
 var _lastPollId = '';
 async function checkPoll(){
+  if (document.visibilityState === 'hidden') return;
   try {
     var d = await (await fetch('/api/poll?t='+Date.now())).json();
     var poll = d.poll;
@@ -7667,17 +7668,22 @@ async function castVote(option){
 setTimeout(checkPoll, 1500);
 setInterval(checkPoll, 6000);
 
-/* 🟢 Çevrimiçi sayacı — heartbeat gönder, gerçek aktif kullanıcı sayısı */
+/* 🟢 Çevrimiçi sayacı — heartbeat. KV yazma kotasını korumak için:
+   sadece sekme görünürken ve en fazla 55sn'de bir YAZAR; gizliyken hiç yazmaz. */
 window._onlineCount = 0;
+function _isVisible(){ return document.visibilityState !== 'hidden'; }
 async function _heartbeat(){
+  if (!_isVisible()) return; // arka plandaysa KV'ye yazma
   try {
     var r = await fetch('/api/presence', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:_voterId()})});
     var d = await r.json();
     if (typeof d.online === 'number') window._onlineCount = d.online;
   } catch(e){}
 }
-setTimeout(_heartbeat, 2000);
-setInterval(_heartbeat, 30000);
+setTimeout(_heartbeat, 2500);
+setInterval(_heartbeat, 55000);
+// Sekme tekrar görünür olunca bir kez güncelle
+document.addEventListener('visibilitychange', function(){ if(_isVisible()) setTimeout(_heartbeat, 800); });
 
 /* 👏 CANLI TEPKİ BARI — tüm kullanıcılar alkışlar, ekranda uçar */
 function _initReactionBar(){
@@ -7713,6 +7719,7 @@ setTimeout(_initReactionBar, 2500);
 /* 🌊 CANLI TEPKİ AKIŞI — başkaları tepki verince herkesin ekranında uçar */
 window._lastReactionCounts = null;
 async function _pollReactionStream(){
+  if (document.visibilityState === 'hidden') return;
   try {
     var d = await (await fetch('/api/reactions?t='+Date.now())).json();
     var c = d.counts || {};
