@@ -8895,6 +8895,52 @@ async function godThankYou(){
   _godBroadcast('💝 Omni ailesi olarak sana teşekkür ederiz. Sevgiyle kullanmaya devam et! 🙏','💝 OMNI');
   showToast('💝 Teşekkür mesajı gönderildi');
 }
+// 🎄 Festival paketi — şenlikli tema + konfeti + 2sa PRO + kutlama (tek tık combo)
+async function godFestival(){
+  var themes = ['#ef4444','#10b981','#f59e0b','#ec4899','#8b5cf6'];
+  var color = _mr(themes);
+  await sendGlobalEvent('__forcetheme__', color);
+  document.documentElement.style.setProperty('--accent', color);
+  var until = Date.now() + 2*3600000;
+  await sendGlobalEvent('__freepro__', JSON.stringify({tier:'pro', until:until, t:Date.now()}));
+  _applyFreePro({tier:'pro', until:until});
+  _godBroadcast('🎄✨ FESTİVAL ZAMANI! Şenlikli tema açıldı, 2 saat boyunca herkes PRO! Kutlamaya katıl! 🎊🎁','🎄 OMNI');
+  try { globalEmojiRainAll(); } catch(e){}
+  try { _godScare('confetti'); } catch(e){}
+  try{ _adminLog('Festival paketi başlatıldı ('+color+')');}catch(_){}
+  showToast('🎄 Festival başladı — tema + 2sa PRO + kutlama!');
+  godDashboard();
+}
+// ⏰ Geri sayımlı Mutlu Saat — şimdi duyur, X dk sonra otomatik başlat (sekme açık kalmalı)
+function godCountdownHappyHour(delayMin, durationHours){
+  _godBroadcast('⏰ HEYECAN! '+delayMin+' dakika sonra MUTLU SAAT başlıyor — '+durationHours+' saat boyunca herkes PRO olacak! Hazır olun! 🎉','⏰ OMNI');
+  showToast('⏰ '+delayMin+' dk sonraya Mutlu Saat planlandı');
+  var fireAt = Date.now() + delayMin*60000;
+  var id = setTimeout(function(){
+    godHappyHour(durationHours);
+    _scheduledAnnounce = _scheduledAnnounce.filter(function(x){return x.id!==id;});
+    godRenderScheduled();
+  }, delayMin*60000);
+  _scheduledAnnounce.push({id:id, msg:'🎉 Mutlu Saat ('+durationHours+'sa PRO)', fireAt:fireAt});
+  godRenderScheduled();
+  // 1 dk kala hatırlatma
+  if (delayMin > 1) setTimeout(function(){ _godBroadcast('⏰ Son 1 dakika! Mutlu Saat birazdan başlıyor 🎉','⏰ OMNI'); }, (delayMin-1)*60000);
+}
+// 🍀 Şanslı kullanıcı ödülü — eğlenceli çekiliş + herkese küçük ödül (mesaj boost)
+async function godLuckyUser(){
+  var winner = '#'+_mInt(1000,9999);
+  var prizes = ['1 saat PRO ✨','100 ekstra mesaj 📈','özel teşekkür rozeti 🏅','sınırsız neşe 😄'];
+  var prize = _mr(prizes);
+  // Gerçek ödül: herkese kısa mesaj boost (şans herkese dokunsun)
+  var until = Date.now() + 1*3600000;
+  await sendGlobalEvent('__msgboost__', JSON.stringify({limit:50, until:until, t:Date.now()}));
+  window._msgBoost = {limit:50, until:until};
+  _godBroadcast('🍀 ÇEKİLİŞ! Şanslı kullanıcı '+winner+' kazandı: '+prize+' 🎉 Ve bonus: önümüzdeki 1 saat HERKESE 50 mesaj hakkı! 🎁','🍀 OMNI');
+  try { globalEmojiRainAll(); } catch(e){}
+  try{ _adminLog('Şanslı çekiliş: '+winner+' / bonus boost');}catch(_){}
+  showToast('🍀 Çekiliş yapıldı — '+winner+' kazandı!');
+  godDashboard();
+}
 
 /* 🎨 Global tema — herkesin vurgu rengini değiştir */
 async function godForceTheme(color){
@@ -9880,6 +9926,14 @@ function showAdminPanel(tab) {
         <button onclick="godSurprise()" style="background:rgba(236,72,153,.15);border:1px solid rgba(236,72,153,.4);color:#f9a8d4;padding:9px 14px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">🎊 Sürpriz Kutlama</button>
         <button onclick="godMotivation()" style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);color:#fde047;padding:9px 14px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">🌟 Günün Sözü</button>
         <button onclick="godThankYou()" style="background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.4);color:#c4b5fd;padding:9px 14px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">💝 Teşekkür</button>
+        <button onclick="godFestival()" style="background:linear-gradient(135deg,#ec4899,#f59e0b);border:none;color:#fff;padding:9px 14px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">🎄 Festival Paketi</button>
+        <button onclick="godLuckyUser()" style="background:linear-gradient(135deg,#16a34a,#65a30d);border:none;color:#fff;padding:9px 14px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">🍀 Şanslı Çekiliş</button>
+      </div>
+      <div style="font-size:11px;color:#94a3b8;font-weight:700;margin-bottom:6px">⏰ GERİ SAYIMLI MUTLU SAAT (sekme açık kalmalı)</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+        <button onclick="godCountdownHappyHour(5,1)" style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);color:#fde047;padding:8px 12px;border-radius:9px;cursor:pointer;font-size:12px">5 dk sonra · 1sa</button>
+        <button onclick="godCountdownHappyHour(15,2)" style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);color:#fde047;padding:8px 12px;border-radius:9px;cursor:pointer;font-size:12px">15 dk sonra · 2sa</button>
+        <button onclick="godCountdownHappyHour(60,3)" style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);color:#fde047;padding:8px 12px;border-radius:9px;cursor:pointer;font-size:12px">1 saat sonra · 3sa</button>
       </div>
       <div style="font-size:11px;color:#94a3b8;font-weight:700;margin-bottom:6px">📈 MESAJ LİMİTİ BOOST (ücretsiz kullanıcılara)</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px">
