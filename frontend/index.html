@@ -9652,9 +9652,9 @@ async function _aiStream(sys, userMsg, outId, opts){
       systemPrompt:sys, temperature:opts.temp||0.6, maxTokens:opts.max||1024, topP:0.95,
       onText:function(c){ if(_aiStop) return; txt+=c; out.textContent=txt; }
     });
-    if(_aiStop){ out.textContent=txt+'\n\n⏹ (durduruldu)'; }
+    if(_aiStop){ out.dataset.raw=txt; out.textContent=txt+'\n\n⏹ (durduruldu)'; }
     else if(!txt) out.textContent='(boş yanıt — tekrar dene)';
-    else { _aiAddMeta(out, txt); }
+    else { out.dataset.raw=txt; out.innerHTML=_mdRender(txt); _aiAddMeta(out, txt); _aiSaveHistory(txt); }
   } catch(e){ out.textContent='⚠️ Hata: '+e.message; }
   _aiBusy=false; _setAiBusyUI(false);
 }
@@ -9678,6 +9678,52 @@ function _aiStats(inputId, statsId){
   var v=inp.value||''; var w=v.trim()?v.trim().split(/\s+/).length:0;
   var sent=(v.match(/[.!?]+/g)||[]).length;
   st.textContent='📊 '+w+' kelime · '+v.length+' karakter · '+sent+' cümle · ~'+Math.max(0,Math.ceil(w/200))+' dk okuma';
+}
+// 📥 Dosyadan metin yükle
+function _aiLoadFile(targetId, statsId){
+  var inp=document.createElement('input'); inp.type='file'; inp.accept='.txt,.md,.csv,.json,.log,text/*';
+  inp.onchange=function(){ var f=inp.files&&inp.files[0]; if(!f)return; if(f.size>500000){showToast('❌ Dosya çok büyük (max 500KB)');return;} var r=new FileReader(); r.onload=function(){ var ta=document.getElementById(targetId); if(ta){ta.value=String(r.result||'').slice(0,20000); if(statsId)_aiStats(targetId,statsId);} showToast('📥 Dosya yüklendi'); }; r.readAsText(f); };
+  inp.click();
+}
+// 🎤 Sesli giriş (tarayıcı konuşma tanıma)
+var _aiRec=null;
+function _aiVoice(targetId, statsId){
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){ showToast('❌ Tarayıcın sesli girişi desteklemiyor'); return; }
+  if(_aiRec){ try{_aiRec.stop();}catch(e){} _aiRec=null; showToast('🎤 Kayıt durdu'); return; }
+  _aiRec=new SR(); _aiRec.lang='tr-TR'; _aiRec.continuous=true; _aiRec.interimResults=false;
+  var ta=document.getElementById(targetId); var base=ta?ta.value:'';
+  _aiRec.onresult=function(e){ var s=''; for(var i=e.resultIndex;i<e.results.length;i++){ s+=e.results[i][0].transcript+' '; } if(ta){ ta.value=(base?base+' ':'')+s.trim(); if(statsId)_aiStats(targetId,statsId); } };
+  _aiRec.onerror=function(){ _aiRec=null; };
+  _aiRec.onend=function(){ _aiRec=null; };
+  try{ _aiRec.start(); showToast('🎤 Konuş... (tekrar bas = durdur)'); }catch(e){ _aiRec=null; }
+}
+// Basit & güvenli markdown render
+function _mdRender(t){
+  var e=String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  var blocks=[];
+  e=e.replace(/```([\s\S]*?)```/g,function(m,c){ blocks.push(c); return 'B'+(blocks.length-1)+''; });
+  e=e.replace(/`([^`]+)`/g,'<code style="background:#1c2128;padding:1px 5px;border-radius:4px;font-size:12px">$1</code>');
+  e=e.replace(/^### (.*)$/gm,'<div style="font-size:14px;font-weight:800;color:#e8ecf3;margin:8px 0 4px">$1</div>');
+  e=e.replace(/^## (.*)$/gm,'<div style="font-size:15px;font-weight:800;color:#e8ecf3;margin:10px 0 4px">$1</div>');
+  e=e.replace(/^# (.*)$/gm,'<div style="font-size:16px;font-weight:900;color:#fff;margin:10px 0 6px">$1</div>');
+  e=e.replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>');
+  e=e.replace(/^\s*[-*] (.+)$/gm,'<div style="padding-left:14px">• $1</div>');
+  e=e.replace(/\n/g,'<br>');
+  e=e.replace(/B(\d+)/g,function(m,i){ return '<pre style="background:#0d1117;border:1px solid #1c2128;border-radius:8px;padding:10px;overflow-x:auto;font-size:12px;white-space:pre-wrap;margin:6px 0">'+blocks[i]+'</pre>'; });
+  return e;
+}
+function _aiCopy(id){ var o=document.getElementById(id); if(!o)return; var t=o.dataset.raw||o.textContent||''; if(t&&t.indexOf('düşünüyor')<0){ navigator.clipboard.writeText(t).then(function(){showToast('📋 Kopyalandı');}); } }
+function _aiSaveHistory(txt){ try{ var h=JSON.parse(localStorage.getItem('artus_ai_history')||'[]'); h.unshift({t:txt.slice(0,4000), d:new Date().toLocaleString('tr-TR')}); localStorage.setItem('artus_ai_history',JSON.stringify(h.slice(0,30))); }catch(e){} }
+function aiShowHistory(){
+  var h=[]; try{h=JSON.parse(localStorage.getItem('artus_ai_history')||'[]');}catch(e){}
+  var ov=document.getElementById('ai-hist-modal'); if(ov)ov.remove();
+  ov=document.createElement('div'); ov.id='ai-hist-modal';
+  ov.style.cssText='position:fixed;inset:0;z-index:100001;background:rgba(0,0,0,.85);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px;animation:adminBgIn .2s ease';
+  ov.onclick=function(e){ if(e.target===ov) ov.remove(); };
+  var body = h.length ? h.map(function(x){ return '<div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:10px;margin-bottom:8px"><div style="font-size:10px;color:#4b5563;margin-bottom:4px">'+_escPoll(x.d)+'</div><div style="font-size:12px;color:#cbd5e1;white-space:pre-wrap;max-height:130px;overflow:auto">'+_escPoll(x.t)+'</div></div>'; }).join('') : '<div style="color:#64748b;text-align:center;padding:30px">Geçmiş boş</div>';
+  ov.innerHTML='<div style="background:#0f1117;border:1px solid #262d3a;border-radius:16px;width:min(560px,95vw);max-height:85vh;display:flex;flex-direction:column;overflow:hidden;animation:adminSlideIn .3s cubic-bezier(0.34,1.56,0.64,1)"><div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #262d3a"><div style="font-weight:800;color:#e8ecf3">📚 AI Çıktı Geçmişi ('+h.length+')</div><div><button onclick="localStorage.removeItem(\'artus_ai_history\');document.getElementById(\'ai-hist-modal\').remove();showToast(\'🧹 Temizlendi\')" style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);color:#fca5a5;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px;margin-right:6px">🧹 Temizle</button><button onclick="document.getElementById(\'ai-hist-modal\').remove()" style="background:#262d3a;border:none;color:#fff;width:30px;height:30px;border-radius:8px;cursor:pointer">✕</button></div></div><div style="padding:14px 18px;overflow-y:auto">'+body+'</div></div>';
+  document.body.appendChild(ov);
 }
 
 var _aiTools = [
@@ -9739,7 +9785,7 @@ function _renderPromptGrid(){
 }
 function promptTool(i){ var t=_promptTools[i]; if(!t)return; _aiStream(t.sys, (document.getElementById('prompt-input')||{}).value||'', 'prompt-output', {temp:0.7, max:1200}); }
 function promptUseAsSystem(){
-  var v=(document.getElementById('prompt-output')||{}).textContent||'';
+  var o=document.getElementById('prompt-output'); var v=(o&&(o.dataset.raw||o.textContent))||'';
   if(!v.trim()||v.indexOf('düşünüyor')>=0){ showToast('Önce bir çıktı üret'); return; }
   try{ localStorage.setItem('artus_system_prompt', v); var ta=document.getElementById('sys-prompt-input'); if(ta)ta.value=v; showToast('✅ Sistem promptu olarak ayarlandı'); }catch(e){ showToast('❌ Hata'); }
 }
@@ -10752,7 +10798,15 @@ function showAdminPanel(tab) {
       <div style="font-size:12px;color:#a5b4fc">Metni yaz, bir araç seç — gerçek AI senin için çalışsın</div>
     </div>
     <textarea id="ai-input" oninput="_aiStats('ai-input','ai-stats')" placeholder="Metnini buraya yapıştır... (özetlenecek, çevrilecek, düzeltilecek metin / e-posta notları / fikir konusu)" style="width:100%;height:110px;background:#0a0e14;border:1px solid #262d3a;border-radius:12px;color:#e8ecf3;padding:12px;font-size:13px;resize:vertical;box-sizing:border-box"></textarea>
-    <div id="ai-stats" style="font-size:11px;color:#4b5563;margin-top:-8px">📊 0 kelime · 0 karakter · 0 cümle · ~0 dk okuma</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:-6px">
+      <div id="ai-stats" style="font-size:11px;color:#4b5563">📊 0 kelime · 0 karakter · 0 cümle · ~0 dk okuma</div>
+      <div style="display:flex;gap:6px">
+        <button onclick="_aiLoadFile('ai-input','ai-stats')" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:#9ca3af;padding:4px 10px;border-radius:7px;cursor:pointer;font-size:11px">📥 Dosya</button>
+        <button onclick="_aiVoice('ai-input','ai-stats')" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:#9ca3af;padding:4px 10px;border-radius:7px;cursor:pointer;font-size:11px">🎤 Sesli</button>
+        <button onclick="aiShowHistory()" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:#9ca3af;padding:4px 10px;border-radius:7px;cursor:pointer;font-size:11px">📚 Geçmiş</button>
+        <button onclick="var t=document.getElementById('ai-input');if(t){t.value='';_aiStats('ai-input','ai-stats');}" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:#9ca3af;padding:4px 10px;border-radius:7px;cursor:pointer;font-size:11px">🗑️ Temizle</button>
+      </div>
+    </div>
     <div style="background:rgba(13,16,24,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:14px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
         <span style="font-size:12px;color:#6b7280">Bir araç seç:</span>
@@ -10766,7 +10820,7 @@ function showAdminPanel(tab) {
         <div style="display:flex;gap:6px">
           <button class="ai-stop-btn" onclick="_aiStop2()" style="display:none;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#fca5a5;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px">⏹ Durdur</button>
           <button onclick="_aiRegen()" style="background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.4);color:#c4b5fd;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px">🔁 Yeniden</button>
-          <button onclick="var o=document.getElementById('ai-output');if(o.textContent&&o.textContent.indexOf('düşünüyor')<0)navigator.clipboard.writeText(o.textContent).then(function(){showToast('📋 Kopyalandı')})" style="background:#0d1a0d;border:1px solid #16a34a;color:#4ade80;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px">📋 Kopyala</button>
+          <button onclick="_aiCopy('ai-output')" style="background:#0d1a0d;border:1px solid #16a34a;color:#4ade80;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px">📋 Kopyala</button>
         </div>
       </div>
       <div id="ai-output" style="display:none;white-space:pre-wrap;background:#0a0e14;border:1px solid #1c2128;border-radius:10px;padding:12px;font-size:13px;color:#e8ecf3;line-height:1.6;max-height:340px;overflow-y:auto"></div>
@@ -10791,7 +10845,7 @@ function showAdminPanel(tab) {
         <div style="display:flex;gap:6px">
           <button class="ai-stop-btn" onclick="_aiStop2()" style="display:none;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#fca5a5;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px">⏹ Durdur</button>
           <button onclick="_aiRegen()" style="background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.4);color:#c4b5fd;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px">🔁 Yeniden</button>
-          <button onclick="var o=document.getElementById('content-output');if(o.textContent&&o.textContent.indexOf('düşünüyor')<0)navigator.clipboard.writeText(o.textContent).then(function(){showToast('📋 Kopyalandı')})" style="background:#0d1a0d;border:1px solid #16a34a;color:#4ade80;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px">📋 Kopyala</button>
+          <button onclick="_aiCopy('content-output')" style="background:#0d1a0d;border:1px solid #16a34a;color:#4ade80;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px">📋 Kopyala</button>
         </div>
       </div>
       <div id="content-output" style="display:none;white-space:pre-wrap;background:#0a0e14;border:1px solid #1c2128;border-radius:10px;padding:12px;font-size:13px;color:#e8ecf3;line-height:1.6;max-height:360px;overflow-y:auto"></div>
@@ -10816,7 +10870,7 @@ function showAdminPanel(tab) {
           <button class="ai-stop-btn" onclick="_aiStop2()" style="display:none;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#fca5a5;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px">⏹ Durdur</button>
           <button onclick="_aiRegen()" style="background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.4);color:#c4b5fd;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px">🔁 Yeniden</button>
           <button onclick="promptUseAsSystem()" style="background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.4);color:#c4b5fd;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px">⚙️ Sistem Promptu Yap</button>
-          <button onclick="var o=document.getElementById('prompt-output');if(o.textContent&&o.textContent.indexOf('düşünüyor')<0)navigator.clipboard.writeText(o.textContent).then(function(){showToast('📋 Kopyalandı')})" style="background:#0d1a0d;border:1px solid #16a34a;color:#4ade80;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px">📋 Kopyala</button>
+          <button onclick="_aiCopy('prompt-output')" style="background:#0d1a0d;border:1px solid #16a34a;color:#4ade80;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px">📋 Kopyala</button>
         </div>
       </div>
       <div id="prompt-output" style="display:none;white-space:pre-wrap;background:#0a0e14;border:1px solid #1c2128;border-radius:10px;padding:12px;font-size:13px;color:#e8ecf3;line-height:1.6;max-height:360px;overflow-y:auto"></div>
