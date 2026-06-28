@@ -6917,7 +6917,7 @@ function _showCreatorBadge() {
   const genBtn = document.createElement('button');
   genBtn.style.cssText = 'background:linear-gradient(135deg,#f59e0b,#fb923c);color:#fff;border:none;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 2px 12px rgba(245,158,11,.4)';
   genBtn.textContent = '🛡 Admin Panel';
-  genBtn.onclick = showAdminPanel;
+  genBtn.onclick = function(){ showAdminPanel(); };
 
   wrap.appendChild(badge);
   wrap.appendChild(genBtn);
@@ -9812,6 +9812,37 @@ function _renderGodGrid(){
   }).join('');
 }
 
+function _renderOvJump(){
+  var items=[['ai','🤖','AI Araçları'],['content','✍️','İçerik'],['prompt','🧠','Prompt'],['god','👑','God Mode'],['magic','🪄','Sihirli'],['games','🎮','Oyunlar'],['calc','🧮','Hesap'],['notes','📝','Notlar'],['codes','🎟','Kodlar'],['users','👥','Kullanıcılar'],['stats','📊','İstatistik'],['fun','🎭','Eğlence']];
+  return items.map(function(j){
+    return '<button onclick="showAdminPanel(&quot;'+j[0]+'&quot;)" style="display:flex;flex-direction:column;align-items:center;gap:4px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:11px 6px;cursor:pointer;transition:all .15s" onmouseover="this.style.borderColor=\'rgba(124,58,237,.5)\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,.07)\'"><span style="font-size:20px">'+j[1]+'</span><span style="font-size:11px;color:#cbd5e1">'+j[2]+'</span></button>';
+  }).join('');
+}
+async function overviewLoad(){
+  var box=document.getElementById('ov-cards'); if(!box) return;
+  try {
+    var r=await Promise.all([
+      fetch('/api/global-modes?t='+Date.now()).then(function(x){return x.json();}).catch(function(){return {modes:{}};}),
+      fetch('/api/bans?t='+Date.now()).then(function(x){return x.json();}).catch(function(){return {bans:{}};}),
+      fetch('/api/presence?t='+Date.now()).then(function(x){return x.json();}).catch(function(){return {online:0};}),
+      fetch('/api/poll?t='+Date.now()).then(function(x){return x.json();}).catch(function(){return {poll:null};}),
+      fetch('/api/reactions?t='+Date.now()).then(function(x){return x.json();}).catch(function(){return {counts:{}};})
+    ]);
+    var modes=r[0].modes||{}, bans=r[1].bans||{}, online=r[2].online||0, poll=r[3].poll, reactions=r[4].counts||{};
+    var fp=null; if(modes['__freepro__']){try{fp=JSON.parse(modes['__freepro__']);}catch(e){}}
+    var gift=(fp&&fp.until>Date.now())?((fp.tier==='max'?'MAX':'PRO')):'Yok';
+    var reactTotal=Object.keys(reactions).reduce(function(a,k){return a+reactions[k];},0);
+    var cards=[
+      ['🟢','Çevrimiçi',online+' kişi','#4ade80'],
+      ['🎁','Hediye',gift,gift!=='Yok'?'#fbbf24':'#64748b'],
+      ['🚫','Yasaklı',Object.keys(bans).length+'','#f87171'],
+      ['🗳️','Anket',poll&&poll.open?'Açık':'Yok',poll&&poll.open?'#a78bfa':'#64748b'],
+      ['👏','Tepki',reactTotal+'','#f472b6'],
+      ['🔧','Bakım',modes['maintenance']==='1'?'AÇIK':'Kapalı',modes['maintenance']==='1'?'#fbbf24':'#4ade80']
+    ];
+    box.innerHTML=cards.map(function(c){return '<div style="background:rgba(0,0,0,.3);border:1px solid '+c[3]+'44;border-radius:12px;padding:13px;text-align:center"><div style="font-size:22px">'+c[0]+'</div><div style="font-size:15px;font-weight:800;color:'+c[3]+';margin-top:3px">'+_escPoll(c[2])+'</div><div style="font-size:10px;color:#94a3b8;margin-top:2px;text-transform:uppercase;letter-spacing:.5px">'+c[1]+'</div></div>';}).join('');
+  } catch(e){ box.innerHTML='<div style="color:#f87171;font-size:12px;grid-column:1/-1">⚠️ '+e.message+'</div>'; }
+}
 function _filterAdminTabs(q){
   q=(q||'').toLowerCase().trim();
   document.querySelectorAll('#admin-tab-row .admin-tab-btn').forEach(function(b){
@@ -9819,11 +9850,12 @@ function _filterAdminTabs(q){
   });
 }
 function showAdminPanel(tab) {
-  tab = tab || 'codes';
+  tab = tab || 'overview';
   var existing = document.getElementById('admin-panel-overlay');
   if (existing) existing.remove();
 
   var tabs = [
+    { id:'overview', icon:'📌', label:'Genel Bakış' },
     { id:'codes',    icon:'🎟', label:'Kodlar' },
     { id:'system',   icon:'⚙️', label:'Sistem' },
     { id:'models',   icon:'🤖', label:'Modeller' },
@@ -9856,7 +9888,34 @@ function showAdminPanel(tab) {
   function renderTab(activeTab) {
     var content = '';
 
-    if (activeTab === 'codes') {
+    if (activeTab === 'overview') {
+      content = `<div style="display:flex;flex-direction:column;gap:16px">
+    <div style="background:linear-gradient(135deg,rgba(124,58,237,0.2),rgba(14,165,233,0.1));border:1px solid rgba(124,58,237,0.4);border-radius:16px;padding:20px;text-align:center">
+      <div style="font-size:38px">📌</div>
+      <div style="font-size:19px;font-weight:900;color:#e8ecf3">Genel Bakış</div>
+      <div style="font-size:12px;color:#818cf8">Platformun canlı durumu ve hızlı erişim</div>
+    </div>
+    <div id="ov-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px">
+      <div style="color:#64748b;font-size:12px;text-align:center;padding:14px;grid-column:1/-1">⏳ Canlı veriler yükleniyor...</div>
+    </div>
+    <div style="background:rgba(13,16,24,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px">
+      <div style="font-size:13px;font-weight:800;color:#34d399;margin-bottom:12px">⚡ HIZLI AKSİYONLAR</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <button onclick="godHappyHour&&godHappyHour(1)" style="background:linear-gradient(135deg,#10b981,#059669);border:none;color:#fff;padding:9px 14px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">🎉 Mutlu Saat</button>
+        <button onclick="godSurpriseBox&&godSurpriseBox()" style="background:linear-gradient(135deg,#8b5cf6,#ec4899);border:none;color:#fff;padding:9px 14px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">🎁 Sürpriz Kutu</button>
+        <button onclick="godCreatePoll&&godCreatePoll('Bugün ne istersiniz? 🎉',['🎉 Mutlu Saat','🎁 Sürpriz Kutu'])" style="background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.4);color:#c4b5fd;padding:9px 14px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">🗳️ Hızlı Anket</button>
+        <button onclick="godEmergencyClear&&godEmergencyClear()" style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);color:#fca5a5;padding:9px 14px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">⚡ Acil Temizle</button>
+      </div>
+    </div>
+    <div style="background:rgba(13,16,24,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px">
+      <div style="font-size:13px;font-weight:800;color:#a78bfa;margin-bottom:12px">🚀 SEKMELERE GİT</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px">
+        ${_renderOvJump()}
+      </div>
+    </div>
+  </div>`;
+    }
+    else if (activeTab === 'codes') {
       content = `
         <div style="display:flex;flex-direction:column;gap:16px">
           <div style="background:#0d1117;border-radius:10px;padding:16px">
@@ -11068,6 +11127,7 @@ function showAdminPanel(tab) {
   _adminLog('Admin panel açıldı: ' + tab);
   setTimeout(function(){ var at=document.querySelector('#admin-tab-row .admin-tab-btn[data-active]'); if(at&&at.scrollIntoView) try{ at.scrollIntoView({inline:'center',block:'nearest'}); }catch(e){} }, 30);
   if (window._godDashIv) { clearInterval(window._godDashIv); window._godDashIv = null; }
+  if (tab === 'overview') { setTimeout(function(){ try { overviewLoad(); } catch(e){} }, 60); }
   if (tab === 'notes') { setTimeout(function(){ try { todoRender(); noteRender(); } catch(e){} }, 60); }
   if (tab === 'games') { setTimeout(function(){ try { gameGuessReset(); } catch(e){} }, 60); }
   if (tab === 'god') {
