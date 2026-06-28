@@ -7652,6 +7652,8 @@ async function castVote(option){
       var el=document.getElementById('poll-banner');
       if (el) el.innerHTML='<div style="text-align:center;padding:8px"><div style="font-size:32px;margin-bottom:6px">✅</div><div style="font-size:14px;font-weight:700;color:#4ade80">Oyun alındı, teşekkürler!</div></div>';
       setTimeout(function(){ var e=document.getElementById('poll-banner'); if(e) e.remove(); }, 2500);
+      // küçük teşekkür kutlaması
+      try { for(var ci=0;ci<24;ci++){ (function(){ var c=document.createElement('div'); c.style.cssText='position:fixed;width:8px;height:8px;border-radius:2px;pointer-events:none;z-index:99990;left:'+Math.random()*100+'vw;top:-10px;background:hsl('+Math.random()*360+'deg,90%,60%);animation:confettiFall '+(1+Math.random()*1.5)+'s ease-in forwards'; document.body.appendChild(c); setTimeout(function(){c.remove();},2600); })(); } if(!document.getElementById('confetti-style')){var cs=document.createElement('style');cs.id='confetti-style';cs.textContent='@keyframes confettiFall{to{top:110vh;transform:rotate(720deg)}}';document.head.appendChild(cs);} } catch(e){}
       showToast('✅ Oyunuz kaydedildi');
     } else { showToast('❌ '+(rd.error||'Oy verilemedi')); }
   } catch(e){ showToast('❌ Bağlantı hatası'); }
@@ -9103,6 +9105,35 @@ async function godApplyWinner(){
     showToast('🏆 Kazanan uygulandı: '+win);
   } catch(e){ showToast('❌ '+e.message); }
 }
+// 📢 Anlık sonuçları tüm kullanıcılara yayınla
+async function godBroadcastResults(){
+  try {
+    var d = await (await fetch('/api/poll?t='+Date.now())).json();
+    var poll=d.poll; if(!poll){ showToast('Anket yok'); return; }
+    var total=(poll.votes||[]).reduce(function(a,b){return a+b;},0);
+    var parts=poll.options.map(function(o,i){ var pct=total?Math.round((poll.votes[i]||0)/total*100):0; return o+': %'+pct; });
+    _godBroadcast('📊 Anket durumu — '+poll.question+' → '+parts.join(' · ')+' ('+total+' oy)','📊 OMNI');
+    showToast('📢 Sonuçlar yayınlandı');
+  } catch(e){ showToast('❌ '+e.message); }
+}
+// 📜 Geçmiş anketleri göster
+async function godPollHistory(){
+  var box=document.getElementById('god-poll-results'); if(!box) return;
+  box.style.display='block';
+  box.innerHTML='<div style="color:#94a3b8;font-size:12px;padding:6px">⏳ Geçmiş yükleniyor...</div>';
+  var secret=await _getApiSecret(); if(!secret) return;
+  try {
+    var r=await fetch('/api/poll',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'history',secret:secret})});
+    var d=await r.json();
+    var h=d.history||[];
+    if(!h.length){ box.innerHTML='<div style="color:#64748b;font-size:12px;padding:6px">Geçmiş anket yok.</div>'; return; }
+    box.innerHTML='<div style="font-size:12px;font-weight:700;color:#a78bfa;margin-bottom:8px">📜 GEÇMİŞ ANKETLER ('+h.length+')</div>'+h.map(function(p){
+      var win=''; if(p.total>0){var mx=Math.max.apply(null,p.votes);win=p.options[p.votes.indexOf(mx)];}
+      var dt=''; try{dt=new Date(p.closedAt).toLocaleDateString('tr-TR');}catch(e){}
+      return '<div style="padding:8px 10px;border-radius:8px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);margin-bottom:6px"><div style="font-size:12px;color:#cbd5e1;font-weight:600">'+_escPoll(p.question)+'</div><div style="font-size:11px;color:#64748b;margin-top:3px">🏆 '+_escPoll(win||'—')+' · '+p.total+' oy · '+dt+'</div></div>';
+    }).join('');
+  } catch(e){ box.innerHTML='<div style="color:#f87171;font-size:12px">⚠️ '+e.message+'</div>'; }
+}
 
 /* 🎨 Global tema — herkesin vurgu rengini değiştir */
 async function godForceTheme(color){
@@ -10126,8 +10157,10 @@ function showAdminPanel(tab) {
         <button onclick="godCreatePoll()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#cbd5e1;padding:9px 14px;border-radius:10px;cursor:pointer;font-size:12px">✏️ Özel anket</button>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
-        <button onclick="godPollResults()" style="flex:1;min-width:120px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.4);color:#6ee7b7;padding:8px;border-radius:9px;cursor:pointer;font-size:12px;font-weight:700">📊 Sonuçları Gör</button>
+        <button onclick="godPollResults()" style="flex:1;min-width:110px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.4);color:#6ee7b7;padding:8px;border-radius:9px;cursor:pointer;font-size:12px;font-weight:700">📊 Sonuçlar</button>
         <button onclick="godApplyWinner()" style="background:linear-gradient(135deg,#f59e0b,#d97706);border:none;color:#fff;padding:8px 12px;border-radius:9px;cursor:pointer;font-size:12px;font-weight:700">🏆 Kazananı Uygula</button>
+        <button onclick="godBroadcastResults()" style="background:rgba(14,165,233,.12);border:1px solid rgba(14,165,233,.4);color:#7dd3fc;padding:8px 12px;border-radius:9px;cursor:pointer;font-size:12px">📢 Yayınla</button>
+        <button onclick="godPollHistory()" style="background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.4);color:#c4b5fd;padding:8px 12px;border-radius:9px;cursor:pointer;font-size:12px">📜 Geçmiş</button>
         <button onclick="godClosePoll()" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);color:#fca5a5;padding:8px 12px;border-radius:9px;cursor:pointer;font-size:12px">🔴 Kapat</button>
         <button onclick="godClearPoll()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#9ca3af;padding:8px 12px;border-radius:9px;cursor:pointer;font-size:12px">🗑️</button>
       </div>
