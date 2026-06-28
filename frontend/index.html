@@ -7704,6 +7704,27 @@ async function sendReaction(emoji){
 }
 setTimeout(_initReactionBar, 2500);
 
+/* 🌊 CANLI TEPKİ AKIŞI — başkaları tepki verince herkesin ekranında uçar */
+window._lastReactionCounts = null;
+async function _pollReactionStream(){
+  try {
+    var d = await (await fetch('/api/reactions?t='+Date.now())).json();
+    var c = d.counts || {};
+    if (window._lastReactionCounts === null) { window._lastReactionCounts = c; return; } // ilk seferde sadece taban al
+    var floats = 0;
+    Object.keys(c).forEach(function(k){
+      var delta = (c[k]||0) - (window._lastReactionCounts[k]||0);
+      if (delta > 0) {
+        var n = Math.min(delta, 6, 12 - floats);
+        for (var i=0;i<n;i++){ (function(dd){ setTimeout(function(){ _floatReaction(k); }, dd*120); })(i); floats++; }
+      }
+    });
+    window._lastReactionCounts = c;
+  } catch(e){}
+}
+setTimeout(_pollReactionStream, 4000);
+setInterval(_pollReactionStream, 4500);
+
 /* 🟢 Kullanıcılara çevrimiçi rozeti */
 function _updateOnlineBadge(){
   var b = document.getElementById('online-badge');
@@ -9178,7 +9199,22 @@ async function godPollResults(){
 }
 async function godClosePoll(){
   var secret = await _getApiSecret(); if(!secret) return;
-  try { var r=await fetch('/api/poll',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'close',secret:secret})}); var d=await r.json(); if(d.ok){ showToast('🔴 Anket kapatıldı'); godPollResults(); } else showToast('❌ '+(d.error||'Hata')); } catch(e){ showToast('❌ Hata'); }
+  try {
+    var r=await fetch('/api/poll',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'close',secret:secret})});
+    var d=await r.json();
+    if(d.ok){
+      showToast('🔴 Anket kapatıldı'); godPollResults();
+      // Kapanış kutlaması + sonuç duyurusu (herkese)
+      try {
+        var p=d.poll; var total=(p.votes||[]).reduce(function(a,b){return a+b;},0);
+        if(total>0){ var mx=Math.max.apply(null,p.votes); var win=p.options[p.votes.indexOf(mx)];
+          _godBroadcast('🎉 Anket sona erdi! Kazanan: "'+win+'" 🏆 ('+total+' oy) Katılan herkese teşekkürler! 💜','🏆 OMNI');
+          try{ globalEmojiRainAll(); }catch(e){}
+          try{ _godScare('confetti'); }catch(e){}
+        }
+      } catch(e){}
+    } else showToast('❌ '+(d.error||'Hata'));
+  } catch(e){ showToast('❌ Hata'); }
 }
 async function godClearPoll(){
   var secret = await _getApiSecret(); if(!secret) return;
