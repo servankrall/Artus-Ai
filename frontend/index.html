@@ -9819,7 +9819,8 @@ function _renderOvJump(){
   }).join('');
 }
 async function overviewLoad(){
-  var box=document.getElementById('ov-cards'); if(!box) return;
+  var box=document.getElementById('ov-cards');
+  if(!box){ if(window._ovIv){ clearInterval(window._ovIv); window._ovIv=null; } return; }
   try {
     var r=await Promise.all([
       fetch('/api/global-modes?t='+Date.now()).then(function(x){return x.json();}).catch(function(){return {modes:{}};}),
@@ -9894,6 +9895,10 @@ function showAdminPanel(tab) {
       <div style="font-size:38px">📌</div>
       <div style="font-size:19px;font-weight:900;color:#e8ecf3">Genel Bakış</div>
       <div style="font-size:12px;color:#818cf8">Platformun canlı durumu ve hızlı erişim</div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:11px;color:#4ade80;display:flex;align-items:center;gap:6px"><span style="width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 6px #4ade80;display:inline-block;animation:badgePulse 2s infinite"></span>CANLI · 6 sn'de bir yenilenir</div>
+      <button onclick="overviewLoad()" style="background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.4);color:#c4b5fd;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px">🔄 Şimdi Yenile</button>
     </div>
     <div id="ov-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px">
       <div style="color:#64748b;font-size:12px;text-align:center;padding:14px;grid-column:1/-1">⏳ Canlı veriler yükleniyor...</div>
@@ -11127,7 +11132,11 @@ function showAdminPanel(tab) {
   _adminLog('Admin panel açıldı: ' + tab);
   setTimeout(function(){ var at=document.querySelector('#admin-tab-row .admin-tab-btn[data-active]'); if(at&&at.scrollIntoView) try{ at.scrollIntoView({inline:'center',block:'nearest'}); }catch(e){} }, 30);
   if (window._godDashIv) { clearInterval(window._godDashIv); window._godDashIv = null; }
-  if (tab === 'overview') { setTimeout(function(){ try { overviewLoad(); } catch(e){} }, 60); }
+  if (window._ovIv) { clearInterval(window._ovIv); window._ovIv = null; }
+  if (tab === 'overview') {
+    setTimeout(function(){ try { overviewLoad(); } catch(e){} }, 60);
+    window._ovIv = setInterval(function(){ try { if (document.getElementById('ov-cards')) overviewLoad(); else { clearInterval(window._ovIv); window._ovIv=null; } } catch(e){} }, 6000);
+  }
   if (tab === 'notes') { setTimeout(function(){ try { todoRender(); noteRender(); } catch(e){} }, 60); }
   if (tab === 'games') { setTimeout(function(){ try { gameGuessReset(); } catch(e){} }, 60); }
   if (tab === 'god') {
