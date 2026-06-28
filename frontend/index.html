@@ -9632,31 +9632,52 @@ function noteRender(){
 }
 
 /* ── 🤖 AI ÇEKİRDEK — tüm AI sekmeleri bunu kullanır ── */
-var _aiBusy=false;
+var _aiBusy=false, _aiStop=false, _lastAiRun=null;
 async function _aiStream(sys, userMsg, outId, opts){
   opts = opts || {};
   if(_aiBusy){ showToast('⏳ AI hâlâ çalışıyor, bekle...'); return; }
   userMsg = (userMsg||'').trim();
   if(!userMsg){ showToast('❌ Önce bir metin gir'); return; }
   var out=document.getElementById(outId); if(!out) return;
+  _lastAiRun = function(){ _aiStream(sys, userMsg, outId, opts); }; // 🔁 yeniden üret için
   out.style.display='block';
   out.innerHTML='<span style="display:inline-block;animation:badgePulse 1.2s infinite">🤖</span> AI düşünüyor...';
-  _aiBusy=true; _setAiBusyUI(true);
+  _aiBusy=true; _aiStop=false; _setAiBusyUI(true);
   try {
-    if(!window.OmniAI||!OmniAI.streamChat){ out.textContent='AI motoru yüklenemedi (sayfayı yenile).'; return; }
+    if(!window.OmniAI||!OmniAI.streamChat){ out.textContent='AI motoru yüklenemedi (sayfayı yenile).'; _aiBusy=false; _setAiBusyUI(false); return; }
     var txt='';
     await OmniAI.streamChat({
       messages:[{role:'user',content:userMsg}],
       model:(typeof currentModel!=='undefined'?currentModel:'llama-3.3-70b-versatile'),
       systemPrompt:sys, temperature:opts.temp||0.6, maxTokens:opts.max||1024, topP:0.95,
-      onText:function(c){ txt+=c; out.textContent=txt; }
+      onText:function(c){ if(_aiStop) return; txt+=c; out.textContent=txt; }
     });
-    if(!txt) out.textContent='(boş yanıt — tekrar dene)';
+    if(_aiStop){ out.textContent=txt+'\n\n⏹ (durduruldu)'; }
+    else if(!txt) out.textContent='(boş yanıt — tekrar dene)';
+    else { _aiAddMeta(out, txt); }
   } catch(e){ out.textContent='⚠️ Hata: '+e.message; }
   _aiBusy=false; _setAiBusyUI(false);
 }
+function _aiStop2(){ if(_aiBusy){ _aiStop=true; _aiBusy=false; _setAiBusyUI(false); showToast('⏹ Durduruldu'); } }
+function _aiRegen(){ if(_aiBusy){ showToast('⏳ Bitmesini bekle'); return; } if(_lastAiRun) _lastAiRun(); else showToast('Önce bir araç çalıştır'); }
+function _aiAddMeta(out, txt){
+  var w = txt.trim().split(/\s+/).length;
+  var meta = document.createElement('div');
+  meta.style.cssText='margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.06);font-size:10px;color:#4b5563';
+  meta.textContent = '✅ '+w+' kelime · '+txt.length+' karakter';
+  out.appendChild(meta);
+}
 function _setAiBusyUI(busy){
   document.querySelectorAll('.ai-tool-btn').forEach(function(b){ b.style.opacity=busy?'0.5':'1'; b.style.pointerEvents=busy?'none':'auto'; });
+  document.querySelectorAll('.ai-stop-btn').forEach(function(b){ b.style.display=busy?'inline-block':'none'; });
+}
+// canlı metin istatistikleri (anlık, AI'sız)
+function _aiStats(inputId, statsId){
+  var inp=document.getElementById(inputId), st=document.getElementById(statsId);
+  if(!inp||!st) return;
+  var v=inp.value||''; var w=v.trim()?v.trim().split(/\s+/).length:0;
+  var sent=(v.match(/[.!?]+/g)||[]).length;
+  st.textContent='📊 '+w+' kelime · '+v.length+' karakter · '+sent+' cümle · ~'+Math.max(0,Math.ceil(w/200))+' dk okuma';
 }
 
 var _aiTools = [
@@ -10730,7 +10751,8 @@ function showAdminPanel(tab) {
       <div style="font-size:18px;font-weight:900;color:#e8ecf3;margin-bottom:4px">AI Araçları</div>
       <div style="font-size:12px;color:#a5b4fc">Metni yaz, bir araç seç — gerçek AI senin için çalışsın</div>
     </div>
-    <textarea id="ai-input" placeholder="Metnini buraya yapıştır... (özetlenecek, çevrilecek, düzeltilecek metin / e-posta notları / fikir konusu)" style="width:100%;height:110px;background:#0a0e14;border:1px solid #262d3a;border-radius:12px;color:#e8ecf3;padding:12px;font-size:13px;resize:vertical;box-sizing:border-box"></textarea>
+    <textarea id="ai-input" oninput="_aiStats('ai-input','ai-stats')" placeholder="Metnini buraya yapıştır... (özetlenecek, çevrilecek, düzeltilecek metin / e-posta notları / fikir konusu)" style="width:100%;height:110px;background:#0a0e14;border:1px solid #262d3a;border-radius:12px;color:#e8ecf3;padding:12px;font-size:13px;resize:vertical;box-sizing:border-box"></textarea>
+    <div id="ai-stats" style="font-size:11px;color:#4b5563;margin-top:-8px">📊 0 kelime · 0 karakter · 0 cümle · ~0 dk okuma</div>
     <div style="background:rgba(13,16,24,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:14px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
         <span style="font-size:12px;color:#6b7280">Bir araç seç:</span>
@@ -10741,7 +10763,11 @@ function showAdminPanel(tab) {
     <div style="background:rgba(13,16,24,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <div style="font-size:13px;font-weight:700;color:#34d399">🤖 AI ÇIKTISI</div>
-        <button onclick="var o=document.getElementById('ai-output');if(o.textContent&&o.textContent.indexOf('⏳')<0)navigator.clipboard.writeText(o.textContent).then(function(){showToast('📋 Kopyalandı')})" style="background:#0d1a0d;border:1px solid #16a34a;color:#4ade80;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px">📋 Kopyala</button>
+        <div style="display:flex;gap:6px">
+          <button class="ai-stop-btn" onclick="_aiStop2()" style="display:none;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#fca5a5;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px">⏹ Durdur</button>
+          <button onclick="_aiRegen()" style="background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.4);color:#c4b5fd;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px">🔁 Yeniden</button>
+          <button onclick="var o=document.getElementById('ai-output');if(o.textContent&&o.textContent.indexOf('düşünüyor')<0)navigator.clipboard.writeText(o.textContent).then(function(){showToast('📋 Kopyalandı')})" style="background:#0d1a0d;border:1px solid #16a34a;color:#4ade80;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px">📋 Kopyala</button>
+        </div>
       </div>
       <div id="ai-output" style="display:none;white-space:pre-wrap;background:#0a0e14;border:1px solid #1c2128;border-radius:10px;padding:12px;font-size:13px;color:#e8ecf3;line-height:1.6;max-height:340px;overflow-y:auto"></div>
     </div>
@@ -10762,7 +10788,11 @@ function showAdminPanel(tab) {
     <div style="background:rgba(13,16,24,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <div style="font-size:13px;font-weight:700;color:#f472b6">✍️ ÜRETİLEN İÇERİK</div>
-        <button onclick="var o=document.getElementById('content-output');if(o.textContent&&o.textContent.indexOf('düşünüyor')<0)navigator.clipboard.writeText(o.textContent).then(function(){showToast('📋 Kopyalandı')})" style="background:#0d1a0d;border:1px solid #16a34a;color:#4ade80;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px">📋 Kopyala</button>
+        <div style="display:flex;gap:6px">
+          <button class="ai-stop-btn" onclick="_aiStop2()" style="display:none;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#fca5a5;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px">⏹ Durdur</button>
+          <button onclick="_aiRegen()" style="background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.4);color:#c4b5fd;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px">🔁 Yeniden</button>
+          <button onclick="var o=document.getElementById('content-output');if(o.textContent&&o.textContent.indexOf('düşünüyor')<0)navigator.clipboard.writeText(o.textContent).then(function(){showToast('📋 Kopyalandı')})" style="background:#0d1a0d;border:1px solid #16a34a;color:#4ade80;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px">📋 Kopyala</button>
+        </div>
       </div>
       <div id="content-output" style="display:none;white-space:pre-wrap;background:#0a0e14;border:1px solid #1c2128;border-radius:10px;padding:12px;font-size:13px;color:#e8ecf3;line-height:1.6;max-height:360px;overflow-y:auto"></div>
     </div>
@@ -10783,6 +10813,8 @@ function showAdminPanel(tab) {
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <div style="font-size:13px;font-weight:700;color:#a78bfa">🧠 SONUÇ</div>
         <div style="display:flex;gap:6px">
+          <button class="ai-stop-btn" onclick="_aiStop2()" style="display:none;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#fca5a5;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px">⏹ Durdur</button>
+          <button onclick="_aiRegen()" style="background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.4);color:#c4b5fd;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px">🔁 Yeniden</button>
           <button onclick="promptUseAsSystem()" style="background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.4);color:#c4b5fd;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px">⚙️ Sistem Promptu Yap</button>
           <button onclick="var o=document.getElementById('prompt-output');if(o.textContent&&o.textContent.indexOf('düşünüyor')<0)navigator.clipboard.writeText(o.textContent).then(function(){showToast('📋 Kopyalandı')})" style="background:#0d1a0d;border:1px solid #16a34a;color:#4ade80;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px">📋 Kopyala</button>
         </div>
