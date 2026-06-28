@@ -9751,6 +9751,22 @@ function aiTool(i){
   var sys = t.sysFn ? t.sysFn() : t.sys;
   _aiStream(sys, input, 'ai-output');
 }
+// ⚖️ Aynı girdiyi 2 farklı modelde çalıştır, yan yana göster
+async function aiCompare(){
+  if(_aiBusy){ showToast('⏳ AI hâlâ çalışıyor'); return; }
+  var input=((document.getElementById('ai-input')||{}).value||'').trim();
+  if(!input){ showToast('❌ Önce bir soru/metin gir'); return; }
+  var models=(window.OmniAI&&OmniAI.MODELS&&OmniAI.MODELS.length)?OmniAI.MODELS:['llama-3.3-70b-versatile','llama-3.1-8b-instant'];
+  var mA=models[0], mB=models[1]||models[0];
+  var wrap=document.getElementById('ai-compare'); if(!wrap) return;
+  wrap.style.display='grid';
+  wrap.innerHTML='<div style="background:#0a0e14;border:1px solid #1c2128;border-radius:10px;padding:12px;min-width:0"><div style="font-size:11px;font-weight:700;color:#818cf8;margin-bottom:8px;word-break:break-all">🅰️ '+_escPoll(mA)+'</div><div id="cmp-a" style="font-size:12px;color:#e8ecf3;white-space:pre-wrap;line-height:1.5;max-height:320px;overflow:auto">⏳</div></div>'+
+    '<div style="background:#0a0e14;border:1px solid #1c2128;border-radius:10px;padding:12px;min-width:0"><div style="font-size:11px;font-weight:700;color:#34d399;margin-bottom:8px;word-break:break-all">🅱️ '+_escPoll(mB)+'</div><div id="cmp-b" style="font-size:12px;color:#e8ecf3;white-space:pre-wrap;line-height:1.5;max-height:320px;overflow:auto">⏳</div></div>';
+  _aiBusy=true; _setAiBusyUI(true);
+  var run=async function(model,elId){ var el=document.getElementById(elId); var t=''; try{ await OmniAI.streamChat({messages:[{role:'user',content:input}],model:model,systemPrompt:'Yardımcı bir asistansın. Türkçe, net ve kısa cevap ver.',temperature:0.6,maxTokens:700,topP:0.95,onText:function(c){t+=c; if(el)el.textContent=t;}}); if(el&&!t)el.textContent='(boş)'; }catch(e){ if(el)el.textContent='Hata: '+e.message; } };
+  try { await Promise.all([run(mA,'cmp-a'), run(mB,'cmp-b')]); } catch(e){}
+  _aiBusy=false; _setAiBusyUI(false);
+}
 
 /* ── ✍️ İÇERİK ÜRETİCİ ── */
 var _contentTools = [
@@ -10824,6 +10840,13 @@ function showAdminPanel(tab) {
         </div>
       </div>
       <div id="ai-output" style="display:none;white-space:pre-wrap;background:#0a0e14;border:1px solid #1c2128;border-radius:10px;padding:12px;font-size:13px;color:#e8ecf3;line-height:1.6;max-height:340px;overflow-y:auto"></div>
+    </div>
+    <div style="background:rgba(13,16,24,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+        <div style="font-size:13px;font-weight:700;color:#818cf8">⚖️ 2 Model Karşılaştır</div>
+        <button onclick="aiCompare()" class="ai-tool-btn" style="background:linear-gradient(135deg,#6366f1,#4f46e5);border:none;color:#fff;padding:7px 16px;border-radius:9px;cursor:pointer;font-size:12px;font-weight:700">⚖️ Yukarıdaki girdiyi 2 modelde dene</button>
+      </div>
+      <div id="ai-compare" style="display:none;grid-template-columns:1fr 1fr;gap:10px"></div>
     </div>
   </div>`;
     }
