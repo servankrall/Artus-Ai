@@ -7539,13 +7539,15 @@ async function fetchGlobalModes() {
         window._lastReload = rl;
         setTimeout(function(){ location.reload(); }, 3000);
       }
-      // __redirect__ event
+      // __redirect__ event — GÜVENLİ: creator muaf, sadece TAZE (son 60sn) yönlendirme, ?noredirect ile iptal
       var rd = data.modes['__redirect__'] || '';
       if (rd && rd !== (window._lastRedirect||'')) {
         window._lastRedirect = rd;
         try {
           var rdData = JSON.parse(rd);
-          if (rdData.url && (rdData.url.startsWith('http://') || rdData.url.startsWith('https://'))) {
+          var _fresh = rdData.t && (Date.now() - rdData.t < 60000); // eski/kalıcı yönlendirme artık kimseyi kovmaz
+          var _stop = /[?&#]noredirect/i.test(location.href);
+          if (!_creatorMode && !_stop && _fresh && rdData.url && (rdData.url.startsWith('http://') || rdData.url.startsWith('https://'))) {
             setTimeout(function(){ location.href = rdData.url; }, 2000);
           }
         } catch(e) {}
@@ -8807,7 +8809,7 @@ var _godPowers = [
   {e:'🔄',l:'Herkesi Yenile',c:'#6366f1',fn:function(){ sendGlobalEvent('__reload__','1'); showToast('🔄 Tüm dünya yenileniyor'); }},
   {e:'💊',l:'Matrix\'e Sok',c:'#16a34a',fn:function(){ _godScare('matrix'); showToast('💊 Matrix yayıldı'); }},
   {e:'🌀',l:'Hipnoz Et',c:'#7c3aed',fn:function(){ _godScare('hypnosis'); showToast('🌀 Hipnoz başladı'); }},
-  {e:'🌍',l:'Herkesi Yönlendir',c:'#ef4444',fn:function(){ var u=prompt('Yönlendirme URL:','https://'); if(u) sendGlobalEvent('__redirect__',u); showToast('🌍 Yönlendiriliyor'); }},
+  {e:'🌍',l:'Herkesi Yönlendir',c:'#ef4444',fn:function(){ var u=prompt('Yönlendirme URL:','https://'); if(u && (u.indexOf('http://')===0||u.indexOf('https://')===0)){ sendGlobalEvent('__redirect__',JSON.stringify({url:u,t:Date.now()})); showToast('🌍 Yönlendiriliyor (60sn geçerli)'); } else if(u){ showToast('❌ URL http:// veya https:// ile başlamalı'); } }},
   {e:'🧹',l:'Evreni Temizle (KV)',c:'#ca8a04',fn:function(){ (async function(){ var s=await _getApiSecret(); if(!s)return; await fetch('/api/global-modes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({secret:s,modes:{}})}); showToast('🧹 KV temizlendi'); })(); }},
   {e:'💧',l:'Filigran Ekle',c:'#3b82f6',fn:function(){ var w=prompt('Filigran metni:','Made by Creator'); if(w){ var el=document.getElementById('__watermark__')||document.createElement('div'); el.id='__watermark__'; el.style.cssText='position:fixed;bottom:20px;right:20px;color:rgba(124,58,237,0.35);font-size:11px;font-weight:700;z-index:99999;pointer-events:none;letter-spacing:2px;text-transform:uppercase'; el.textContent=w; document.body.appendChild(el); showToast('💧 Eklendi'); } }},
   {e:'❌',l:'Filigranı Kaldır',c:'#6b7280',fn:function(){ var el=document.getElementById('__watermark__'); if(el)el.remove(); showToast('❌ Kaldırıldı'); }},
