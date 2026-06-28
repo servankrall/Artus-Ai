@@ -9631,45 +9631,96 @@ function noteRender(){
   box.innerHTML=n.map(function(x,i){ return '<div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:9px 11px;margin-bottom:6px"><div style="display:flex;justify-content:space-between;gap:8px"><span style="font-size:13px;color:#e8ecf3;word-break:break-word">'+_escPoll(x.t)+'</span><button onclick="noteDel('+i+')" style="background:none;border:none;color:#64748b;cursor:pointer;font-size:13px;flex-shrink:0">🗑️</button></div><div style="font-size:10px;color:#4b5563;margin-top:3px">'+_escPoll(x.d||'')+'</div></div>'; }).join('');
 }
 
-/* ── 🤖 AI ARAÇLARI — metni gerçek AI'a gönderir ── */
+/* ── 🤖 AI ÇEKİRDEK — tüm AI sekmeleri bunu kullanır ── */
+var _aiBusy=false;
+async function _aiStream(sys, userMsg, outId, opts){
+  opts = opts || {};
+  if(_aiBusy){ showToast('⏳ AI hâlâ çalışıyor, bekle...'); return; }
+  userMsg = (userMsg||'').trim();
+  if(!userMsg){ showToast('❌ Önce bir metin gir'); return; }
+  var out=document.getElementById(outId); if(!out) return;
+  out.style.display='block';
+  out.innerHTML='<span style="display:inline-block;animation:badgePulse 1.2s infinite">🤖</span> AI düşünüyor...';
+  _aiBusy=true; _setAiBusyUI(true);
+  try {
+    if(!window.OmniAI||!OmniAI.streamChat){ out.textContent='AI motoru yüklenemedi (sayfayı yenile).'; return; }
+    var txt='';
+    await OmniAI.streamChat({
+      messages:[{role:'user',content:userMsg}],
+      model:(typeof currentModel!=='undefined'?currentModel:'llama-3.3-70b-versatile'),
+      systemPrompt:sys, temperature:opts.temp||0.6, maxTokens:opts.max||1024, topP:0.95,
+      onText:function(c){ txt+=c; out.textContent=txt; }
+    });
+    if(!txt) out.textContent='(boş yanıt — tekrar dene)';
+  } catch(e){ out.textContent='⚠️ Hata: '+e.message; }
+  _aiBusy=false; _setAiBusyUI(false);
+}
+function _setAiBusyUI(busy){
+  document.querySelectorAll('.ai-tool-btn').forEach(function(b){ b.style.opacity=busy?'0.5':'1'; b.style.pointerEvents=busy?'none':'auto'; });
+}
+
 var _aiTools = [
   {e:'📋',l:'Özetle',c:'#6366f1',sys:'Aşağıdaki metni Türkçe, kısa ve net biçimde madde madde özetle. Sadece özeti ver.'},
-  {e:'🇬🇧',l:'İngilizceye Çevir',c:'#3b82f6',sys:'Translate the following text to fluent English. Output only the translation.'},
-  {e:'🇹🇷',l:'Türkçeye Çevir',c:'#ef4444',sys:'Aşağıdaki metni akıcı ve doğal Türkçeye çevir. Sadece çeviriyi ver.'},
+  {e:'🌐',l:'Çevir',c:'#3b82f6',sysFn:function(){ var lang=(document.getElementById('ai-lang')||{}).value||'İngilizce'; return 'Aşağıdaki metni akıcı, doğal '+lang+' diline çevir. Sadece çeviriyi ver, açıklama ekleme.'; }},
   {e:'✍️',l:'Dilbilgisi Düzelt',c:'#10b981',sys:'Aşağıdaki metnin yazım ve dilbilgisi hatalarını düzelt. Anlamı koru, sadece düzeltilmiş metni ver.'},
   {e:'👔',l:'Resmî Yap',c:'#64748b',sys:'Aşağıdaki metni profesyonel, resmî ve kibar bir dile çevir. Sadece yeni metni ver.'},
   {e:'😎',l:'Samimi Yap',c:'#f59e0b',sys:'Aşağıdaki metni sıcak, samimi ve günlük bir dile çevir. Sadece yeni metni ver.'},
   {e:'📧',l:'E-posta Yaz',c:'#8b5cf6',sys:'Aşağıdaki notlardan/istekten profesyonel, düzgün yapılandırılmış bir Türkçe e-posta yaz (konu + gövde).'},
-  {e:'💡',l:'10 Fikir Üret',c:'#eab308',sys:'Aşağıdaki konu için 10 adet yaratıcı, özgün ve uygulanabilir fikir üret. Numaralı liste halinde Türkçe yaz.'},
+  {e:'💡',l:'10 Fikir',c:'#eab308',sys:'Aşağıdaki konu için 10 adet yaratıcı, özgün ve uygulanabilir fikir üret. Numaralı liste halinde Türkçe yaz.'},
   {e:'🧒',l:'Basitçe Açıkla',c:'#06b6d4',sys:'Aşağıdaki konuyu/metni, 10 yaşında birine anlatır gibi çok basit ve anlaşılır Türkçe ile açıkla.'},
   {e:'🔑',l:'Anahtar Noktalar',c:'#ec4899',sys:'Aşağıdaki metinden en önemli anahtar noktaları çıkar ve kısa madde işaretleriyle Türkçe listele.'},
+  {e:'😊',l:'Duygu Analizi',c:'#f472b6',sys:'Aşağıdaki metnin duygu durumunu analiz et: genel ton (olumlu/olumsuz/nötr), baskın duygular ve kısa gerekçe. Türkçe, kısa.'},
+  {e:'📊',l:'Ton & Üslup',c:'#a78bfa',sys:'Aşağıdaki metnin yazım tonunu ve üslubunu analiz et (resmî/samimi, ikna edici/bilgilendirici vb.) ve 2-3 iyileştirme önerisi ver. Türkçe.'},
+  {e:'🏷️',l:'Etiket/Hashtag',c:'#22c55e',sys:'Aşağıdaki içerik için 10 uygun hashtag/etiket üret. Sadece etiketleri ver.'},
 ];
 function _renderAiGrid(){
   return _aiTools.map(function(t,i){
-    return '<button onclick="aiTool('+i+')" title="'+t.l+'" style="display:flex;align-items:center;gap:7px;background:rgba(13,16,24,0.7);border:1px solid '+t.c+'55;border-radius:10px;padding:9px 12px;cursor:pointer;font-size:12px;color:#cbd5e1;font-weight:600;transition:all .15s" onmouseover="this.style.borderColor=\''+t.c+'\'" onmouseout="this.style.borderColor=\''+t.c+'55\'"><span style="font-size:16px">'+t.e+'</span>'+t.l+'</button>';
+    return '<button class="ai-tool-btn" onclick="aiTool('+i+')" title="'+t.l+'" style="display:flex;align-items:center;gap:7px;background:rgba(13,16,24,0.7);border:1px solid '+t.c+'55;border-radius:10px;padding:9px 12px;cursor:pointer;font-size:12px;color:#cbd5e1;font-weight:600;transition:all .15s" onmouseover="this.style.borderColor=\''+t.c+'\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.borderColor=\''+t.c+'55\';this.style.transform=\'none\'"><span style="font-size:16px">'+t.e+'</span>'+t.l+'</button>';
   }).join('');
 }
-var _aiBusy=false;
-async function aiTool(i){
+function aiTool(i){
   var t=_aiTools[i]; if(!t) return;
-  if(_aiBusy){ showToast('⏳ AI hâlâ çalışıyor...'); return; }
-  var input=((document.getElementById('ai-input')||{}).value||'').trim();
-  if(!input){ showToast('❌ Önce bir metin gir'); return; }
-  var out=document.getElementById('ai-output'); if(!out) return;
-  out.style.display='block'; out.textContent='⏳ AI düşünüyor...';
-  _aiBusy=true;
-  try {
-    if(!window.OmniAI||!OmniAI.streamChat){ out.textContent='AI motoru yüklenemedi.'; _aiBusy=false; return; }
-    var txt='';
-    await OmniAI.streamChat({
-      messages:[{role:'user',content:input}],
-      model:(typeof currentModel!=='undefined'?currentModel:'llama-3.3-70b-versatile'),
-      systemPrompt:t.sys, temperature:0.6, maxTokens:1024, topP:0.95,
-      onText:function(c){ txt+=c; out.textContent=txt; }
-    });
-    if(!txt) out.textContent='(boş yanıt)';
-  } catch(e){ out.textContent='Hata: '+e.message; }
-  _aiBusy=false;
+  var input=((document.getElementById('ai-input')||{}).value||'');
+  var sys = t.sysFn ? t.sysFn() : t.sys;
+  _aiStream(sys, input, 'ai-output');
+}
+
+/* ── ✍️ İÇERİK ÜRETİCİ ── */
+var _contentTools = [
+  {e:'📝',l:'Blog Yazısı',c:'#6366f1',sys:'Aşağıdaki konu hakkında akıcı, ilgi çekici bir Türkçe blog yazısı yaz. Başlık, giriş, alt başlıklar ve sonuç içersin.'},
+  {e:'🐦',l:'Tweet',c:'#3b82f6',sys:'Aşağıdaki konu için kısa, çarpıcı, ilgi çekici bir tweet yaz (280 karakter altı). Uygun emoji ve hashtag ekle.'},
+  {e:'📰',l:'Başlık Önerileri',c:'#f59e0b',sys:'Aşağıdaki konu için 8 dikkat çekici, tıklanası başlık öner. Numaralı liste, Türkçe.'},
+  {e:'🛍️',l:'Ürün Açıklaması',c:'#10b981',sys:'Aşağıdaki ürün için ikna edici, satışı artıran bir Türkçe ürün açıklaması yaz.'},
+  {e:'📣',l:'Slogan',c:'#ec4899',sys:'Aşağıdaki marka/ürün/konu için 8 akılda kalıcı slogan üret. Türkçe, kısa.'},
+  {e:'📸',l:'Instagram Gönderisi',c:'#8b5cf6',sys:'Aşağıdaki konu için ilgi çekici bir Instagram gönderi metni yaz: çekici açıklama + emoji + 5-8 hashtag.'},
+  {e:'🎬',l:'Video Senaryosu',c:'#ef4444',sys:'Aşağıdaki konu için kısa bir video/Reels senaryosu yaz: hook, ana içerik, kapanış. Türkçe.'},
+  {e:'📋',l:'Madde Plan',c:'#06b6d4',sys:'Aşağıdaki konu/proje için detaylı, uygulanabilir bir adım adım plan oluştur. Türkçe, numaralı.'},
+];
+function _renderContentGrid(){
+  return _contentTools.map(function(t,i){
+    return '<button class="ai-tool-btn" onclick="contentTool('+i+')" title="'+t.l+'" style="display:flex;align-items:center;gap:7px;background:rgba(13,16,24,0.7);border:1px solid '+t.c+'55;border-radius:10px;padding:9px 12px;cursor:pointer;font-size:12px;color:#cbd5e1;font-weight:600;transition:all .15s" onmouseover="this.style.borderColor=\''+t.c+'\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.borderColor=\''+t.c+'55\';this.style.transform=\'none\'"><span style="font-size:16px">'+t.e+'</span>'+t.l+'</button>';
+  }).join('');
+}
+function contentTool(i){ var t=_contentTools[i]; if(!t)return; _aiStream(t.sys, (document.getElementById('content-input')||{}).value||'', 'content-output', {temp:0.85, max:1500}); }
+
+/* ── 🧠 PROMPT STÜDYOSU ── */
+var _promptTools = [
+  {e:'✨',l:'Promptu Geliştir',c:'#7c3aed',sys:'Sen bir prompt mühendisisin. Aşağıdaki promptu daha net, detaylı ve etkili hale getir. Rol, bağlam, format ve kısıtlar ekle. Sadece geliştirilmiş promptu ver.'},
+  {e:'🎯',l:'Fikirden Prompt',c:'#6366f1',sys:'Aşağıdaki fikir/ihtiyaç için bir AI\'a verilecek mükemmel, ayrıntılı bir prompt yaz. Sadece promptu ver.'},
+  {e:'🔧',l:'Sistem Promptu',c:'#10b981',sys:'Aşağıdaki amaç için profesyonel bir AI sistem promptu (system prompt) yaz. Rolü, davranışı ve kuralları net tanımla.'},
+  {e:'🔀',l:'3 Varyasyon',c:'#f59e0b',sys:'Aşağıdaki promptun 3 farklı, geliştirilmiş varyasyonunu üret. Her birini numaralandır.'},
+  {e:'🩺',l:'Promptu Analiz Et',c:'#ec4899',sys:'Aşağıdaki promptu analiz et: güçlü yanları, zayıf yanları ve nasıl iyileştirileceği. Türkçe.'},
+];
+function _renderPromptGrid(){
+  return _promptTools.map(function(t,i){
+    return '<button class="ai-tool-btn" onclick="promptTool('+i+')" title="'+t.l+'" style="display:flex;align-items:center;gap:7px;background:rgba(13,16,24,0.7);border:1px solid '+t.c+'55;border-radius:10px;padding:9px 12px;cursor:pointer;font-size:12px;color:#cbd5e1;font-weight:600;transition:all .15s" onmouseover="this.style.borderColor=\''+t.c+'\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.borderColor=\''+t.c+'55\';this.style.transform=\'none\'"><span style="font-size:16px">'+t.e+'</span>'+t.l+'</button>';
+  }).join('');
+}
+function promptTool(i){ var t=_promptTools[i]; if(!t)return; _aiStream(t.sys, (document.getElementById('prompt-input')||{}).value||'', 'prompt-output', {temp:0.7, max:1200}); }
+function promptUseAsSystem(){
+  var v=(document.getElementById('prompt-output')||{}).textContent||'';
+  if(!v.trim()||v.indexOf('düşünüyor')>=0){ showToast('Önce bir çıktı üret'); return; }
+  try{ localStorage.setItem('artus_system_prompt', v); var ta=document.getElementById('sys-prompt-input'); if(ta)ta.value=v; showToast('✅ Sistem promptu olarak ayarlandı'); }catch(e){ showToast('❌ Hata'); }
 }
 
 function _renderGodGrid(){
@@ -9700,6 +9751,8 @@ function showAdminPanel(tab) {
     { id:'live',     icon:'🌐', label:'Canlı Durum' },
     { id:'god', icon:'👑', label:'GOD MODE' },
     { id:'ai', icon:'🤖', label:'AI Araçları' },
+    { id:'content', icon:'✍️', label:'İçerik Üretici' },
+    { id:'prompt', icon:'🧠', label:'Prompt Stüdyosu' },
     { id:'magic', icon:'🪄', label:'Sihirli Araçlar' },
     { id:'games', icon:'🎮', label:'Oyunlar' },
     { id:'calc', icon:'🧮', label:'Hesap' },
@@ -10679,7 +10732,10 @@ function showAdminPanel(tab) {
     </div>
     <textarea id="ai-input" placeholder="Metnini buraya yapıştır... (özetlenecek, çevrilecek, düzeltilecek metin / e-posta notları / fikir konusu)" style="width:100%;height:110px;background:#0a0e14;border:1px solid #262d3a;border-radius:12px;color:#e8ecf3;padding:12px;font-size:13px;resize:vertical;box-sizing:border-box"></textarea>
     <div style="background:rgba(13,16,24,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:14px">
-      <div style="font-size:12px;color:#6b7280;margin-bottom:10px">Bir araç seç:</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+        <span style="font-size:12px;color:#6b7280">Bir araç seç:</span>
+        <span style="font-size:11px;color:#6b7280">🌐 Çeviri dili: <select id="ai-lang" style="background:#0a0e14;border:1px solid #262d3a;border-radius:6px;color:#e8ecf3;padding:4px 8px;font-size:11px"><option>İngilizce</option><option>Almanca</option><option>Fransızca</option><option>İspanyolca</option><option>Arapça</option><option>Rusça</option><option>İtalyanca</option><option>Türkçe</option><option>Japonca</option><option>Çince</option></select></span>
+      </div>
       <div style="display:flex;flex-wrap:wrap;gap:8px">${_renderAiGrid()}</div>
     </div>
     <div style="background:rgba(13,16,24,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px">
@@ -10688,6 +10744,50 @@ function showAdminPanel(tab) {
         <button onclick="var o=document.getElementById('ai-output');if(o.textContent&&o.textContent.indexOf('⏳')<0)navigator.clipboard.writeText(o.textContent).then(function(){showToast('📋 Kopyalandı')})" style="background:#0d1a0d;border:1px solid #16a34a;color:#4ade80;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px">📋 Kopyala</button>
       </div>
       <div id="ai-output" style="display:none;white-space:pre-wrap;background:#0a0e14;border:1px solid #1c2128;border-radius:10px;padding:12px;font-size:13px;color:#e8ecf3;line-height:1.6;max-height:340px;overflow-y:auto"></div>
+    </div>
+  </div>`;
+    }
+    else if (activeTab === 'content') {
+      content = `<div style="display:flex;flex-direction:column;gap:14px">
+    <div style="background:linear-gradient(135deg,rgba(236,72,153,0.16),rgba(99,102,241,0.1));border:1px solid rgba(236,72,153,0.35);border-radius:14px;padding:18px;text-align:center">
+      <div style="font-size:40px;margin-bottom:6px">✍️</div>
+      <div style="font-size:18px;font-weight:900;color:#e8ecf3;margin-bottom:4px">İçerik Üretici</div>
+      <div style="font-size:12px;color:#f9a8d4">Konuyu yaz, içerik türünü seç — AI üretsin</div>
+    </div>
+    <textarea id="content-input" placeholder="Konu / ürün / marka... (ör: 'evden çalışma verimliliği', 'el yapımı kahve markası')" style="width:100%;height:90px;background:#0a0e14;border:1px solid #262d3a;border-radius:12px;color:#e8ecf3;padding:12px;font-size:13px;resize:vertical;box-sizing:border-box"></textarea>
+    <div style="background:rgba(13,16,24,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:14px">
+      <div style="font-size:12px;color:#6b7280;margin-bottom:10px">İçerik türü seç:</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">${_renderContentGrid()}</div>
+    </div>
+    <div style="background:rgba(13,16,24,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:13px;font-weight:700;color:#f472b6">✍️ ÜRETİLEN İÇERİK</div>
+        <button onclick="var o=document.getElementById('content-output');if(o.textContent&&o.textContent.indexOf('düşünüyor')<0)navigator.clipboard.writeText(o.textContent).then(function(){showToast('📋 Kopyalandı')})" style="background:#0d1a0d;border:1px solid #16a34a;color:#4ade80;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px">📋 Kopyala</button>
+      </div>
+      <div id="content-output" style="display:none;white-space:pre-wrap;background:#0a0e14;border:1px solid #1c2128;border-radius:10px;padding:12px;font-size:13px;color:#e8ecf3;line-height:1.6;max-height:360px;overflow-y:auto"></div>
+    </div>
+  </div>`;
+    }
+    else if (activeTab === 'prompt') {
+      content = `<div style="display:flex;flex-direction:column;gap:14px">
+    <div style="background:linear-gradient(135deg,rgba(124,58,237,0.18),rgba(16,185,129,0.08));border:1px solid rgba(124,58,237,0.35);border-radius:14px;padding:18px;text-align:center">
+      <div style="font-size:40px;margin-bottom:6px">🧠</div>
+      <div style="font-size:18px;font-weight:900;color:#e8ecf3;margin-bottom:4px">Prompt Stüdyosu</div>
+      <div style="font-size:12px;color:#c4b5fd">Promptlarını AI ile geliştir, üret, analiz et</div>
+    </div>
+    <textarea id="prompt-input" placeholder="Prompt veya fikrini yaz... (ör: 'bana yemek tarifi ver' → daha iyi prompta çevirir)" style="width:100%;height:90px;background:#0a0e14;border:1px solid #262d3a;border-radius:12px;color:#e8ecf3;padding:12px;font-size:13px;resize:vertical;box-sizing:border-box"></textarea>
+    <div style="background:rgba(13,16,24,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:14px">
+      <div style="display:flex;flex-wrap:wrap;gap:8px">${_renderPromptGrid()}</div>
+    </div>
+    <div style="background:rgba(13,16,24,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:13px;font-weight:700;color:#a78bfa">🧠 SONUÇ</div>
+        <div style="display:flex;gap:6px">
+          <button onclick="promptUseAsSystem()" style="background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.4);color:#c4b5fd;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px">⚙️ Sistem Promptu Yap</button>
+          <button onclick="var o=document.getElementById('prompt-output');if(o.textContent&&o.textContent.indexOf('düşünüyor')<0)navigator.clipboard.writeText(o.textContent).then(function(){showToast('📋 Kopyalandı')})" style="background:#0d1a0d;border:1px solid #16a34a;color:#4ade80;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px">📋 Kopyala</button>
+        </div>
+      </div>
+      <div id="prompt-output" style="display:none;white-space:pre-wrap;background:#0a0e14;border:1px solid #1c2128;border-radius:10px;padding:12px;font-size:13px;color:#e8ecf3;line-height:1.6;max-height:360px;overflow-y:auto"></div>
     </div>
   </div>`;
     }
