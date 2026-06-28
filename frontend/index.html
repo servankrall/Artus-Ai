@@ -10834,7 +10834,15 @@ function showAdminPanel(tab) {
       <div style="font-size:18px;font-weight:900;color:#e8ecf3;margin-bottom:4px">İçerik Üretici</div>
       <div style="font-size:12px;color:#f9a8d4">Konuyu yaz, içerik türünü seç — AI üretsin</div>
     </div>
-    <textarea id="content-input" placeholder="Konu / ürün / marka... (ör: 'evden çalışma verimliliği', 'el yapımı kahve markası')" style="width:100%;height:90px;background:#0a0e14;border:1px solid #262d3a;border-radius:12px;color:#e8ecf3;padding:12px;font-size:13px;resize:vertical;box-sizing:border-box"></textarea>
+    <textarea id="content-input" oninput="_aiStats('content-input','content-stats')" placeholder="Konu / ürün / marka... (ör: 'evden çalışma verimliliği', 'el yapımı kahve markası')" style="width:100%;height:90px;background:#0a0e14;border:1px solid #262d3a;border-radius:12px;color:#e8ecf3;padding:12px;font-size:13px;resize:vertical;box-sizing:border-box"></textarea>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:-6px">
+      <div id="content-stats" style="font-size:11px;color:#4b5563">📊 0 kelime · 0 karakter</div>
+      <div style="display:flex;gap:6px">
+        <button onclick="_aiLoadFile('content-input','content-stats')" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:#9ca3af;padding:4px 10px;border-radius:7px;cursor:pointer;font-size:11px">📥 Dosya</button>
+        <button onclick="_aiVoice('content-input','content-stats')" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:#9ca3af;padding:4px 10px;border-radius:7px;cursor:pointer;font-size:11px">🎤 Sesli</button>
+        <button onclick="aiShowHistory()" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:#9ca3af;padding:4px 10px;border-radius:7px;cursor:pointer;font-size:11px">📚 Geçmiş</button>
+      </div>
+    </div>
     <div style="background:rgba(13,16,24,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:14px">
       <div style="font-size:12px;color:#6b7280;margin-bottom:10px">İçerik türü seç:</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px">${_renderContentGrid()}</div>
@@ -10859,7 +10867,15 @@ function showAdminPanel(tab) {
       <div style="font-size:18px;font-weight:900;color:#e8ecf3;margin-bottom:4px">Prompt Stüdyosu</div>
       <div style="font-size:12px;color:#c4b5fd">Promptlarını AI ile geliştir, üret, analiz et</div>
     </div>
-    <textarea id="prompt-input" placeholder="Prompt veya fikrini yaz... (ör: 'bana yemek tarifi ver' → daha iyi prompta çevirir)" style="width:100%;height:90px;background:#0a0e14;border:1px solid #262d3a;border-radius:12px;color:#e8ecf3;padding:12px;font-size:13px;resize:vertical;box-sizing:border-box"></textarea>
+    <textarea id="prompt-input" oninput="_aiStats('prompt-input','prompt-stats')" placeholder="Prompt veya fikrini yaz... (ör: 'bana yemek tarifi ver' → daha iyi prompta çevirir)" style="width:100%;height:90px;background:#0a0e14;border:1px solid #262d3a;border-radius:12px;color:#e8ecf3;padding:12px;font-size:13px;resize:vertical;box-sizing:border-box"></textarea>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:-6px">
+      <div id="prompt-stats" style="font-size:11px;color:#4b5563">📊 0 kelime · 0 karakter</div>
+      <div style="display:flex;gap:6px">
+        <button onclick="_aiLoadFile('prompt-input','prompt-stats')" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:#9ca3af;padding:4px 10px;border-radius:7px;cursor:pointer;font-size:11px">📥 Dosya</button>
+        <button onclick="_aiVoice('prompt-input','prompt-stats')" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:#9ca3af;padding:4px 10px;border-radius:7px;cursor:pointer;font-size:11px">🎤 Sesli</button>
+        <button onclick="aiShowHistory()" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:#9ca3af;padding:4px 10px;border-radius:7px;cursor:pointer;font-size:11px">📚 Geçmiş</button>
+      </div>
+    </div>
     <div style="background:rgba(13,16,24,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:14px">
       <div style="display:flex;flex-wrap:wrap;gap:8px">${_renderPromptGrid()}</div>
     </div>
