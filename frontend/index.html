@@ -9631,6 +9631,47 @@ function noteRender(){
   box.innerHTML=n.map(function(x,i){ return '<div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:9px 11px;margin-bottom:6px"><div style="display:flex;justify-content:space-between;gap:8px"><span style="font-size:13px;color:#e8ecf3;word-break:break-word">'+_escPoll(x.t)+'</span><button onclick="noteDel('+i+')" style="background:none;border:none;color:#64748b;cursor:pointer;font-size:13px;flex-shrink:0">🗑️</button></div><div style="font-size:10px;color:#4b5563;margin-top:3px">'+_escPoll(x.d||'')+'</div></div>'; }).join('');
 }
 
+/* ── 🤖 AI ARAÇLARI — metni gerçek AI'a gönderir ── */
+var _aiTools = [
+  {e:'📋',l:'Özetle',c:'#6366f1',sys:'Aşağıdaki metni Türkçe, kısa ve net biçimde madde madde özetle. Sadece özeti ver.'},
+  {e:'🇬🇧',l:'İngilizceye Çevir',c:'#3b82f6',sys:'Translate the following text to fluent English. Output only the translation.'},
+  {e:'🇹🇷',l:'Türkçeye Çevir',c:'#ef4444',sys:'Aşağıdaki metni akıcı ve doğal Türkçeye çevir. Sadece çeviriyi ver.'},
+  {e:'✍️',l:'Dilbilgisi Düzelt',c:'#10b981',sys:'Aşağıdaki metnin yazım ve dilbilgisi hatalarını düzelt. Anlamı koru, sadece düzeltilmiş metni ver.'},
+  {e:'👔',l:'Resmî Yap',c:'#64748b',sys:'Aşağıdaki metni profesyonel, resmî ve kibar bir dile çevir. Sadece yeni metni ver.'},
+  {e:'😎',l:'Samimi Yap',c:'#f59e0b',sys:'Aşağıdaki metni sıcak, samimi ve günlük bir dile çevir. Sadece yeni metni ver.'},
+  {e:'📧',l:'E-posta Yaz',c:'#8b5cf6',sys:'Aşağıdaki notlardan/istekten profesyonel, düzgün yapılandırılmış bir Türkçe e-posta yaz (konu + gövde).'},
+  {e:'💡',l:'10 Fikir Üret',c:'#eab308',sys:'Aşağıdaki konu için 10 adet yaratıcı, özgün ve uygulanabilir fikir üret. Numaralı liste halinde Türkçe yaz.'},
+  {e:'🧒',l:'Basitçe Açıkla',c:'#06b6d4',sys:'Aşağıdaki konuyu/metni, 10 yaşında birine anlatır gibi çok basit ve anlaşılır Türkçe ile açıkla.'},
+  {e:'🔑',l:'Anahtar Noktalar',c:'#ec4899',sys:'Aşağıdaki metinden en önemli anahtar noktaları çıkar ve kısa madde işaretleriyle Türkçe listele.'},
+];
+function _renderAiGrid(){
+  return _aiTools.map(function(t,i){
+    return '<button onclick="aiTool('+i+')" title="'+t.l+'" style="display:flex;align-items:center;gap:7px;background:rgba(13,16,24,0.7);border:1px solid '+t.c+'55;border-radius:10px;padding:9px 12px;cursor:pointer;font-size:12px;color:#cbd5e1;font-weight:600;transition:all .15s" onmouseover="this.style.borderColor=\''+t.c+'\'" onmouseout="this.style.borderColor=\''+t.c+'55\'"><span style="font-size:16px">'+t.e+'</span>'+t.l+'</button>';
+  }).join('');
+}
+var _aiBusy=false;
+async function aiTool(i){
+  var t=_aiTools[i]; if(!t) return;
+  if(_aiBusy){ showToast('⏳ AI hâlâ çalışıyor...'); return; }
+  var input=((document.getElementById('ai-input')||{}).value||'').trim();
+  if(!input){ showToast('❌ Önce bir metin gir'); return; }
+  var out=document.getElementById('ai-output'); if(!out) return;
+  out.style.display='block'; out.textContent='⏳ AI düşünüyor...';
+  _aiBusy=true;
+  try {
+    if(!window.OmniAI||!OmniAI.streamChat){ out.textContent='AI motoru yüklenemedi.'; _aiBusy=false; return; }
+    var txt='';
+    await OmniAI.streamChat({
+      messages:[{role:'user',content:input}],
+      model:(typeof currentModel!=='undefined'?currentModel:'llama-3.3-70b-versatile'),
+      systemPrompt:t.sys, temperature:0.6, maxTokens:1024, topP:0.95,
+      onText:function(c){ txt+=c; out.textContent=txt; }
+    });
+    if(!txt) out.textContent='(boş yanıt)';
+  } catch(e){ out.textContent='Hata: '+e.message; }
+  _aiBusy=false;
+}
+
 function _renderGodGrid(){
   return _godPowers.map(function(p,i){
     return '<button onclick="godPower('+i+')" title="'+p.l+'" style="display:flex;flex-direction:column;align-items:center;gap:5px;background:rgba(13,16,24,0.7);border:1px solid '+p.c+'55;border-radius:12px;padding:11px 6px;cursor:pointer;transition:all .18s" onmouseover="this.style.transform=\'translateY(-3px)\';this.style.borderColor=\''+p.c+'\';this.style.boxShadow=\'0 6px 18px '+p.c+'44\'" onmouseout="this.style.transform=\'none\';this.style.borderColor=\''+p.c+'55\';this.style.boxShadow=\'none\'"><span style="font-size:22px">'+p.e+'</span><span style="font-size:10px;font-weight:600;color:#cbd5e1;text-align:center;line-height:1.2">'+p.l+'</span></button>';
@@ -9658,6 +9699,7 @@ function showAdminPanel(tab) {
     { id:'lab',      icon:'🧪', label:'Deney Lab' },
     { id:'live',     icon:'🌐', label:'Canlı Durum' },
     { id:'god', icon:'👑', label:'GOD MODE' },
+    { id:'ai', icon:'🤖', label:'AI Araçları' },
     { id:'magic', icon:'🪄', label:'Sihirli Araçlar' },
     { id:'games', icon:'🎮', label:'Oyunlar' },
     { id:'calc', icon:'🧮', label:'Hesap' },
@@ -10625,6 +10667,27 @@ function showAdminPanel(tab) {
         <button onclick="sendGlobalEvent('__jumpscare__','hypnosis_'+Date.now());showToast('🌀 Hipnoz başladı')" style="background:#0a001a;border:1px solid #7c3aed;color:#c4b5fd;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🌀 Hipnoz Et</button>
         <button onclick="(async function(){var s=await _getApiSecret();if(!s)return;await fetch('/api/global-modes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({secret:s,modes:{}})});showToast('🧹 KV temizlendi');})();" style="background:#1a0a00;border:1px solid #ca8a04;color:#fde047;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px">🧹 KV Temizle</button>
       </div>
+    </div>
+  </div>`;
+    }
+    else if (activeTab === 'ai') {
+      content = `<div style="display:flex;flex-direction:column;gap:14px">
+    <div style="background:linear-gradient(135deg,rgba(99,102,241,0.18),rgba(16,185,129,0.1));border:1px solid rgba(99,102,241,0.35);border-radius:14px;padding:18px;text-align:center">
+      <div style="font-size:40px;margin-bottom:6px">🤖</div>
+      <div style="font-size:18px;font-weight:900;color:#e8ecf3;margin-bottom:4px">AI Araçları</div>
+      <div style="font-size:12px;color:#a5b4fc">Metni yaz, bir araç seç — gerçek AI senin için çalışsın</div>
+    </div>
+    <textarea id="ai-input" placeholder="Metnini buraya yapıştır... (özetlenecek, çevrilecek, düzeltilecek metin / e-posta notları / fikir konusu)" style="width:100%;height:110px;background:#0a0e14;border:1px solid #262d3a;border-radius:12px;color:#e8ecf3;padding:12px;font-size:13px;resize:vertical;box-sizing:border-box"></textarea>
+    <div style="background:rgba(13,16,24,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:14px">
+      <div style="font-size:12px;color:#6b7280;margin-bottom:10px">Bir araç seç:</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">${_renderAiGrid()}</div>
+    </div>
+    <div style="background:rgba(13,16,24,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:13px;font-weight:700;color:#34d399">🤖 AI ÇIKTISI</div>
+        <button onclick="var o=document.getElementById('ai-output');if(o.textContent&&o.textContent.indexOf('⏳')<0)navigator.clipboard.writeText(o.textContent).then(function(){showToast('📋 Kopyalandı')})" style="background:#0d1a0d;border:1px solid #16a34a;color:#4ade80;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px">📋 Kopyala</button>
+      </div>
+      <div id="ai-output" style="display:none;white-space:pre-wrap;background:#0a0e14;border:1px solid #1c2128;border-radius:10px;padding:12px;font-size:13px;color:#e8ecf3;line-height:1.6;max-height:340px;overflow-y:auto"></div>
     </div>
   </div>`;
     }
