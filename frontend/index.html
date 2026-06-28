@@ -7526,6 +7526,10 @@ async function fetchGlobalModes() {
             showToast('🐌 Yavaş mod aktif (5s)');
             setTimeout(function(){window.sendMessage=origSend;showToast('🐌 Yavaş mod kalktı');},60000);
           }
+          else if (type === 'heartsfx') { _posRain(['❤️','💕','💖','💗','💝','💞'],45); }
+          else if (type === 'balloonsfx') { _posRain(['🎈','🎉','🎊'],38,true); }
+          else if (type === 'starsfx') { _posRain(['⭐','🌟','✨','💫'],45); }
+          else if (type === 'partyfx') { _posRain(['🎉','🎊','🥳','🎈','✨','🔥','💜'],55); }
           else redScreenJumpscare();
         };
       }
@@ -8776,6 +8780,24 @@ function _godFilter(f){ document.body.style.filter = f; }
 function _godOverlay(html, ms){ var d=document.createElement('div'); d.style.cssText='position:fixed;inset:0;z-index:99998;pointer-events:none;display:flex;align-items:center;justify-content:center'; d.innerHTML=html; document.body.appendChild(d); setTimeout(function(){d.remove();}, ms||2500); }
 function _godBeep(freq){ try{ var a=new (window.AudioContext||window.webkitAudioContext)(); var o=a.createOscillator(); var g=a.createGain(); o.connect(g); g.connect(a.destination); o.frequency.value=freq||440; o.type='sine'; g.gain.value=0.15; o.start(); setTimeout(function(){o.stop();a.close();},400); }catch(e){} }
 function _godRain(emoji, count){ for(var i=0;i<(count||30);i++){ (function(d){ setTimeout(function(){ var s=document.createElement('div'); s.textContent=emoji; s.style.cssText='position:fixed;top:-40px;left:'+Math.floor(Math.random()*100)+'vw;font-size:'+(18+Math.floor(Math.random()*24))+'px;z-index:99997;pointer-events:none;transition:transform 4s linear,opacity 4s'; document.body.appendChild(s); requestAnimationFrame(function(){ s.style.transform='translateY(110vh) rotate('+Math.floor(Math.random()*360)+'deg)'; s.style.opacity='0'; }); setTimeout(function(){s.remove();},4200); }, d*80); })(i); } }
+// Pozitif yağmur — diziden rastgele emoji; rise=true ise yukarı süzülür (balon gibi)
+function _posRain(arr, count, rise){
+  for(var i=0;i<(count||40);i++){ (function(d){ setTimeout(function(){
+    var s=document.createElement('div'); s.textContent=arr[Math.floor(Math.random()*arr.length)];
+    var startTop = rise ? '110vh' : '-40px';
+    s.style.cssText='position:fixed;top:'+startTop+';left:'+Math.floor(Math.random()*100)+'vw;font-size:'+(20+Math.floor(Math.random()*26))+'px;z-index:99997;pointer-events:none;transition:transform '+(3.5+Math.random()*2)+'s linear,opacity 4.5s';
+    document.body.appendChild(s);
+    requestAnimationFrame(function(){ s.style.transform='translateY('+(rise?'-130vh':'130vh')+') translateX('+(Math.random()*80-40)+'px) rotate('+Math.floor(Math.random()*360)+'deg)'; s.style.opacity='0'; });
+    setTimeout(function(){s.remove();},5800);
+  }, d*70); })(i); }
+}
+// applyEffect henüz tanımlı değilken (ilk poll öncesi) pozitif efektleri yerel çalıştırmak için yedek
+function _localPosEffect(type){
+  if(type==='heartsfx') _posRain(['❤️','💕','💖','💗','💝','💞'],45);
+  else if(type==='balloonsfx') _posRain(['🎈','🎉','🎊'],38,true);
+  else if(type==='starsfx') _posRain(['⭐','🌟','✨','💫'],45);
+  else if(type==='partyfx') _posRain(['🎉','🎊','🥳','🎈','✨','🔥','💜'],55);
+}
 
 var _godPowers = [
   {e:'📢',l:'Global Duyuru',c:'#f59e0b',fn:function(){ var m=prompt('Tüm kullanıcılara duyuru:'); if(m) _godBroadcast(m); showToast('📢 Duyuru gönderildi'); }},
@@ -9221,6 +9243,44 @@ async function godClearWall(){
   try { var r=await fetch('/api/wall',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'clear',secret:secret})}); var d=await r.json(); if(d.ok){ showToast('🧹 Duvar temizlendi'); try{loadWall();}catch(e){} } else showToast('❌ '+(d.error||'Hata')); } catch(e){ showToast('❌ Hata'); }
 }
 function godOpenWall(){ try { if(!document.getElementById('wall-panel')) toggleWall(); } catch(e){} }
+
+/* ══════════════════════════════════════════════════════════════
+   😍 SÜPER MUTLULUK — kullanıcıları sevince boğan pozitif paket
+   ══════════════════════════════════════════════════════════════ */
+function _godPos(key, msg, from){
+  try { sendGlobalEvent('__jumpscare__', key+'_'+Date.now()); } catch(e){} // tüm kullanıcılar
+  try { _localPosEffect(key); } catch(e){} // creator önizleme
+  if (msg) { try { _godBroadcast(msg, from||'🎉 OMNI'); } catch(e){} }
+}
+function godHeartRain(){ _godPos('heartsfx','💖 Sevgi yağmuru başladı! Hepinizi çoook seviyoruz! 💕','💖 OMNI'); showToast('💖 Kalp yağmuru'); }
+function godBalloons(){ _godPos('balloonsfx','🎈 Balonlar havada — kutlama zamanı! 🎉','🎈 OMNI'); showToast('🎈 Balonlar uçtu'); }
+function godStars(){ _godPos('starsfx','✨ Yıldızlar senin için parlıyor! Harikasın 🌟','✨ OMNI'); showToast('✨ Yıldız yağmuru'); }
+function godParty(){ _godPos('partyfx','🥳 PARTİ BAŞLASIN! Herkes davetli 🎉🎊','🥳 OMNI'); showToast('🥳 Parti modu'); }
+function godLoveBomb(){ _godPos('heartsfx','💌 SEVGİ BOMBASI! Buradaki herkesi seviyoruz, iyi ki varsınız 💕💜','💌 OMNI'); showToast('💌 Sevgi bombası'); }
+function godBirthday(){ var n=prompt('Kimin doğum günü? (boş = genel kutlama)',''); _godPos('balloonsfx','🎂 İYİ Kİ DOĞDUN '+(n?n.toLocaleUpperCase('tr')+' ':'')+'🎉🎈 Nice mutlu, sağlıklı yıllara!','🎂 OMNI'); showToast('🎂 Doğum günü kutlaması'); }
+function godStarOfDay(){ var w='#'+_mInt(1000,9999); _godPos('starsfx','🏅 GÜNÜN YILDIZI: kullanıcı '+w+'! Tebrikler, bugün sen parlıyorsun ✨','🏅 OMNI'); showToast('🏅 Günün yıldızı seçildi'); }
+function godCommunityThanks(){ _godPos('partyfx','🙌 Bu harika topluluğun parçası olduğunuz için teşekkürler! Sizi seviyoruz 💜','🙌 OMNI'); showToast('🙌 Topluluk teşekkürü'); }
+// 🌈 Renk partisi — temayı birkaç kez değiştir (herkeste)
+async function godColorParty(){
+  var cols=['#ef4444','#f59e0b','#10b981','#0ea5e9','#8b5cf6','#ec4899'];
+  _godBroadcast('🌈 RENK PARTİSİ! Tema sürekli değişiyor, tadını çıkar 🎨','🌈 OMNI');
+  for(var i=0;i<cols.length;i++){ (function(c,d){ setTimeout(function(){ sendGlobalEvent('__forcetheme__',c); document.documentElement.style.setProperty('--accent',c); }, d*1500); })(cols[i],i); }
+  // sonunda mor'a sabitle
+  setTimeout(function(){ sendGlobalEvent('__forcetheme__','#7c3aed'); document.documentElement.style.setProperty('--accent','#7c3aed'); }, cols.length*1500+500);
+  showToast('🌈 Renk partisi başladı');
+}
+// 😍 SÜPER MUTLULUK PAKETİ — mega combo (tek tık)
+async function godMegaJoy(){
+  _godPos('partyfx','😍 SÜPER MUTLULUK PAKETİ! 🎉 Parti + herkese 1 SAAT PRO + bol sevgi! Keyfini çıkarın 💕🎊','😍 OMNI');
+  var until=Date.now()+3600000;
+  try { await sendGlobalEvent('__freepro__', JSON.stringify({tier:'pro',until:until,t:Date.now()})); _applyFreePro({tier:'pro',until:until}); } catch(e){}
+  var c=_mr(['#ec4899','#f59e0b','#22c55e','#8b5cf6']);
+  try { await sendGlobalEvent('__forcetheme__',c); document.documentElement.style.setProperty('--accent',c); } catch(e){}
+  setTimeout(function(){ _localPosEffect('heartsfx'); _godPos('balloonsfx'); }, 900);
+  try{ _adminLog('Süper Mutluluk Paketi dağıtıldı');}catch(_){}
+  showToast('😍 Süper Mutluluk Paketi herkese dağıtıldı!');
+  godDashboard();
+}
 
 /* 🗳️ CREATOR ANKET KONTROLÜ */
 async function godCreatePoll(question, options){
@@ -10340,6 +10400,22 @@ function showAdminPanel(tab) {
         <button onclick="godMsgBoost(50,3)" style="background:rgba(14,165,233,.12);border:1px solid rgba(14,165,233,.4);color:#7dd3fc;padding:8px 12px;border-radius:9px;cursor:pointer;font-size:12px">50 mesaj · 3sa</button>
         <button onclick="godMsgBoost(100,6)" style="background:rgba(14,165,233,.12);border:1px solid rgba(14,165,233,.4);color:#7dd3fc;padding:8px 12px;border-radius:9px;cursor:pointer;font-size:12px">100 mesaj · 6sa</button>
         <button onclick="godMsgBoost(500,24)" style="background:rgba(14,165,233,.12);border:1px solid rgba(14,165,233,.4);color:#7dd3fc;padding:8px 12px;border-radius:9px;cursor:pointer;font-size:12px">500 mesaj · 24sa</button>
+      </div>
+    </div>
+    <div style="background:linear-gradient(135deg,rgba(236,72,153,0.14),rgba(245,158,11,0.08));border:1px solid rgba(236,72,153,0.35);border-radius:14px;padding:16px">
+      <div style="font-size:14px;font-weight:900;color:#f472b6;margin-bottom:4px">😍 SÜPER MUTLULUK</div>
+      <div style="font-size:11px;color:#6b7280;margin-bottom:12px">Kullanıcıları sevince boğacak pozitif sürprizler 💕</div>
+      <button onclick="godMegaJoy()" style="width:100%;background:linear-gradient(135deg,#ec4899,#f59e0b,#8b5cf6);background-size:200% auto;animation:godShine 3s linear infinite;border:none;color:#fff;padding:14px;border-radius:12px;cursor:pointer;font-size:15px;font-weight:900;letter-spacing:1px;margin-bottom:12px;box-shadow:0 6px 24px rgba(236,72,153,.4)">😍 SÜPER MUTLULUK PAKETİ 😍</button>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <button onclick="godHeartRain()" style="background:rgba(236,72,153,.12);border:1px solid rgba(236,72,153,.4);color:#f9a8d4;padding:9px 13px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">💖 Kalp Yağmuru</button>
+        <button onclick="godLoveBomb()" style="background:rgba(236,72,153,.12);border:1px solid rgba(236,72,153,.4);color:#f9a8d4;padding:9px 13px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">💌 Sevgi Bombası</button>
+        <button onclick="godBalloons()" style="background:rgba(14,165,233,.12);border:1px solid rgba(14,165,233,.4);color:#7dd3fc;padding:9px 13px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">🎈 Balonlar</button>
+        <button onclick="godStars()" style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);color:#fde047;padding:9px 13px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">✨ Yıldız Yağmuru</button>
+        <button onclick="godParty()" style="background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.4);color:#c4b5fd;padding:9px 13px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">🥳 Parti Modu</button>
+        <button onclick="godColorParty()" style="background:linear-gradient(135deg,#ef4444,#10b981,#0ea5e9);border:none;color:#fff;padding:9px 13px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">🌈 Renk Partisi</button>
+        <button onclick="godBirthday()" style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);color:#fde047;padding:9px 13px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">🎂 Doğum Günü</button>
+        <button onclick="godStarOfDay()" style="background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.4);color:#6ee7b7;padding:9px 13px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">🏅 Günün Yıldızı</button>
+        <button onclick="godCommunityThanks()" style="background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.4);color:#c4b5fd;padding:9px 13px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700">🙌 Topluluk Teşekkürü</button>
       </div>
     </div>
     <div style="background:rgba(13,16,24,0.9);border:1px solid rgba(124,58,237,0.3);border-radius:14px;padding:16px">
