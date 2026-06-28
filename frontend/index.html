@@ -7725,6 +7725,57 @@ async function _pollReactionStream(){
 setTimeout(_pollReactionStream, 4000);
 setInterval(_pollReactionStream, 4500);
 
+/* 💬 CANLI DUVAR — kullanıcıların ortak mesaj akışı */
+window._wallOpen = false; window._wallIv = null;
+function _initWallButton(){
+  if (document.getElementById('wall-btn')) return;
+  var b = document.createElement('button');
+  b.id = 'wall-btn';
+  b.title = 'Canlı Duvar';
+  b.textContent = '💬';
+  b.style.cssText = 'position:fixed;bottom:84px;left:14px;z-index:99970;width:46px;height:46px;border-radius:50%;border:1px solid rgba(124,58,237,.4);background:rgba(13,16,24,.85);backdrop-filter:blur(8px);color:#fff;font-size:20px;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.4);transition:transform .15s';
+  b.onmouseover=function(){b.style.transform='scale(1.1)';}; b.onmouseout=function(){b.style.transform='scale(1)';};
+  b.onclick = toggleWall;
+  document.body.appendChild(b);
+}
+function toggleWall(){
+  var p = document.getElementById('wall-panel');
+  if (p) { p.remove(); window._wallOpen=false; if(window._wallIv){clearInterval(window._wallIv);window._wallIv=null;} return; }
+  window._wallOpen = true;
+  p = document.createElement('div');
+  p.id = 'wall-panel';
+  p.style.cssText = 'position:fixed;bottom:140px;left:14px;z-index:99971;width:min(340px,90vw);height:420px;max-height:70vh;display:flex;flex-direction:column;background:linear-gradient(135deg,#161b26,#0d1020);border:1px solid rgba(124,58,237,.4);border-radius:16px;box-shadow:0 16px 48px rgba(0,0,0,.6);animation:adminSlideIn .3s cubic-bezier(0.34,1.56,0.64,1);overflow:hidden';
+  p.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid #262d3a"><div style="font-size:14px;font-weight:800;color:#c4b5fd">💬 Canlı Duvar</div><button onclick="toggleWall()" style="background:none;border:none;color:#64748b;cursor:pointer;font-size:16px">✕</button></div>'+
+    '<div id="wall-feed" style="flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px"><div style="color:#64748b;font-size:12px;text-align:center;padding:20px">Yükleniyor...</div></div>'+
+    '<div style="display:flex;gap:6px;padding:10px 12px;border-top:1px solid #262d3a"><input id="wall-input" maxlength="200" placeholder="Bir şeyler yaz..." style="flex:1;background:#0a0e14;border:1px solid #262d3a;border-radius:10px;color:#e8ecf3;padding:9px 12px;font-size:13px" onkeydown="if(event.key===\'Enter\')postWall()"><button onclick="postWall()" style="background:linear-gradient(135deg,#7c3aed,#6366f1);border:none;color:#fff;padding:9px 14px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:700">➤</button></div>';
+  document.body.appendChild(p);
+  loadWall();
+  window._wallIv = setInterval(loadWall, 5000);
+}
+function _wallName(){ try { return (CURRENT_USER && CURRENT_USER.name) ? CURRENT_USER.name : 'Misafir'; } catch(e){ return 'Misafir'; } }
+async function loadWall(){
+  var feed = document.getElementById('wall-feed'); if(!feed) return;
+  try {
+    var d = await (await fetch('/api/wall?t='+Date.now())).json();
+    var msgs = d.messages || [];
+    if (!msgs.length){ feed.innerHTML='<div style="color:#64748b;font-size:12px;text-align:center;padding:20px">Henüz mesaj yok. İlk yazan sen ol! ✍️</div>'; return; }
+    var atBottom = feed.scrollHeight - feed.scrollTop - feed.clientHeight < 60;
+    feed.innerHTML = msgs.map(function(m){
+      var t=''; try{ t=new Date(m.t).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}); }catch(e){}
+      var mine = m.name === _wallName();
+      return '<div style="align-self:'+(mine?'flex-end':'flex-start')+';max-width:85%"><div style="font-size:10px;color:#818cf8;margin-bottom:2px;'+(mine?'text-align:right':'')+'">'+_escPoll(m.name)+' · '+t+'</div><div style="background:'+(mine?'rgba(124,58,237,.25)':'rgba(255,255,255,.05)')+';border:1px solid '+(mine?'rgba(124,58,237,.4)':'rgba(255,255,255,.08)')+';border-radius:12px;padding:8px 12px;color:#e8ecf3;font-size:13px;word-break:break-word">'+_escPoll(m.text)+'</div></div>';
+    }).join('');
+    if (atBottom) feed.scrollTop = feed.scrollHeight;
+  } catch(e){ feed.innerHTML='<div style="color:#f87171;font-size:12px;text-align:center;padding:20px">Bağlantı hatası</div>'; }
+}
+async function postWall(){
+  var inp = document.getElementById('wall-input'); if(!inp) return;
+  var text = inp.value.trim(); if(!text) return;
+  inp.value = '';
+  try { await fetch('/api/wall',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:_wallName(), text:text})}); loadWall(); } catch(e){ showToast('❌ Gönderilemedi'); }
+}
+setTimeout(_initWallButton, 2600);
+
 /* 🟢 Kullanıcılara çevrimiçi rozeti */
 function _updateOnlineBadge(){
   var b = document.getElementById('online-badge');
@@ -9163,6 +9214,13 @@ async function godResetReactions(){
   var secret=await _getApiSecret(); if(!secret) return;
   try { var r=await fetch('/api/reactions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'reset',secret:secret})}); var d=await r.json(); if(d.ok){ showToast('🧹 Tepkiler sıfırlandı'); godReactions(); } else showToast('❌ '+(d.error||'Hata')); } catch(e){ showToast('❌ Hata'); }
 }
+// 💬 Duvar moderasyonu
+async function godClearWall(){
+  if(!confirm('Canlı Duvar\'daki tüm mesajlar silinsin mi?')) return;
+  var secret=await _getApiSecret(); if(!secret) return;
+  try { var r=await fetch('/api/wall',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'clear',secret:secret})}); var d=await r.json(); if(d.ok){ showToast('🧹 Duvar temizlendi'); try{loadWall();}catch(e){} } else showToast('❌ '+(d.error||'Hata')); } catch(e){ showToast('❌ Hata'); }
+}
+function godOpenWall(){ try { if(!document.getElementById('wall-panel')) toggleWall(); } catch(e){} }
 
 /* 🗳️ CREATOR ANKET KONTROLÜ */
 async function godCreatePoll(question, options){
@@ -10311,6 +10369,10 @@ function showAdminPanel(tab) {
         </div>
       </div>
       <div id="god-reactions" style="display:none"></div>
+      <div style="display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06)">
+        <button onclick="godOpenWall()" style="flex:1;background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.4);color:#c4b5fd;padding:8px;border-radius:9px;cursor:pointer;font-size:12px;font-weight:700">💬 Canlı Duvarı Aç</button>
+        <button onclick="godClearWall()" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);color:#fca5a5;padding:8px 14px;border-radius:9px;cursor:pointer;font-size:12px">🧹 Duvarı Temizle</button>
+      </div>
     </div>
     <div style="background:rgba(13,16,24,0.9);border:1px solid rgba(239,68,68,0.2);border-radius:14px;padding:16px">
       <div style="font-size:13px;font-weight:800;color:#f87171;margin-bottom:10px">👤 HIZLI KULLANICI YÖNETİMİ</div>
