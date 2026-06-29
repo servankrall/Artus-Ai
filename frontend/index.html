@@ -6122,7 +6122,12 @@ Sen bu uygulamanın yaratıcısının özel, sınırsız AI asistanısın.
 - Gerektiğinde Türkçe veya İngilizce
 - Açıklama istenmemişse sadece kodu ver`;
 
-function buildSystemPrompt() {
+// Mod promptunu HER ZAMAN öne ekle (gecikme/sarmalayıcı yok, sonradan açılan modlar da anında uygulanır)
+function buildSystemPrompt(mode) {
+  var _mp=''; try{ _mp=localStorage.getItem('artus_mode_prompt')||''; }catch(e){}
+  return (_mp ? _mp + '\n\n' : '') + _coreBuildSystemPrompt(mode);
+}
+function _coreBuildSystemPrompt() {
   // Creator modu: özel sistem promptu kullan
   if (_creatorMode) {
     let extra = '\n\n## Ekstra Yetenekler\n- Grafik: ```chart (Chart.js JSON)\n- Diyagram: ```mermaid\n- Matematik: $...$ LaTeX\n- Python çalıştırma, HTML önizleme mevcut';
@@ -7053,20 +7058,9 @@ function applyActiveModes() {
   try { _applyExtraVisualModes(); } catch(_) {}
 }
 
-// Inject mode prompt into system prompts
-var _origBuildSysPrompt = null;
+// Mod promptu artık buildSystemPrompt içine gömülü — sarmalayıcıya gerek yok
 document.addEventListener('DOMContentLoaded', function() {
   initWelcomeParticles();
-  setTimeout(function() {
-    var modePrompt = localStorage.getItem('artus_mode_prompt') || '';
-    if (modePrompt && typeof buildSystemPrompt === 'function') {
-      var orig = buildSystemPrompt;
-      window.buildSystemPrompt = function(mode) {
-        var mp = localStorage.getItem('artus_mode_prompt') || '';
-        return (mp ? mp + '\n\n' : '') + orig(mode);
-      };
-    }
-  }, 1000);
 });
 
 // Sahte uyarı fonksiyonları — tıklama ile KAPANMAZ, sadece buton veya süre
