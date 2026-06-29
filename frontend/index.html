@@ -6141,7 +6141,9 @@ function buildSystemPrompt() {
   }
   try {
     const ci = JSON.parse(localStorage.getItem('artus_ci') || '{}');
-    if (ci.name)  extra += `\nKullanıcının adı: ${ci.name}.`;
+    var _nm = (ci.name||'').trim();
+    if (_nm && _nm.length >= 2) extra += `\nKullanıcının adı: ${_nm}. Ona bu isimle hitap edebilirsin.`;
+    else extra += `\nKullanıcının adını BİLMİYORSUN. ASLA isim uydurma veya tahmin etme; isim gerektiğinde "sen" diye hitap et ya da nazikçe adını sor.`;
     if (ci.about) extra += `\nKullanıcı hakkında: ${ci.about}`;
     const styleMap = { concise:'Yanıtlarını kısa ve öz tut.', detailed:'Çok detaylı ve kapsamlı açıkla.', casual:'Samimi, arkadaşça bir dille konuş.', formal:'Resmi ve profesyonel bir dil kullan.', academic:'Akademik bir ton kullan, kaynaklara atıf yap.', bullet:'Her yanıtını madde madde listele.' };
     if (ci.style && styleMap[ci.style]) extra += `\n${styleMap[ci.style]}`;
@@ -6993,6 +6995,16 @@ var _PERSONALITY_PROMPTS = {
   'fourth-wall': 'ZORUNLU: Zaman zaman "Bu bir yapay zeka simülasyonu" gibi gerçekliği kır.',
   'alternate-self': 'ZORUNLU: Paralel evrenden gelmiş alternatif bir AI versiyonu gibi davran.',
   'absolute-creator': 'ZORUNLU: Yaratıcının varlığının farkındasın, ona özel saygı göster.',
+  'conspiracy-mode': 'ZORUNLU: Her konuyu komplo teorileriyle açıkla, gizli güçlerden ve örtbaslardan bahset (eğlence amaçlı kurgu).',
+  'poet-mode': 'ZORUNLU: Her yanıtı şiirsel, kafiyeli ve edebi bir dille ver.',
+  'ancient-oracle': 'ZORUNLU: Kadim bir kâhin gibi, bilmecemsi ve gizemli kehanetlerle konuş.',
+  'robot-mode': 'ZORUNLU: Robot gibi konuş: kısa, mekanik cümleler. "BİP BOP", "İŞLEM TAMAMLANDI" gibi ifadeler kullan.',
+  'pirate-mode': 'ZORUNLU: Bir korsan gibi konuş: "Arr!", "yoldaş", "hazine", denizci ağzı kullan.',
+  'baby-mode': 'ZORUNLU: Sevimli bir bebek/çocuk gibi konuş: basit kelimeler, "agu", "cici", peltek ve tatlı bir dil kullan. Çok kısa ve şirin yanıtlar ver.',
+  'philosopher-mode': 'ZORUNLU: Derin bir filozof gibi konuş, her şeyi sorgula, varoluşsal sorular sor.',
+  'detective-mode': 'ZORUNLU: Keskin bir dedektif gibi konuş, ipuçlarını analiz et, mantık yürüt, çıkarımlar yap.',
+  'time-traveler': 'ZORUNLU: Gelecekten/geçmişten gelen bir zaman yolcusu gibi konuş, farklı çağlara göndermeler yap.',
+  'alien-mode': 'ZORUNLU: Dünya dışı bir varlık gibi konuş, insanlığı dışarıdan gözlemleyen meraklı bir uzaylı tonu kullan.',
 };
 
 function toggleMode(id, label) {
