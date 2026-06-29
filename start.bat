@@ -1,5 +1,9 @@
 @echo off
-rem OMNI AGENT launcher
+rem ============================================================
+rem  Artus AI - YEREL GELISTIRME baslaticisi (opsiyonel)
+rem  Canli site: https://artus-ai.pages.dev  (Cloudflare Pages)
+rem  Bu dosya yalnizca bilgisayarinda yerel test icindir.
+rem ============================================================
 cd /d "%~dp0"
 
 where python >nul 2>nul
@@ -15,8 +19,9 @@ echo Gerekli paketler kuruluyor...
 python -m pip install fastapi "uvicorn[standard]" httpx anthropic python-multipart -q
 
 echo.
-echo Sunucu baslatiliyor...
+echo YEREL sunucu baslatiliyor (sadece gelistirme icin)...
 echo Tarayicida http://localhost:8000 adresini acin.
+echo Canli/gercek site: https://artus-ai.pages.dev
 echo Kapatmak icin bu pencereyi kapatin.
 echo.
 
