@@ -1846,7 +1846,7 @@ body::before {
     <div class="sb-header">
       <div class="sb-logo">⚡</div>
       <span class="sb-brand">Omni.Ai</span>
-      <button class="sb-collapse" onclick="toggleSidebar()" title="Paneli kapat">⇤</button>
+      <button class="sb-collapse" onclick="toggleSidebar()" title="Paneli kapat" aria-label="Paneli kapat">⇤</button>
     </div>
 
     <button class="sb-newchat" onclick="startNewChat()">＋ Yeni Sohbet</button>
@@ -1859,12 +1859,12 @@ body::before {
 
     <div class="sb-footer">
       <div class="sb-modes">
-        <button class="mode-btn active" data-mode="chat" onclick="setMode('chat')" title="Chat (Ctrl+1)">💬</button>
-        <button class="mode-btn" data-mode="code" onclick="handleModeClick('code')" title="Omni Code — PRO (Ctrl+2)">⚡<span class="pro-lock" id="code-lock">🔒</span></button>
-        <button class="mode-btn" data-mode="design" onclick="handleModeClick('design')" title="Omni Design — PRO (Ctrl+3)">🎨<span class="pro-lock" id="design-lock">🔒</span></button>
-        <button class="mode-btn" data-mode="story" onclick="setMode('story')" title="Hikaye Modu (Ctrl+4)">📖</button>
-        <button class="mode-btn" onclick="toggleSettings()" title="Ayarlar">⚙️</button>
-        <button class="mode-btn" id="btn-creator-mode" onclick="activateCreatorMode()" title="Creator Modu">⚡</button>
+        <button class="mode-btn active" data-mode="chat" onclick="setMode('chat')" title="Chat (Ctrl+1)" aria-label="Chat (Ctrl+1)">💬</button>
+        <button class="mode-btn" data-mode="code" onclick="handleModeClick('code')" title="Omni Code — PRO (Ctrl+2)" aria-label="Omni Code — PRO (Ctrl+2)">⚡<span class="pro-lock" id="code-lock">🔒</span></button>
+        <button class="mode-btn" data-mode="design" onclick="handleModeClick('design')" title="Omni Design — PRO (Ctrl+3)" aria-label="Omni Design — PRO (Ctrl+3)">🎨<span class="pro-lock" id="design-lock">🔒</span></button>
+        <button class="mode-btn" data-mode="story" onclick="setMode('story')" title="Hikaye Modu (Ctrl+4)" aria-label="Hikaye Modu (Ctrl+4)">📖</button>
+        <button class="mode-btn" onclick="toggleSettings()" title="Ayarlar" aria-label="Ayarlar">⚙️</button>
+        <button class="mode-btn" id="btn-creator-mode" onclick="activateCreatorMode()" title="Creator Modu" aria-label="Creator Modu">⚡</button>
       </div>
 
       <div class="sb-footer-row">
@@ -1903,7 +1903,7 @@ body::before {
 
     <!-- Top Bar -->
     <div id="topbar">
-      <button class="topbar-icon-btn" id="btn-hamburger" onclick="toggleSidebar()" title="Paneli aç/kapat" style="font-size:16px">☰</button>
+      <button class="topbar-icon-btn" id="btn-hamburger" onclick="toggleSidebar()" title="Paneli aç/kapat" aria-label="Paneli aç/kapat" style="font-size:16px">☰</button>
       <span id="convo-title" title="">Yeni Sohbet</span>
       <span class="badge-mode-chip" id="mode-label" onclick="cycleMode()" title="Mod değiştir">Chat</span>
 
@@ -1912,14 +1912,14 @@ body::before {
         <span class="badge badge-free" id="tier-badge" onclick="openProModal()">ÜCRETSİZ</span>
 
         <!-- Install PWA -->
-        <button class="topbar-icon-btn" id="btn-install" onclick="installApp()" title="Uygulamayı yükle" style="display:none;border-color:var(--accent);color:var(--accent)">⬇ Yükle</button>
+        <button class="topbar-icon-btn" id="btn-install" onclick="installApp()" title="Uygulamayı yükle" aria-label="Uygulamayı yükle" style="display:none;border-color:var(--accent);color:var(--accent)">⬇ Yükle</button>
 
         <!-- Search -->
-        <button class="topbar-icon-btn" onclick="toggleSearch()" title="Ara (Ctrl+F)">🔍</button>
+        <button class="topbar-icon-btn" onclick="toggleSearch()" title="Ara (Ctrl+F)" aria-label="Ara (Ctrl+F)">🔍</button>
 
         <!-- Tools dropdown -->
         <div style="position:relative">
-          <button class="topbar-icon-btn" id="btn-tools" onclick="toggleToolsMenu(event)" title="Araçlar">⋯</button>
+          <button class="topbar-icon-btn" id="btn-tools" onclick="toggleToolsMenu(event)" title="Araçlar" aria-label="Araçlar">⋯</button>
           <div id="tools-dropdown" style="display:none;position:absolute;right:0;top:calc(100%+6px);background:var(--surface);border:1px solid var(--border);border-radius:10px;min-width:210px;z-index:300;overflow-y:auto;max-height:70vh;box-shadow:0 8px 28px rgba(0,0,0,.5);">
             <div class="exp-item" onclick="forceUpdate();toggleToolsMenu()">🔄 Zorunlu Yenile (Önbellek Temizle)</div>
             <div class="exp-item" onclick="openUpdateLog();toggleToolsMenu()">📋 Sürüm Güncellemeleri</div>
@@ -1951,7 +1951,7 @@ body::before {
         <div id="export-dropdown" style="display:none;position:absolute;"></div>
 
         <!-- Theme toggle -->
-        <button id="btn-theme-toggle" onclick="toggleTheme()" title="Tema değiştir">🌙</button>
+        <button id="btn-theme-toggle" onclick="toggleTheme()" title="Tema değiştir" aria-label="Tema değiştir">🌙</button>
 
         <!-- User avatar + dropdown -->
         <div class="user-dropdown-wrap">
@@ -1963,7 +1963,7 @@ body::before {
                 <div class="ud-name" id="ud-name">—</div>
                 <div class="ud-email" id="ud-email">—</div>
               </div>
-              <button class="msg-act-btn" onclick="document.getElementById('pfp-input').click()" title="Fotoğraf yükle">📷</button>
+              <button class="msg-act-btn" onclick="document.getElementById('pfp-input').click()" title="Fotoğraf yükle" aria-label="Fotoğraf yükle">📷</button>
             </div>
             <button class="ud-item" onclick="openProModal(); closeUserDropdown();">⚡ Pro'ya Yükselt</button>
             <button class="ud-item" onclick="toggleSettings(); closeUserDropdown();">⚙️ Ayarlar</button>
@@ -2015,18 +2015,18 @@ body::before {
         <!-- Slash command menu -->
         <div id="slash-menu"></div>
         <div class="input-wrap">
-          <button class="input-side-btn" id="btn-attach" title="Dosya ekle — PDF, Word, Excel, CSV, JSON, ses, ZIP, kod, görsel ve daha fazlası" onclick="triggerFileAttach()">＋</button>
-          <button class="input-side-btn" id="btn-web" title="Web arama modu" onclick="toggleWebSearch()">🌐</button>
-          <button class="input-side-btn" id="btn-deep-research" title="Derin Araştırma modu (Pro+ özelliği)" onclick="toggleDeepResearch()">🔬</button>
-          <button class="input-side-btn" id="btn-url" title="URL özetle — URL yapıştır ve özetle" onclick="triggerUrlSummarize()">🔗</button>
-          <button class="input-side-btn" id="btn-img-gen" title="Görsel üret (Pro+ özelliği)" onclick="toggleImgGenMode()">🎨</button>
-          <button class="input-side-btn" id="btn-enhance" title="Promptu geliştir (✨)" onclick="enhancePrompt()">✨</button>
+          <button class="input-side-btn" id="btn-attach" title="Dosya ekle — PDF, Word, Excel, CSV, JSON, ses, ZIP, kod, görsel ve daha fazlası" aria-label="Dosya ekle — PDF, Word, Excel, CSV, JSON, ses, ZIP, kod, görsel ve daha fazlası" onclick="triggerFileAttach()">＋</button>
+          <button class="input-side-btn" id="btn-web" title="Web arama modu" aria-label="Web arama modu" onclick="toggleWebSearch()">🌐</button>
+          <button class="input-side-btn" id="btn-deep-research" title="Derin Araştırma modu (Pro+ özelliği)" aria-label="Derin Araştırma modu (Pro+ özelliği)" onclick="toggleDeepResearch()">🔬</button>
+          <button class="input-side-btn" id="btn-url" title="URL özetle — URL yapıştır ve özetle" aria-label="URL özetle — URL yapıştır ve özetle" onclick="triggerUrlSummarize()">🔗</button>
+          <button class="input-side-btn" id="btn-img-gen" title="Görsel üret (Pro+ özelliği)" aria-label="Görsel üret (Pro+ özelliği)" onclick="toggleImgGenMode()">🎨</button>
+          <button class="input-side-btn" id="btn-enhance" title="Promptu geliştir (✨)" aria-label="Promptu geliştir (✨)" onclick="enhancePrompt()">✨</button>
           <textarea id="user-input" rows="1" placeholder="Mesajınızı yazın… ( / komutlar · URL yapıştır · Enter gönder )"></textarea>
-          <button class="input-side-btn" id="btn-mic" onclick="toggleMic()" title="Sesle yaz (Ctrl+M)">🎤</button>
-          <button class="input-side-btn" id="btn-voice" onclick="startVoiceMode()" title="Sesli konuşma modu (Pro+ özelliği)">🎙️</button>
+          <button class="input-side-btn" id="btn-mic" onclick="toggleMic()" title="Sesle yaz (Ctrl+M)" aria-label="Sesle yaz (Ctrl+M)">🎤</button>
+          <button class="input-side-btn" id="btn-voice" onclick="startVoiceMode()" title="Sesli konuşma modu (Pro+ özelliği)" aria-label="Sesli konuşma modu (Pro+ özelliği)">🎙️</button>
         </div>
-        <button id="btn-send" onclick="sendMessage()" title="Gönder (Enter)" disabled>➤</button>
-        <button id="btn-stop" onclick="stopGeneration()" title="Durdur" style="display:none;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:var(--red);width:44px;height:44px;border-radius:14px;cursor:pointer;font-size:16px;display:none;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s;">⏹</button>
+        <button id="btn-send" onclick="sendMessage()" title="Gönder (Enter)" aria-label="Gönder (Enter)" disabled>➤</button>
+        <button id="btn-stop" onclick="stopGeneration()" title="Durdur" aria-label="Durdur" style="display:none;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:var(--red);width:44px;height:44px;border-radius:14px;cursor:pointer;font-size:16px;display:none;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s;">⏹</button>
       </div>
       <!-- Context usage bar -->
       <div id="usage-bar-wrap" style="height:3px;background:var(--border);border-radius:2px;margin:4px 0 2px;overflow:hidden;">
@@ -2288,7 +2288,7 @@ body::before {
 </div><!-- /settings-panel -->
 
 <!-- Toast -->
-<div id="toast"></div>
+<div id="toast" role="status" aria-live="polite"></div>
 
 <!-- Voice Conversation Overlay -->
 <div id="voice-overlay">
@@ -3174,9 +3174,9 @@ function renderConvoList() {
       <div class="sb-convo${active}" onclick="openConvo('${h.id}')" title="${preview}">
         <span class="sb-convo-icon">${h.pinned ? '📌' : '💬'}</span>
         <span class="sb-convo-title" style="flex:1;min-width:0">${escapeHtml(h.title || 'Sohbet')}<br><span style="font-size:10px;color:var(--muted);font-weight:400">${timeAgo} · ${(h.messages||[]).length} msg</span></span>
-        <button class="sb-convo-del" title="Sabitle" onclick="event.stopPropagation();pinConvo('${h.id}')">${h.pinned ? '📍' : '📌'}</button>
-        <button class="sb-convo-del" title="Yeniden adlandır" onclick="event.stopPropagation();renameConvo('${h.id}')">✎</button>
-        <button class="sb-convo-del" title="Sil" onclick="event.stopPropagation();deleteConvo('${h.id}')">×</button>
+        <button class="sb-convo-del" title="Sabitle" aria-label="Sabitle" onclick="event.stopPropagation();pinConvo('${h.id}')">${h.pinned ? '📍' : '📌'}</button>
+        <button class="sb-convo-del" title="Yeniden adlandır" aria-label="Yeniden adlandır" onclick="event.stopPropagation();renameConvo('${h.id}')">✎</button>
+        <button class="sb-convo-del" title="Sil" aria-label="Sil" onclick="event.stopPropagation();deleteConvo('${h.id}')">×</button>
       </div>`;
   };
 
@@ -4155,10 +4155,10 @@ function renderAttachChips() {
         <img class="chip-thumb" src="${f.dataUrl}" alt="${escapeHtml(f.name)}" />
         <div style="display:flex;align-items:center;gap:5px;margin-top:4px;">
           🖼 ${escapeHtml(f.name)}
-          <button class="attach-chip-remove" title="Kaldır" onclick="removeAttach(${idx})">×</button>
+          <button class="attach-chip-remove" title="Kaldır" aria-label="Kaldır" onclick="removeAttach(${idx})">×</button>
         </div>`;
     } else {
-      chip.innerHTML = `📎 ${escapeHtml(f.name)} <button class="attach-chip-remove" title="Kaldır" onclick="removeAttach(${idx})">×</button>`;
+      chip.innerHTML = `📎 ${escapeHtml(f.name)} <button class="attach-chip-remove" title="Kaldır" aria-label="Kaldır" onclick="removeAttach(${idx})">×</button>`;
     }
     attachChips.appendChild(chip);
   });
@@ -5077,12 +5077,12 @@ function finalizeBotMessage(bubble, rawText) {
     <button class="msg-act-btn act-copy" onclick="copyRawFromMsg(this)">📋 Kopyala</button>
     <button class="msg-act-btn act-speak" onclick="speakMsg(this)">🔊 Seslendir</button>
     <button class="msg-act-btn" onclick="regenerateLast()">🔄 Yenile</button>
-    <button class="msg-act-btn" onclick="regenWithModel(this)" title="Başka modelle yenile">🔀</button>
-    <button class="msg-act-btn" onclick="translateMsg(this)" title="Çevir">🌍</button>
-    <button class="msg-act-btn" onclick="continueMsg(this)" title="Devam et">↪️</button>
-    <button class="msg-act-btn act-bm" onclick="toggleBookmark(this)" title="Yer imi">⭐</button>
-    <button class="msg-act-btn act-fb" onclick="rateMsg(this,'up')" title="İyi yanıt">👍</button>
-    <button class="msg-act-btn act-fb" onclick="rateMsg(this,'down')" title="Kötü yanıt">👎</button>`;
+    <button class="msg-act-btn" onclick="regenWithModel(this)" title="Başka modelle yenile" aria-label="Başka modelle yenile">🔀</button>
+    <button class="msg-act-btn" onclick="translateMsg(this)" title="Çevir" aria-label="Çevir">🌍</button>
+    <button class="msg-act-btn" onclick="continueMsg(this)" title="Devam et" aria-label="Devam et">↪️</button>
+    <button class="msg-act-btn act-bm" onclick="toggleBookmark(this)" title="Yer imi" aria-label="Yer imi">⭐</button>
+    <button class="msg-act-btn act-fb" onclick="rateMsg(this,'up')" title="İyi yanıt" aria-label="İyi yanıt">👍</button>
+    <button class="msg-act-btn act-fb" onclick="rateMsg(this,'down')" title="Kötü yanıt" aria-label="Kötü yanıt">👎</button>`;
   bar.querySelectorAll('.msg-act-btn').forEach(b => b.dataset.raw = rawText);
   // mark bookmarked state
   if (getBookmarks().some(b => b.text === rawText)) bar.querySelector('.act-bm')?.classList.add('bookmarked');
@@ -5888,7 +5888,7 @@ function generateImage(prompt) {
     bar.innerHTML = `
       <span style="flex:1;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(prompt)}</span>
       <button class="btn-copy" onclick="downloadGenImg('${url}','${encodeURIComponent(prompt)}')">⬇ İndir</button>
-      <button class="btn-copy" onclick="openGallery()" title="Galeriyi aç">🖼</button>
+      <button class="btn-copy" onclick="openGallery()" title="Galeriyi aç" aria-label="Galeriyi aç">🖼</button>
       <button class="btn-copy" onclick="generateImage('${prompt.replace(/'/g,"\\'")}')">🔄 Yeniden</button>`;
     wrap.appendChild(bar);
     bubble.appendChild(wrap);
@@ -5931,8 +5931,8 @@ function renderGallery() {
       <img src="${item.url}" alt="${escapeHtml(item.prompt)}" loading="lazy" onclick="window.open('${item.url}','_blank')">
       <div class="gallery-item-bar">
         <span class="gallery-item-prompt" title="${escapeHtml(item.prompt)}">${escapeHtml(item.prompt)}</span>
-        <button class="gallery-del-btn" onclick="deleteGalleryItem(${item.id})" title="Sil">🗑</button>
-        <button class="gallery-del-btn" onclick="downloadGenImg('${item.url}','${encodeURIComponent(item.prompt.slice(0,40))}')" title="İndir">⬇</button>
+        <button class="gallery-del-btn" onclick="deleteGalleryItem(${item.id})" title="Sil" aria-label="Sil">🗑</button>
+        <button class="gallery-del-btn" onclick="downloadGenImg('${item.url}','${encodeURIComponent(item.prompt.slice(0,40))}')" title="İndir" aria-label="İndir">⬇</button>
       </div>
     </div>`).join('');
 }
@@ -9571,7 +9571,7 @@ function magicRun(i){
 }
 function _renderMagicGrid(){
   return _magicTools.map(function(p,i){
-    return '<button onclick="magicRun('+i+')" title="'+p.l+'" style="display:flex;flex-direction:column;align-items:center;gap:5px;background:rgba(13,16,24,0.7);border:1px solid '+p.c+'55;border-radius:12px;padding:11px 6px;cursor:pointer;transition:all .18s" onmouseover="this.style.transform=\'translateY(-3px)\';this.style.borderColor=\''+p.c+'\';this.style.boxShadow=\'0 6px 18px '+p.c+'44\'" onmouseout="this.style.transform=\'none\';this.style.borderColor=\''+p.c+'55\';this.style.boxShadow=\'none\'"><span style="font-size:22px">'+p.e+'</span><span style="font-size:10px;font-weight:600;color:#cbd5e1;text-align:center;line-height:1.2">'+p.l+'</span></button>';
+    return '<button onclick="magicRun('+i+')" title="'+p.l+'" aria-label="'+p.l+'" style="display:flex;flex-direction:column;align-items:center;gap:5px;background:rgba(13,16,24,0.7);border:1px solid '+p.c+'55;border-radius:12px;padding:11px 6px;cursor:pointer;transition:all .18s" onmouseover="this.style.transform=\'translateY(-3px)\';this.style.borderColor=\''+p.c+'\';this.style.boxShadow=\'0 6px 18px '+p.c+'44\'" onmouseout="this.style.transform=\'none\';this.style.borderColor=\''+p.c+'55\';this.style.boxShadow=\'none\'"><span style="font-size:22px">'+p.e+'</span><span style="font-size:10px;font-weight:600;color:#cbd5e1;text-align:center;line-height:1.2">'+p.l+'</span></button>';
   }).join('');
 }
 /* ── 🎮 OYUNLAR ── */
@@ -9768,7 +9768,7 @@ var _aiTools = [
 ];
 function _renderAiGrid(){
   return _aiTools.map(function(t,i){
-    return '<button class="ai-tool-btn" onclick="aiTool('+i+')" title="'+t.l+'" style="display:flex;align-items:center;gap:7px;background:rgba(13,16,24,0.7);border:1px solid '+t.c+'55;border-radius:10px;padding:9px 12px;cursor:pointer;font-size:12px;color:#cbd5e1;font-weight:600;transition:all .15s" onmouseover="this.style.borderColor=\''+t.c+'\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.borderColor=\''+t.c+'55\';this.style.transform=\'none\'"><span style="font-size:16px">'+t.e+'</span>'+t.l+'</button>';
+    return '<button class="ai-tool-btn" onclick="aiTool('+i+')" title="'+t.l+'" aria-label="'+t.l+'" style="display:flex;align-items:center;gap:7px;background:rgba(13,16,24,0.7);border:1px solid '+t.c+'55;border-radius:10px;padding:9px 12px;cursor:pointer;font-size:12px;color:#cbd5e1;font-weight:600;transition:all .15s" onmouseover="this.style.borderColor=\''+t.c+'\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.borderColor=\''+t.c+'55\';this.style.transform=\'none\'"><span style="font-size:16px">'+t.e+'</span>'+t.l+'</button>';
   }).join('');
 }
 function aiTool(i){
@@ -9788,9 +9788,12 @@ async function aiCompare(){
   wrap.style.display='grid';
   wrap.innerHTML='<div style="background:#0a0e14;border:1px solid #1c2128;border-radius:10px;padding:12px;min-width:0"><div style="font-size:11px;font-weight:700;color:#818cf8;margin-bottom:8px;word-break:break-all">🅰️ '+_escPoll(mA)+'</div><div id="ai-cmp-a" style="font-size:12px;color:#e8ecf3;white-space:pre-wrap;line-height:1.5;max-height:320px;overflow:auto">⏳</div></div>'+
     '<div style="background:#0a0e14;border:1px solid #1c2128;border-radius:10px;padding:12px;min-width:0"><div style="font-size:11px;font-weight:700;color:#34d399;margin-bottom:8px;word-break:break-all">🅱️ '+_escPoll(mB)+'</div><div id="ai-cmp-b" style="font-size:12px;color:#e8ecf3;white-space:pre-wrap;line-height:1.5;max-height:320px;overflow:auto">⏳</div></div>';
-  _aiBusy=true; _setAiBusyUI(true);
-  var run=async function(model,elId){ var el=document.getElementById(elId); var t=''; try{ await OmniAI.streamChat({messages:[{role:'user',content:input}],model:model,systemPrompt:'Yardımcı bir asistansın. Türkçe, net ve kısa cevap ver.',temperature:0.6,maxTokens:700,topP:0.95,onText:function(c){t+=c; if(el)el.textContent=t;}}); if(el&&!t)el.textContent='(boş)'; }catch(e){ if(el)el.textContent='Hata: '+e.message; } };
+  _aiBusy=true; _aiStop=false; _setAiBusyUI(true);
+  _aiAbort = (typeof AbortController!=='undefined') ? new AbortController() : null;
+  var sig = _aiAbort ? _aiAbort.signal : undefined;
+  var run=async function(model,elId){ var el=document.getElementById(elId); var t=''; try{ await OmniAI.streamChat({messages:[{role:'user',content:input}],model:model,systemPrompt:'Yardımcı bir asistansın. Türkçe, net ve kısa cevap ver.',temperature:0.6,maxTokens:700,topP:0.95,signal:sig,onText:function(c){t+=c; if(el)el.textContent=t;}}); if(el&&!t)el.textContent='(boş)'; }catch(e){ if(el)el.textContent=(e&&e.name==='AbortError')?'⏹ durduruldu':('Hata: '+(e&&e.message||e)); } };
   try { await Promise.all([run(mA,'ai-cmp-a'), run(mB,'ai-cmp-b')]); } catch(e){}
+  _aiAbort=null;
   _aiBusy=false; _setAiBusyUI(false);
 }
 
@@ -9807,7 +9810,7 @@ var _contentTools = [
 ];
 function _renderContentGrid(){
   return _contentTools.map(function(t,i){
-    return '<button class="ai-tool-btn" onclick="contentTool('+i+')" title="'+t.l+'" style="display:flex;align-items:center;gap:7px;background:rgba(13,16,24,0.7);border:1px solid '+t.c+'55;border-radius:10px;padding:9px 12px;cursor:pointer;font-size:12px;color:#cbd5e1;font-weight:600;transition:all .15s" onmouseover="this.style.borderColor=\''+t.c+'\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.borderColor=\''+t.c+'55\';this.style.transform=\'none\'"><span style="font-size:16px">'+t.e+'</span>'+t.l+'</button>';
+    return '<button class="ai-tool-btn" onclick="contentTool('+i+')" title="'+t.l+'" aria-label="'+t.l+'" style="display:flex;align-items:center;gap:7px;background:rgba(13,16,24,0.7);border:1px solid '+t.c+'55;border-radius:10px;padding:9px 12px;cursor:pointer;font-size:12px;color:#cbd5e1;font-weight:600;transition:all .15s" onmouseover="this.style.borderColor=\''+t.c+'\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.borderColor=\''+t.c+'55\';this.style.transform=\'none\'"><span style="font-size:16px">'+t.e+'</span>'+t.l+'</button>';
   }).join('');
 }
 function contentTool(i){ var t=_contentTools[i]; if(!t)return; _aiStream(t.sys, (document.getElementById('content-input')||{}).value||'', 'content-output', {temp:0.85, max:1500}); }
@@ -9822,7 +9825,7 @@ var _promptTools = [
 ];
 function _renderPromptGrid(){
   return _promptTools.map(function(t,i){
-    return '<button class="ai-tool-btn" onclick="promptTool('+i+')" title="'+t.l+'" style="display:flex;align-items:center;gap:7px;background:rgba(13,16,24,0.7);border:1px solid '+t.c+'55;border-radius:10px;padding:9px 12px;cursor:pointer;font-size:12px;color:#cbd5e1;font-weight:600;transition:all .15s" onmouseover="this.style.borderColor=\''+t.c+'\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.borderColor=\''+t.c+'55\';this.style.transform=\'none\'"><span style="font-size:16px">'+t.e+'</span>'+t.l+'</button>';
+    return '<button class="ai-tool-btn" onclick="promptTool('+i+')" title="'+t.l+'" aria-label="'+t.l+'" style="display:flex;align-items:center;gap:7px;background:rgba(13,16,24,0.7);border:1px solid '+t.c+'55;border-radius:10px;padding:9px 12px;cursor:pointer;font-size:12px;color:#cbd5e1;font-weight:600;transition:all .15s" onmouseover="this.style.borderColor=\''+t.c+'\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.borderColor=\''+t.c+'55\';this.style.transform=\'none\'"><span style="font-size:16px">'+t.e+'</span>'+t.l+'</button>';
   }).join('');
 }
 function promptTool(i){ var t=_promptTools[i]; if(!t)return; _aiStream(t.sys, (document.getElementById('prompt-input')||{}).value||'', 'prompt-output', {temp:0.7, max:1200}); }
@@ -9834,7 +9837,7 @@ function promptUseAsSystem(){
 
 function _renderGodGrid(){
   return _godPowers.map(function(p,i){
-    return '<button onclick="godPower('+i+')" title="'+p.l+'" style="display:flex;flex-direction:column;align-items:center;gap:5px;background:rgba(13,16,24,0.7);border:1px solid '+p.c+'55;border-radius:12px;padding:11px 6px;cursor:pointer;transition:all .18s" onmouseover="this.style.transform=\'translateY(-3px)\';this.style.borderColor=\''+p.c+'\';this.style.boxShadow=\'0 6px 18px '+p.c+'44\'" onmouseout="this.style.transform=\'none\';this.style.borderColor=\''+p.c+'55\';this.style.boxShadow=\'none\'"><span style="font-size:22px">'+p.e+'</span><span style="font-size:10px;font-weight:600;color:#cbd5e1;text-align:center;line-height:1.2">'+p.l+'</span></button>';
+    return '<button onclick="godPower('+i+')" title="'+p.l+'" aria-label="'+p.l+'" style="display:flex;flex-direction:column;align-items:center;gap:5px;background:rgba(13,16,24,0.7);border:1px solid '+p.c+'55;border-radius:12px;padding:11px 6px;cursor:pointer;transition:all .18s" onmouseover="this.style.transform=\'translateY(-3px)\';this.style.borderColor=\''+p.c+'\';this.style.boxShadow=\'0 6px 18px '+p.c+'44\'" onmouseout="this.style.transform=\'none\';this.style.borderColor=\''+p.c+'55\';this.style.boxShadow=\'none\'"><span style="font-size:22px">'+p.e+'</span><span style="font-size:10px;font-weight:600;color:#cbd5e1;text-align:center;line-height:1.2">'+p.l+'</span></button>';
   }).join('');
 }
 
@@ -10830,7 +10833,7 @@ function showAdminPanel(tab) {
         <button onclick="godResetTheme()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#9ca3af;padding:9px 14px;border-radius:9px;cursor:pointer;font-size:12px">↺ Sıfırla</button>
       </div>
       <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
-        ${['#7c3aed','#ef4444','#10b981','#f59e0b','#0ea5e9','#ec4899','#eab308'].map(function(c){return '<button onclick="godForceTheme('+JSON.stringify(c).replace(/"/g,'&quot;')+')" title="'+c+'" style="width:26px;height:26px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:'+c+';cursor:pointer"></button>';}).join('')}
+        ${['#7c3aed','#ef4444','#10b981','#f59e0b','#0ea5e9','#ec4899','#eab308'].map(function(c){return '<button onclick="godForceTheme('+JSON.stringify(c).replace(/"/g,'&quot;')+')" title="'+c+'" aria-label="'+c+'" style="width:26px;height:26px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:'+c+';cursor:pointer"></button>';}).join('')}
       </div>
     </div>
     <div style="background:rgba(13,16,24,0.9);border:1px solid rgba(239,68,68,0.15);border-radius:14px;padding:16px">
@@ -10935,7 +10938,7 @@ function showAdminPanel(tab) {
           <button onclick="_aiCopy('ai-output')" style="background:#0d1a0d;border:1px solid #16a34a;color:#4ade80;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px">📋 Kopyala</button>
         </div>
       </div>
-      <div id="ai-output" style="display:none;white-space:pre-wrap;background:#0a0e14;border:1px solid #1c2128;border-radius:10px;padding:12px;font-size:13px;color:#e8ecf3;line-height:1.6;max-height:340px;overflow-y:auto"></div>
+      <div id="ai-output" role="status" aria-live="polite" style="display:none;white-space:pre-wrap;background:#0a0e14;border:1px solid #1c2128;border-radius:10px;padding:12px;font-size:13px;color:#e8ecf3;line-height:1.6;max-height:340px;overflow-y:auto"></div>
     </div>
     <div style="background:rgba(13,16,24,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
@@ -10975,7 +10978,7 @@ function showAdminPanel(tab) {
           <button onclick="_aiCopy('content-output')" style="background:#0d1a0d;border:1px solid #16a34a;color:#4ade80;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px">📋 Kopyala</button>
         </div>
       </div>
-      <div id="content-output" style="display:none;white-space:pre-wrap;background:#0a0e14;border:1px solid #1c2128;border-radius:10px;padding:12px;font-size:13px;color:#e8ecf3;line-height:1.6;max-height:360px;overflow-y:auto"></div>
+      <div id="content-output" role="status" aria-live="polite" style="display:none;white-space:pre-wrap;background:#0a0e14;border:1px solid #1c2128;border-radius:10px;padding:12px;font-size:13px;color:#e8ecf3;line-height:1.6;max-height:360px;overflow-y:auto"></div>
     </div>
   </div>`;
     }
@@ -11008,7 +11011,7 @@ function showAdminPanel(tab) {
           <button onclick="_aiCopy('prompt-output')" style="background:#0d1a0d;border:1px solid #16a34a;color:#4ade80;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px">📋 Kopyala</button>
         </div>
       </div>
-      <div id="prompt-output" style="display:none;white-space:pre-wrap;background:#0a0e14;border:1px solid #1c2128;border-radius:10px;padding:12px;font-size:13px;color:#e8ecf3;line-height:1.6;max-height:360px;overflow-y:auto"></div>
+      <div id="prompt-output" role="status" aria-live="polite" style="display:none;white-space:pre-wrap;background:#0a0e14;border:1px solid #1c2128;border-radius:10px;padding:12px;font-size:13px;color:#e8ecf3;line-height:1.6;max-height:360px;overflow-y:auto"></div>
     </div>
   </div>`;
     }
@@ -11262,7 +11265,7 @@ function renderAchievementsList() {
 <div id="artifacts-panel" style="display:none;position:fixed;right:0;top:52px;bottom:0;width:42%;min-width:280px;max-width:600px;background:var(--sidebar);border-left:1px solid var(--border);z-index:100;overflow:hidden;"></div>
 
 <!-- Scroll to bottom FAB -->
-<button id="btn-scroll-down" onclick="scrollBottom();this.style.display='none'" title="Aşağı git" style="display:none;position:fixed;bottom:88px;right:20px;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);color:var(--muted);font-size:18px;cursor:pointer;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.3);transition:all .15s;align-items:center;justify-content:center;">↓</button>
+<button id="btn-scroll-down" onclick="scrollBottom();this.style.display='none'" title="Aşağı git" aria-label="Aşağı git" style="display:none;position:fixed;bottom:88px;right:20px;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);color:var(--muted);font-size:18px;cursor:pointer;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.3);transition:all .15s;align-items:center;justify-content:center;">↓</button>
 
 </body>
 </html>
