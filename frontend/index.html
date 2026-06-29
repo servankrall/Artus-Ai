@@ -9653,7 +9653,7 @@ function noteRender(){
 }
 
 /* ── 🤖 AI ÇEKİRDEK — tüm AI sekmeleri bunu kullanır ── */
-var _aiBusy=false, _aiStop=false, _lastAiRun=null;
+var _aiBusy=false, _aiStop=false, _lastAiRun=null, _aiAbort=null;
 async function _aiStream(sys, userMsg, outId, opts){
   opts = opts || {};
   if(_aiBusy){ showToast('⏳ AI hâlâ çalışıyor, bekle...'); return; }
@@ -9664,6 +9664,7 @@ async function _aiStream(sys, userMsg, outId, opts){
   out.style.display='block';
   out.innerHTML='<span style="display:inline-block;animation:badgePulse 1.2s infinite">🤖</span> AI düşünüyor...';
   _aiBusy=true; _aiStop=false; _setAiBusyUI(true);
+  _aiAbort = (typeof AbortController!=='undefined') ? new AbortController() : null;
   try {
     if(!window.OmniAI||!OmniAI.streamChat){ out.textContent='AI motoru yüklenemedi (sayfayı yenile).'; _aiBusy=false; _setAiBusyUI(false); return; }
     var txt='';
@@ -9671,15 +9672,19 @@ async function _aiStream(sys, userMsg, outId, opts){
       messages:[{role:'user',content:userMsg}],
       model:(typeof currentModel!=='undefined'?currentModel:'llama-3.3-70b-versatile'),
       systemPrompt:sys, temperature:opts.temp||0.6, maxTokens:opts.max||1024, topP:0.95,
+      signal: _aiAbort ? _aiAbort.signal : undefined,
       onText:function(c){ if(_aiStop) return; txt+=c; out.textContent=txt; }
     });
-    if(_aiStop){ out.dataset.raw=txt; out.textContent=txt+'\n\n⏹ (durduruldu)'; }
+    if(_aiStop){ out.dataset.raw=txt; out.textContent=(txt||'')+'\n\n⏹ (durduruldu)'; }
     else if(!txt) out.textContent='(boş yanıt — tekrar dene)';
     else { out.dataset.raw=txt; out.innerHTML=_mdRender(txt); _aiAddMeta(out, txt); _aiSaveHistory(txt); }
-  } catch(e){ out.textContent='⚠️ Hata: '+e.message; }
-  _aiBusy=false; _setAiBusyUI(false);
+  } catch(e){
+    if(e && e.name==='AbortError'){ out.textContent='⏹ İstek durduruldu'; }
+    else out.textContent='⚠️ Hata: '+(e&&e.message||e);
+  }
+  _aiAbort=null; _aiBusy=false; _setAiBusyUI(false);
 }
-function _aiStop2(){ if(_aiBusy){ _aiStop=true; _aiBusy=false; _setAiBusyUI(false); showToast('⏹ Durduruldu'); } }
+function _aiStop2(){ if(_aiBusy){ _aiStop=true; if(_aiAbort){ try{ _aiAbort.abort(); }catch(e){} } _aiBusy=false; _setAiBusyUI(false); showToast('⏹ Durduruldu'); } }
 function _aiRegen(){ if(_aiBusy){ showToast('⏳ Bitmesini bekle'); return; } if(_lastAiRun) _lastAiRun(); else showToast('Önce bir araç çalıştır'); }
 function _aiAddMeta(out, txt){
   var w = txt.trim().split(/\s+/).length;
