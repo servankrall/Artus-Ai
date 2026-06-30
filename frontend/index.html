@@ -1156,8 +1156,12 @@ body[data-mode="code"] .msg-act-btn:hover { color: #0969da; }
   #topbar { padding: 10px 12px; padding-top: calc(10px + env(safe-area-inset-top));
     height: auto; min-height: 52px; gap: 6px; }
   #topbar-right { gap: 6px; }
-  #mode-label, #tier-badge { display: none; }
-  #convo-title { max-width: 36vw; font-size: 14px; }
+  #tier-badge { display: none; }
+  /* Mod çipi mobilde GÖRÜNÜR kalsın — hikaye/diğer modlardan tek dokunuşla çıkış için */
+  #mode-label { display: inline-flex; align-items: center; padding: 5px 10px; min-height: 30px;
+    border-radius: 16px; background: rgba(124,58,237,.12); border: 1px solid rgba(124,58,237,.3);
+    cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+  #convo-title { max-width: 30vw; font-size: 14px; }
   .topbar-icon-btn { padding: 6px 10px; }
 
   /* Bubbles */
@@ -3249,9 +3253,13 @@ function updateConvoTitle() {
 }
 
 function cycleMode() {
-  const order = ['chat','code','design'];
-  const next = order[(order.indexOf(currentMode) + 1) % order.length];
-  handleModeClick(next);
+  // Ücretsiz kullanıcı pro-kilitli modlara takılmasın: sadece chat↔story döner.
+  // Pro kullanıcı tüm modları gezer. 'story' artık döngüde — mobilde tek dokunuşla çıkış sağlar.
+  var isPro = CURRENT_USER && CURRENT_USER.pro === true;
+  var order = isPro ? ['chat','code','design','story'] : ['chat','story'];
+  var idx = order.indexOf(currentMode);
+  if (idx === -1) idx = 0;
+  setMode(order[(idx + 1) % order.length]);
 }
 
 /* ═══════════════════════════════════════════════
@@ -4219,22 +4227,36 @@ function setMode(m) {
 }
 
 function applyMode(m, save) {
+  var VALID = ['chat','code','design','story'];
+  if (VALID.indexOf(m) === -1) m = 'chat';   // geçersiz/bozuk değerde takılıp kalma
   currentMode = m;
   if (save) localStorage.setItem('artus_mode', m);
   document.body.dataset.mode = m;
-  modeLabelEl.textContent = MODE_LABELS[m] || m;
+  if (modeLabelEl) modeLabelEl.textContent = MODE_LABELS[m] || m;
   document.querySelectorAll('.mode-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.mode === m);
   });
-  settingsModeS.value = m;
-  inputEl.placeholder = MODE_PLACEHOLDERS[m] || MODE_PLACEHOLDERS.chat;
-  modeHint.textContent = MODE_HINTS[m] || '';
+  if (settingsModeS) settingsModeS.value = m;
+  if (inputEl) inputEl.placeholder = MODE_PLACEHOLDERS[m] || MODE_PLACEHOLDERS.chat;
+  if (modeHint) modeHint.textContent = MODE_HINTS[m] || '';
   // Design modunda welcome alanını dashboard'a çevir
   const welcomeEl = document.getElementById('welcome');
   if (welcomeEl) {
     if (m === 'design') welcomeEl.innerHTML = renderDesignDashboard();
     else welcomeEl.innerHTML = renderWelcome();
   }
+  // ── MOBİL STATE TEMİZLİĞİ (butonun "takılı kalma" sorununu çözer) ──
+  // 1) Mobil tarayıcıda dokunulan butonda kalan :active/:focus durumunu kaldır
+  try { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } catch(e){}
+  // 2) Mobilde kenar çubuğu çekmecesini kapat ki mod değişimi görünür olsun
+  try {
+    if (window.matchMedia && window.matchMedia('(max-width: 860px)').matches) {
+      var sb = document.getElementById('sidebar');
+      if (sb && !sb.classList.contains('collapsed')) sb.classList.add('collapsed');
+    }
+  } catch(e){}
+  // 3) Görünür geri bildirim
+  try { if (typeof showToast === 'function') showToast((MODE_LABELS[m] || m) + ' modu'); } catch(e){}
 }
 
 /* ═══════════════════════════════════════════════
@@ -4366,7 +4388,8 @@ function renderStoryWelcome() {
   var chips = genres.map(function(g){
     return '<button class="wlc-chip" data-action="use-card" data-prompt="' + encodeURIComponent('Bana bir ' + g + ' hikayesi başlat') + '"><span>📖</span><span>' + g + '</span></button>';
   }).join('');
-  return '<div class="wlc-logo">📖</div><h2 id="wlc-greeting">Hikaye Modu</h2><p class="wlc-greeting">Bir tür seç ve hikayemizi başlatalım!</p><div class="wlc-chips">' + chips + '</div>';
+  return '<div class="wlc-logo">📖</div><h2 id="wlc-greeting">Hikaye Modu</h2><p class="wlc-greeting">Bir tür seç ve hikayemizi başlatalım!</p><div class="wlc-chips">' + chips + '</div>' +
+    '<button onclick="setMode(\'chat\')" aria-label="Sohbet moduna dön" style="margin-top:18px;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--muted);padding:9px 20px;border-radius:20px;cursor:pointer;font-size:13px;-webkit-tap-highlight-color:transparent;touch-action:manipulation">← Sohbet moduna dön</button>';
 }
 
 function renderWelcome() {
